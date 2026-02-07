@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MUFRA FASHIONS - {% block title %}Home{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap">
+</head>
+<body>
+    <!-- Top Bar -->
+    <div class="top-bar">
+        <div class="container">
+            <div class="top-bar-content">
+                <div class="top-bar-left">
+                    <span><i class="fas fa-phone"></i> +254 712 345 678</span>
+                    <span><i class="fas fa-envelope"></i> info@mufrafashions.com</span>
+                </div>
+                <div class="top-bar-right">
+                    {% if current_user.is_authenticated %}
+                        <span>Welcome, {{ current_user.username }}</span>
+                        <a href="{{ url_for('admin_logout') }}">Logout</a>
+                    {% else %}
+                        <a href="{{ url_for('admin_login') }}"><i class="fas fa-user-shield"></i> Admin</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <!-- Logo -->
+                <div class="logo">
+                    <a href="{{ url_for('home') }}">
+                        <h1><i class="fas fa-crown"></i> MUFRA FASHIONS</h1>
+                        <p class="logo-tagline">Style That Speaks</p>
+                    </a>
+                </div>
+
+                <!-- Search Bar -->
+                <div class="search-bar">
+                    <form action="{{ url_for('categories') }}" method="get">
+                        <input type="text" name="search" placeholder="Search products, brands, categories..." 
+                               value="{{ request.args.get('search', '') }}">
+                        <button type="submit">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Header Actions -->
+                <div class="header-actions">
+                    <div class="action-item">
+                        <a href="{{ url_for('cart') }}" class="cart-btn">
+                            <i class="fas fa-shopping-cart"></i>
+                            <span class="cart-count" id="cartCount">
+                                {{ session.cart|length if session.cart else 0 }}
+                            </span>
+                            <span class="action-label">Cart</span>
+                        </a>
+                    </div>
+                    <div class="action-item">
+                        <a href="{{ url_for('categories') }}" class="wishlist-btn">
+                            <i class="fas fa-heart"></i>
+                            <span class="action-label">Wishlist</span>
+                        </a>
+                    </div>
+                    <div class="action-item">
+                        <a href="#account" class="account-btn">
+                            <i class="fas fa-user"></i>
+                            <span class="action-label">Account</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Mobile Menu Toggle -->
+                <button class="mobile-menu-toggle" id="mobileMenuToggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="navbar" id="mainNav">
+        <div class="container">
+            <ul class="nav-menu">
+                <li><a href="{{ url_for('home') }}" class="{% if request.endpoint == 'home' %}active{% endif %}">
+                    <i class="fas fa-home"></i> Home
+                </a></li>
+                <li class="dropdown">
+                    <a href="{{ url_for('categories') }}" class="{% if request.endpoint == 'categories' %}active{% endif %}">
+                        <i class="fas fa-th-large"></i> Categories
+                        <i class="fas fa-chevron-down"></i>
+                    </a>
+                    <div class="dropdown-menu">
+                        <a href="{{ url_for('categories') }}?category=all">All Categories</a>
+                        <a href="{{ url_for('categories') }}?category=shoes">Shoes</a>
+                        <a href="{{ url_for('categories') }}?category=clothes">Clothes</a>
+                        <div class="dropdown-divider"></div>
+                        <a href="{{ url_for('categories') }}?subcategory=new">New Arrivals</a>
+                        <a href="{{ url_for('categories') }}?subcategory=secondhand">Second Hand</a>
+                    </div>
+                </li>
+                <li><a href="#new-arrivals">
+                    <i class="fas fa-star"></i> New Arrivals
+                </a></li>
+                <li><a href="#deals">
+                    <i class="fas fa-fire"></i> Hot Deals
+                </a></li>
+                <li><a href="#about">
+                    <i class="fas fa-info-circle"></i> About Us
+                </a></li>
+                <li><a href="#contact">
+                    <i class="fas fa-phone-alt"></i> Contact
+                </a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Newsletter Section -->
+    <section class="newsletter">
+        <div class="container">
+            <div class="newsletter-content">
+                <div class="newsletter-text">
+                    <h3>Stay Updated</h3>
+                    <p>Subscribe to our newsletter for the latest fashion trends and exclusive offers</p>
+                </div>
+                <form class="newsletter-form">
+                    <input type="email" placeholder="Enter your email address" required>
+                    <button type="submit">Subscribe</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <!-- Company Info -->
+                <div class="footer-section">
+                    <div class="footer-logo">
+                        <h3><i class="fas fa-crown"></i> MUFRA FASHIONS</h3>
+                        <p>Your one-stop shop for quality fashion at affordable prices.</p>
+                    </div>
+                    <div class="social-links">
+                        <a href="#"><i class="fab fa-facebook"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-tiktok"></i></a>
+                    </div>
+                </div>
+
+                <!-- Quick Links -->
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="{{ url_for('home') }}">Home</a></li>
+                        <li><a href="{{ url_for('categories') }}">Categories</a></li>
+                        <li><a href="#new-arrivals">New Arrivals</a></li>
+                        <li><a href="#deals">Hot Deals</a></li>
+                        <li><a href="#about">About Us</a></li>
+                    </ul>
+                </div>
+
+                <!-- Categories -->
+                <div class="footer-section">
+                    <h4>Categories</h4>
+                    <ul>
+                        <li><a href="{{ url_for('categories') }}?category=shoes">Shoes</a></li>
+                        <li><a href="{{ url_for('categories') }}?category=clothes">Clothes</a></li>
+                        <li><a href="{{ url_for('categories') }}?subcategory=new">New Items</a></li>
+                        <li><a href="{{ url_for('categories') }}?subcategory=secondhand">Second Hand</a></li>
+                        <li><a href="{{ url_for('categories') }}">All Products</a></li>
+                    </ul>
+                </div>
+
+                <!-- Contact Info -->
+                <div class="footer-section">
+                    <h4>Contact Us</h4>
+                    <div class="contact-info">
+                        <p><i class="fas fa-map-marker-alt"></i> 123 Fashion Street, Embu, Kenya</p>
+                        <p><i class="fas fa-phone"></i> +254 712 345 678</p>
+                        <p><i class="fas fa-envelope"></i> info@mufrafashions.com</p>
+                        <p><i class="fas fa-clock"></i> Mon-Sat: 8:00 AM - 8:00 PM</p>
+                    </div>
+                </div>
+
+                <!-- Payment Methods -->
+                <div class="footer-section">
+                    <h4>Payment Methods</h4>
+                    <div class="payment-methods">
+                        <i class="fab fa-cc-m-pesa" title="M-Pesa"></i>
+                        <i class="fab fa-cc-visa" title="Visa"></i>
+                        <i class="fab fa-cc-mastercard" title="Mastercard"></i>
+                        <i class="fas fa-mobile-alt" title="Airtel Money"></i>
+                        <i class="fas fa-money-bill-wave" title="Cash on Delivery"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Bottom -->
+            <div class="footer-bottom">
+                <div class="footer-bottom-content">
+                    <p>&copy; 2024 MUFRA FASHIONS. All rights reserved.</p>
+                    <div class="footer-links">
+                        <a href="#privacy">Privacy Policy</a>
+                        <a href="#terms">Terms of Service</a>
+                        <a href="#shipping">Shipping Policy</a>
+                        <a href="#returns">Return Policy</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Quick Action Buttons -->
+    <div class="quick-actions">
+        <button class="quick-action-btn" onclick="scrollToTop()" title="Back to Top">
+            <i class="fas fa-arrow-up"></i>
+        </button>
+        <button class="quick-action-btn" onclick="window.open('https://wa.me/254712345678', '_blank')" title="Chat on WhatsApp">
+            <i class="fab fa-whatsapp"></i>
+        </button>
+        <button class="quick-action-btn" onclick="window.location.href='{{ url_for('cart') }}'" title="View Cart">
+            <i class="fas fa-shopping-cart"></i>
+            <span class="cart-badge" id="floatingCartCount">{{ session.cart|length if session.cart else 0 }}</span>
+        </button>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    
+    <!-- Inline JavaScript for Base Template -->
+    <script>
+    // Mobile menu toggle
+    document.addEventListener('DOMContentLoaded', function() {
+        const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+        const mainNav = document.getElementById('mainNav');
+        
+        if (mobileMenuToggle && mainNav) {
+            mobileMenuToggle.addEventListener('click', function() {
+                mainNav.classList.toggle('active');
+                mobileMenuToggle.innerHTML = mainNav.classList.contains('active') 
+                    ? '<i class="fas fa-times"></i>' 
+                    : '<i class="fas fa-bars"></i>';
+            });
+        }
+        
+        // Update cart count from session
+        updateCartCount();
+        
+        // Initialize dropdowns
+        initializeDropdowns();
+    });
+    
+    function updateCartCount() {
+        // Update all cart count elements
+        const cartCount = {{ session.cart|length if session.cart else 0 }};
+        document.querySelectorAll('.cart-count, .cart-badge').forEach(el => {
+            el.textContent = cartCount;
+        });
+    }
+    
+    function initializeDropdowns() {
+        const dropdowns = document.querySelectorAll('.dropdown');
+        dropdowns.forEach(dropdown => {
+            dropdown.addEventListener('mouseenter', function() {
+                this.classList.add('open');
+            });
+            
+            dropdown.addEventListener('mouseleave', function() {
+                this.classList.remove('open');
+            });
+            
+            // Touch support for mobile
+            dropdown.addEventListener('touchstart', function(e) {
+                e.preventDefault();
+                this.classList.toggle('open');
+            });
+        });
+    }
+    
+    function scrollToTop() {
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    }
+    
+    // Listen for cart updates
+    document.addEventListener('cartUpdated', function() {
+        updateCartCount();
+    });
+    
+    // Add to cart function
+    function addToCart(productId, quantity = 1, size = '', color = '') {
+        fetch('/add_to_cart', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+                'product_id': productId,
+                'quantity': quantity.toString(),
+                'size': size,
+                'color': color
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update cart count
+                document.dispatchEvent(new Event('cartUpdated'));
+                
+                // Show success message
+                showToast('Added to cart!', 'success');
+                
+                // Update UI
+                updateCartCount();
+            } else {
+                showToast('Error adding to cart', 'error');
+            }
+        })
+        .catch(error => {
+            showToast('Error adding to cart', 'error');
+            console.error('Error:', error);
+        });
+    }
+    
+    // Toast notification
+    function showToast(message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.innerHTML = `
+            <div class="toast-content">
+                <i class="fas ${type === 'success' ? 'fa-check-circle' : 
+                              type === 'error' ? 'fa-exclamation-circle' : 
+                              'fa-info-circle'}"></i>
+                <span>${message}</span>
+            </div>
+            <button class="toast-close" onclick="this.parentElement.remove()">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        
+        toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${type === 'success' ? '#d4edda' : 
+                         type === 'error' ? '#f8d7da' : 
+                         '#d1ecf1'};
+            color: ${type === 'success' ? '#155724' : 
+                    type === 'error' ? '#721c24' : 
+                    '#0c5460'};
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-width: 300px;
+            max-width: 400px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 9999;
+            animation: slideInRight 0.3s ease-out;
+        `;
+        
+        document.body.appendChild(toast);
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.remove();
+            }
+        }, 5000);
+        
+        // Add animation styles if not present
+        if (!document.querySelector('#toast-animations')) {
+            const style = document.createElement('style');
+            style.id = 'toast-animations';
+            style.textContent = `
+                @keyframes slideInRight {
+                    from {
+                        transform: translateX(100%);
+                        opacity: 0;
+                    }
+                    to {
+                        transform: translateX(0);
+                        opacity: 1;
+                    }
+                }
+                
+                .toast-close {
+                    background: none;
+                    border: none;
+                    cursor: pointer;
+                    color: inherit;
+                    margin-left: 1rem;
+                    padding: 0.25rem;
+                    border-radius: 4px;
+                }
+                
+                .toast-close:hover {
+                    background-color: rgba(0, 0, 0, 0.1);
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    }
+    </script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>

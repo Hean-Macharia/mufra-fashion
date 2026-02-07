@@ -1,0 +1,668 @@
+{% extends "base.html" %}
+
+{% block title %}MUFRA FASHIONS - Home{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div class="container">
+        <h2>Welcome to MUFRA FASHIONS</h2>
+        <p>Discover amazing fashion at unbeatable prices</p>
+        <a href="{{ url_for('categories') }}" class="btn btn-primary">Shop Now</a>
+    </div>
+</section>
+
+<section class="featured-products">
+    <div class="container">
+        <h2 class="section-title">Featured Products</h2>
+        
+        {% if products and products|length > 0 %}
+        <div class="products-grid">
+            {% for product in products %}
+            <div class="product-card">
+                <div class="product-image">
+                    {% if product.images and product.images[0] %}
+                        <img src="{{ product.images[0] }}" 
+                             alt="{{ product.name }}"
+                             onerror="this.onerror=null; this.src='https://via.placeholder.com/300x300?text=No+Image';">
+                    {% else %}
+                        <img src="https://via.placeholder.com/300x300?text=No+Image" 
+                             alt="{{ product.name }}">
+                    {% endif %}
+                </div>
+                <div class="product-info">
+                    <h3>{{ product.name|default('Product Name') }}</h3>
+                    <p class="product-category">
+                        {{ product.category|default('General')|title }} - {{ product.subcategory|default('New')|title }}
+                    </p>
+                    <p class="price">KSh {{ "%.2f"|format(product.price|default(0)) }}</p>
+                    <p class="product-description">
+                        {{ product.description|default('No description available')|truncate(80) }}
+                    </p>
+                    <div class="product-actions">
+                        <a href="{{ url_for('product_detail', product_id=product._id) }}" 
+                           class="btn btn-secondary">View Details</a>
+                        <button class="btn btn-primary" 
+                                onclick="addToCart('{{ product._id }}')">
+                            <i class="fas fa-cart-plus"></i> Add to Cart
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="no-products">
+            <div class="no-products-icon">
+                <i class="fas fa-box-open"></i>
+            </div>
+            <h3>No Products Available</h3>
+            <p>We're currently updating our inventory. Please check back soon!</p>
+            <div class="demo-products-note">
+                <p><strong>Note:</strong> If you're in demo mode, products will appear here automatically.</p>
+                <button onclick="loadDemoProducts()" class="btn btn-primary">
+                    <i class="fas fa-sync"></i> Load Demo Products
+                </button>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<!-- New Arrivals Section -->
+<section class="new-arrivals">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">New Arrivals</h2>
+            <a href="{{ url_for('categories') }}?subcategory=new" class="view-all">View All New Items</a>
+        </div>
+        
+        <div class="categories-grid">
+            <div class="category-card">
+                <div class="category-image">
+                    <img src="https://images.unsplash.com/photo-1549298916-b41d501d3772?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80" 
+                         alt="Shoes">
+                </div>
+                <div class="category-info">
+                    <h3>New Shoes</h3>
+                    <p>Latest footwear collection</p>
+                    <a href="{{ url_for('categories') }}?category=shoes&subcategory=new" class="btn btn-outline">Shop Now</a>
+                </div>
+            </div>
+            
+            <div class="category-card">
+                <div class="category-image">
+                    <img src="https://images.unsplash.com/photo-1445205170230-053b83016050?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80" 
+                         alt="Clothes">
+                </div>
+                <div class="category-info">
+                    <h3>New Clothes</h3>
+                    <p>Fresh fashion arrivals</p>
+                    <a href="{{ url_for('categories') }}?category=clothes&subcategory=new" class="btn btn-outline">Shop Now</a>
+                </div>
+            </div>
+            
+            <div class="category-card">
+                <div class="category-image">
+                    <img src="https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80" 
+                         alt="Second Hand">
+                </div>
+                <div class="category-info">
+                    <h3>Second Hand</h3>
+                    <p>Quality pre-owned items</p>
+                    <a href="{{ url_for('categories') }}?subcategory=secondhand" class="btn btn-outline">Browse</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="features">
+    <div class="container">
+        <div class="features-grid">
+            <div class="feature">
+                <div class="feature-icon">
+                    <i class="fas fa-shipping-fast"></i>
+                </div>
+                <h3>Free Shipping</h3>
+                <p>Free delivery within Embu for orders over KSh 1000</p>
+            </div>
+            
+            <div class="feature">
+                <div class="feature-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h3>Secure Payment</h3>
+                <p>100% secure payment with M-Pesa & Airtel Money</p>
+            </div>
+            
+            <div class="feature">
+                <div class="feature-icon">
+                    <i class="fas fa-undo"></i>
+                </div>
+                <h3>Easy Returns</h3>
+                <p>30-day return policy for all items</p>
+            </div>
+            
+            <div class="feature">
+                <div class="feature-icon">
+                    <i class="fas fa-headset"></i>
+                </div>
+                <h3>24/7 Support</h3>
+                <p>Customer support available round the clock</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+    /* Hero Section */
+    .hero {
+        background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), 
+                    url('https://images.unsplash.com/photo-1441986300917-64674bd600d8?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80');
+        background-size: cover;
+        background-position: center;
+        color: white;
+        text-align: center;
+        padding: 100px 20px;
+        margin-bottom: 60px;
+    }
+    
+    .hero h2 {
+        font-size: 3rem;
+        margin-bottom: 20px;
+        font-weight: 700;
+    }
+    
+    .hero p {
+        font-size: 1.2rem;
+        margin-bottom: 30px;
+        opacity: 0.9;
+    }
+    
+    /* Section Title */
+    .section-title {
+        text-align: center;
+        font-size: 2.2rem;
+        margin-bottom: 40px;
+        color: #333;
+        position: relative;
+    }
+    
+    .section-title::after {
+        content: '';
+        position: absolute;
+        bottom: -10px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60px;
+        height: 3px;
+        background: #667eea;
+    }
+    
+    /* Products Grid */
+    .products-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 30px;
+        margin: 40px 0;
+    }
+    
+    .product-card {
+        background: white;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        transition: transform 0.3s, box-shadow 0.3s;
+        border: 1px solid #eee;
+    }
+    
+    .product-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+    }
+    
+    .product-image {
+        height: 220px;
+        overflow: hidden;
+    }
+    
+    .product-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.5s;
+    }
+    
+    .product-card:hover .product-image img {
+        transform: scale(1.05);
+    }
+    
+    .product-info {
+        padding: 20px;
+    }
+    
+    .product-info h3 {
+        font-size: 1.2rem;
+        margin-bottom: 8px;
+        color: #333;
+        line-height: 1.4;
+    }
+    
+    .product-category {
+        font-size: 0.85rem;
+        color: #666;
+        margin-bottom: 8px;
+    }
+    
+    .price {
+        color: #667eea;
+        font-size: 1.4rem;
+        font-weight: bold;
+        margin: 15px 0;
+    }
+    
+    .product-description {
+        color: #666;
+        font-size: 0.95rem;
+        line-height: 1.5;
+        margin-bottom: 20px;
+        min-height: 60px;
+    }
+    
+    .product-actions {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .product-actions .btn {
+        flex: 1;
+        padding: 10px;
+        font-size: 0.9rem;
+    }
+    
+    /* No Products State */
+    .no-products {
+        text-align: center;
+        padding: 60px 20px;
+        background: #f8f9fa;
+        border-radius: 15px;
+        border: 2px dashed #dee2e6;
+    }
+    
+    .no-products-icon {
+        font-size: 4rem;
+        color: #dee2e6;
+        margin-bottom: 20px;
+    }
+    
+    .no-products h3 {
+        color: #333;
+        margin-bottom: 15px;
+    }
+    
+    .no-products p {
+        color: #666;
+        margin-bottom: 25px;
+        max-width: 500px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    .demo-products-note {
+        background: #e7f3ff;
+        padding: 15px;
+        border-radius: 10px;
+        max-width: 500px;
+        margin: 20px auto 0;
+    }
+    
+    .demo-products-note p {
+        margin-bottom: 15px;
+        color: #004085;
+    }
+    
+    /* New Arrivals Section */
+    .new-arrivals {
+        background: #f8f9fa;
+        padding: 60px 0;
+        margin: 60px 0;
+    }
+    
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 40px;
+    }
+    
+    .view-all {
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 500;
+        padding: 8px 20px;
+        border: 2px solid #667eea;
+        border-radius: 25px;
+        transition: all 0.3s;
+    }
+    
+    .view-all:hover {
+        background: #667eea;
+        color: white;
+    }
+    
+    .categories-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 30px;
+    }
+    
+    .category-card {
+        background: white;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        transition: transform 0.3s;
+    }
+    
+    .category-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .category-image {
+        height: 200px;
+        overflow: hidden;
+    }
+    
+    .category-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.5s;
+    }
+    
+    .category-card:hover .category-image img {
+        transform: scale(1.05);
+    }
+    
+    .category-info {
+        padding: 25px;
+        text-align: center;
+    }
+    
+    .category-info h3 {
+        font-size: 1.4rem;
+        margin-bottom: 10px;
+        color: #333;
+    }
+    
+    .category-info p {
+        color: #666;
+        margin-bottom: 20px;
+    }
+    
+    .btn-outline {
+        background: transparent;
+        color: #667eea;
+        border: 2px solid #667eea;
+        padding: 8px 25px;
+        border-radius: 25px;
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.3s;
+    }
+    
+    .btn-outline:hover {
+        background: #667eea;
+        color: white;
+    }
+    
+    /* Features Section */
+    .features {
+        padding: 60px 0;
+        background: white;
+    }
+    
+    .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 40px;
+        text-align: center;
+    }
+    
+    .feature {
+        padding: 20px;
+    }
+    
+    .feature-icon {
+        font-size: 2.5rem;
+        color: #667eea;
+        margin-bottom: 20px;
+    }
+    
+    .feature h3 {
+        font-size: 1.3rem;
+        margin-bottom: 15px;
+        color: #333;
+    }
+    
+    .feature p {
+        color: #666;
+        line-height: 1.6;
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .hero {
+            padding: 60px 20px;
+        }
+        
+        .hero h2 {
+            font-size: 2.2rem;
+        }
+        
+        .section-header {
+            flex-direction: column;
+            gap: 20px;
+            text-align: center;
+        }
+        
+        .products-grid {
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .product-actions {
+            flex-direction: column;
+        }
+        
+        .categories-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .features-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    /* Animation for product cards */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .product-card {
+        animation: fadeInUp 0.5s ease-out;
+        animation-fill-mode: both;
+    }
+    
+    .product-card:nth-child(1) { animation-delay: 0.1s; }
+    .product-card:nth-child(2) { animation-delay: 0.2s; }
+    .product-card:nth-child(3) { animation-delay: 0.3s; }
+    .product-card:nth-child(4) { animation-delay: 0.4s; }
+    .product-card:nth-child(5) { animation-delay: 0.5s; }
+    .product-card:nth-child(6) { animation-delay: 0.6s; }
+    .product-card:nth-child(7) { animation-delay: 0.7s; }
+    .product-card:nth-child(8) { animation-delay: 0.8s; }
+</style>
+
+<script>
+// Function to add product to cart
+function addToCart(productId) {
+    fetch('/add_to_cart', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+            'product_id': productId,
+            'quantity': '1'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success message
+            showToast('Product added to cart!', 'success');
+            
+            // Update cart count
+            const cartCount = document.querySelector('.cart-count');
+            if (cartCount) {
+                cartCount.textContent = data.cart_count;
+            }
+        } else {
+            showToast('Error adding to cart', 'error');
+        }
+    })
+    .catch(error => {
+        showToast('Error adding to cart', 'error');
+        console.error('Error:', error);
+    });
+}
+
+// Function to load demo products
+function loadDemoProducts() {
+    // Simulate loading
+    showToast('Loading demo products...', 'info');
+    
+    // Reload the page to trigger demo mode
+    setTimeout(() => {
+        window.location.reload();
+    }, 1000);
+}
+
+// Toast notification function
+function showToast(message, type = 'success') {
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `
+        <div class="toast-content">
+            <i class="fas ${type === 'success' ? 'fa-check-circle' : 
+                          type === 'error' ? 'fa-exclamation-circle' : 
+                          'fa-info-circle'}"></i>
+            <span>${message}</span>
+        </div>
+        <button class="toast-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    
+    // Style the toast
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${type === 'success' ? '#d4edda' : 
+                     type === 'error' ? '#f8d7da' : 
+                     '#d1ecf1'};
+        color: ${type === 'success' ? '#155724' : 
+                type === 'error' ? '#721c24' : 
+                '#0c5460'};
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-width: 300px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 9999;
+        animation: slideInRight 0.3s ease-out;
+        border-left: 4px solid ${type === 'success' ? '#28a745' : 
+                               type === 'error' ? '#dc3545' : 
+                               '#17a2b8'};
+    `;
+    
+    // Add animation styles
+    const style = document.createElement('style');
+    if (!document.querySelector('#toast-animations')) {
+        style.id = 'toast-animations';
+        style.textContent = `
+            @keyframes slideInRight {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+            
+            .toast-close {
+                background: none;
+                border: none;
+                cursor: pointer;
+                color: inherit;
+                margin-left: 1rem;
+                padding: 0.25rem;
+                border-radius: 4px;
+            }
+            
+            .toast-close:hover {
+                background-color: rgba(0, 0, 0, 0.1);
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    // Add to page
+    document.body.appendChild(toast);
+    
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.remove();
+        }
+    }, 5000);
+}
+
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('MUFRA FASHIONS homepage loaded');
+    
+    // Add hover effects to product cards
+    document.querySelectorAll('.product-card').forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.zIndex = '10';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.zIndex = '1';
+        });
+    });
+    
+    // Check if we have products
+    const productGrid = document.querySelector('.products-grid');
+    if (!productGrid || productGrid.children.length === 0) {
+        console.log('No products found on homepage');
+    }
+});
+</script>
+{% endblock %}

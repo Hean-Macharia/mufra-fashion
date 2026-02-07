@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Error - MUFRA FASHIONS</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            padding: 20px;
+        }
+
+        .error-container {
+            text-align: center;
+            max-width: 600px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 50px;
+            border-radius: 20px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .error-icon {
+            font-size: 8rem;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 30px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.1);
+                opacity: 0.8;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        h1 {
+            font-size: 5rem;
+            margin-bottom: 20px;
+            font-weight: 800;
+            text-shadow: 3px 3px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        h2 {
+            font-size: 2rem;
+            margin-bottom: 20px;
+            font-weight: 600;
+            opacity: 0.9;
+        }
+
+        p {
+            font-size: 1.1rem;
+            margin-bottom: 30px;
+            line-height: 1.6;
+            opacity: 0.8;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .error-message {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px 25px;
+            border-radius: 15px;
+            font-family: monospace;
+            font-size: 1.1rem;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            text-align: left;
+            max-width: 100%;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .error-details {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: left;
+            font-size: 0.9rem;
+            font-family: monospace;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 40px;
+        }
+
+        .btn {
+            padding: 15px 35px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 200px;
+            justify-content: center;
+        }
+
+        .btn-primary {
+            background: white;
+            color: #f5576c;
+            border: 2px solid white;
+        }
+
+        .btn-primary:hover {
+            background: transparent;
+            color: white;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: white;
+            transform: translateY(-3px);
+        }
+
+        .btn-danger {
+            background: #ff4444;
+            color: white;
+            border: 2px solid #ff4444;
+        }
+
+        .btn-danger:hover {
+            background: transparent;
+            color: #ff4444;
+            transform: translateY(-3px);
+        }
+
+        .contact-info {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .contact-info h3 {
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .contact-methods {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .contact-method {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 25px;
+            text-decoration: none;
+            color: white;
+            transition: all 0.3s;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .contact-method:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .logo {
+            position: absolute;
+            top: 30px;
+            left: 30px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: white;
+            text-decoration: none;
+        }
+
+        .logo i {
+            font-size: 2rem;
+        }
+
+        .server-status {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            font-size: 0.9rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ff4444;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .technical-details {
+            text-align: left;
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-family: monospace;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .technical-details summary {
+            cursor: pointer;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        @media (max-width: 768px) {
+            .error-container {
+                padding: 30px 20px;
+            }
+            
+            h1 {
+                font-size: 3.5rem;
+            }
+            
+            h2 {
+                font-size: 1.5rem;
+            }
+            
+            .error-icon {
+                font-size: 6rem;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+            
+            .logo, .server-status {
+                position: relative;
+                top: 0;
+                left: 0;
+                right: 0;
+                justify-content: center;
+                margin-bottom: 20px;
+            }
+            
+            .contact-methods {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 2.5rem;
+            }
+            
+            .error-icon {
+                font-size: 4rem;
+            }
+            
+            .error-container {
+                padding: 20px 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="/" class="logo">
+        <i class="fas fa-crown"></i>
+        MUFRA FASHIONS
+    </a>
+    
+    <div class="server-status">
+        <div class="status-indicator"></div>
+        <span>Server Error Detected</span>
+    </div>
+    
+    <div class="error-container">
+        <div class="error-icon">
+            <i class="fas fa-server"></i>
+        </div>
+        
+        <h1>500</h1>
+        <h2>Internal Server Error</h2>
+        
+        <p>Oops! Something went wrong on our end. Our technical team has been notified and is working to fix the issue.</p>
+        
+        <div class="error-message">
+            HTTP 500 - Internal Server Error
+        </div>
+        
+        <!-- Technical Details (Collapsible) -->
+        <details class="technical-details">
+            <summary>Technical Details</summary>
+            <div>
+                <p><strong>Timestamp:</strong> <span id="timestamp"></span></p>
+                <p><strong>Error ID:</strong> ERR_{{ "%.0f"|format(random() * 1000000) }}</p>
+                <p><strong>Request ID:</strong> REQ_{{ "%.0f"|format(random() * 1000000) }}</p>
+                <p><strong>Server:</strong> MUFRA FASHIONS Web Server</p>
+                <p><strong>Status:</strong> Investigating Issue</p>
+            </div>
+        </details>
+        
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+            <a href="/" class="btn btn-primary">
+                <i class="fas fa-home"></i> Go to Homepage
+            </a>
+            <a href="javascript:location.reload()" class="btn btn-secondary">
+                <i class="fas fa-sync-alt"></i> Try Again
+            </a>
+            <a href="/admin/login" class="btn btn-danger">
+                <i class="fas fa-user-shield"></i> Admin Login
+            </a>
+        </div>
+        
+        <!-- Contact Information -->
+        <div class="contact-info">
+            <h3>Need Immediate Assistance?</h3>
+            <div class="contact-methods">
+                <a href="tel:+254712345678" class="contact-method">
+                    <i class="fas fa-phone"></i> +254 712 345 678
+                </a>
+                <a href="mailto:support@mufrafashions.com" class="contact-method">
+                    <i class="fas fa-envelope"></i> support@mufrafashions.com
+                </a>
+                <a href="https://wa.me/254712345678" target="_blank" class="contact-method">
+                    <i class="fab fa-whatsapp"></i> WhatsApp Support
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Set current timestamp
+        document.getElementById('timestamp').textContent = new Date().toLocaleString();
+        
+        // Add some interactive effects
+        document.querySelectorAll('.btn, .contact-method').forEach(button => {
+            button.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-3px)';
+            });
+            
+            button.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0)';
+            });
+        });
+        
+        // Simulate server status check
+        function checkServerStatus() {
+            const indicator = document.querySelector('.status-indicator');
+            const statusText = document.querySelector('.server-status span');
+            
+            // Simulate checking
+            setTimeout(() => {
+                indicator.style.background = '#ff4444';
+                indicator.style.animation = 'blink 1s infinite';
+                statusText.textContent = 'Server Error Detected';
+            }, 1000);
+            
+            // Try to recover after 10 seconds
+            setTimeout(() => {
+                indicator.style.background = '#4CAF50';
+                indicator.style.animation = 'none';
+                statusText.textContent = 'Server Recovering...';
+                
+                setTimeout(() => {
+                    indicator.style.background = '#4CAF50';
+                    indicator.style.animation = 'none';
+                    statusText.textContent = 'Server Operational';
+                }, 3000);
+            }, 10000);
+        }
+        
+        // Start checking
+        checkServerStatus();
+        
+        // Add auto-refresh after 30 seconds
+        setTimeout(() => {
+            const refreshBtn = document.createElement('div');
+            refreshBtn.innerHTML = `
+                <div style="
+                    position: fixed;
+                    bottom: 20px;
+                    right: 20px;
+                    background: rgba(255, 255, 255, 0.9);
+                    color: #f5576c;
+                    padding: 15px 25px;
+                    border-radius: 50px;
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    cursor: pointer;
+                    font-weight: 600;
+                    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+                    animation: slideInUp 0.5s ease-out;
+                ">
+                    <i class="fas fa-sync-alt"></i>
+                    Auto-refresh in <span id="countdown">5</span>s
+                </div>
+            `;
+            
+            document.body.appendChild(refreshBtn);
+            
+            let countdown = 5;
+            const countdownElement = document.getElementById('countdown');
+            const interval = setInterval(() => {
+                countdown--;
+                countdownElement.textContent = countdown;
+                
+                if (countdown <= 0) {
+                    clearInterval(interval);
+                    location.reload();
+                }
+            }, 1000);
+            
+            // Cancel auto-refresh on click
+            refreshBtn.addEventListener('click', function() {
+                clearInterval(interval);
+                this.remove();
+            });
+            
+            // Add CSS animation
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes slideInUp {
+                    from {
+                        transform: translateY(100px);
+                        opacity: 0;
+                    }
+                    to {
+                        transform: translateY(0);
+                        opacity: 1;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+        }, 25000);
+        
+        // Add error simulation for demo
+        const errorDetails = document.querySelector('.error-details');
+        if (errorDetails) {
+            const errors = [
+                "Database connection timeout",
+                "Internal routing error",
+                "Service unavailable",
+                "Memory allocation failed",
+                "Request processing error"
+            ];
+            
+            const randomError = errors[Math.floor(Math.random() * errors.length)];
+            errorDetails.textContent = `Error: ${randomError}\n\nStack trace:\n- Error occurred at ${new Date().toISOString()}\n- Request path: ${window.location.pathname}\n- Session ID: ${Math.random().toString(36).substr(2, 9)}\n- User agent: ${navigator.userAgent.substring(0, 50)}...`;
+        }
+    </script>
+</body>
+</html>

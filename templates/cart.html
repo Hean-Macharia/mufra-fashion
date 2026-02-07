@@ -1,0 +1,583 @@
+{% extends "base.html" %}
+
+{% block title %}Shopping Cart - MUFRA FASHIONS{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="page-title">Shopping Cart</h1>
+    
+    {% if cart_items and cart_items|length > 0 %}
+    <div class="cart-container">
+        <!-- Cart Items -->
+        <div class="cart-items">
+            <div class="cart-header">
+                <div class="header-product">Product</div>
+                <div class="header-price">Price</div>
+                <div class="header-quantity">Quantity</div>
+                <div class="header-total">Total</div>
+                <div class="header-actions">Actions</div>
+            </div>
+            
+            {% for item in cart_items %}
+            <div class="cart-item">
+                <div class="item-product">
+                    <div class="product-image">
+                        {% if item.product.images and item.product.images[0] %}
+                            <img src="{{ item.product.images[0] }}" 
+                                 alt="{{ item.product.name }}"
+                                 onerror="this.onerror=null; this.src='https://via.placeholder.com/100x100?text=No+Image';">
+                        {% else %}
+                            <img src="https://via.placeholder.com/100x100?text=No+Image" 
+                                 alt="{{ item.product.name }}">
+                        {% endif %}
+                    </div>
+                    <div class="product-details">
+                        <h3>{{ item.product.name }}</h3>
+                        <div class="product-variants">
+                            {% if item.size %}
+                                <span class="variant">Size: {{ item.size }}</span>
+                            {% endif %}
+                            {% if item.color %}
+                                <span class="variant">Color: {{ item.color }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="item-price">
+                    <span class="price">KSh {{ "%.2f"|format(item.product.price) }}</span>
+                </div>
+                
+                <div class="item-quantity">
+                    <div class="quantity-control">
+                        <button class="quantity-btn minus" 
+                                onclick="updateQuantity('{{ loop.index0 }}', -1)">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        <input type="number" 
+                               class="quantity-input" 
+                               value="{{ item.quantity }}" 
+                               min="1"
+                               data-index="{{ loop.index0 }}">
+                        <button class="quantity-btn plus" 
+                                onclick="updateQuantity('{{ loop.index0 }}', 1)">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="item-total">
+                    <span class="total-price">KSh {{ "%.2f"|format(item.item_total) }}</span>
+                </div>
+                
+                <div class="item-actions">
+                    <button class="remove-btn" 
+                            onclick="removeItem('{{ loop.index0 }}')"
+                            title="Remove item">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Cart Summary -->
+        <div class="cart-summary">
+            <div class="summary-card">
+                <h3>Order Summary</h3>
+                
+                <div class="summary-row">
+                    <span>Subtotal</span>
+                    <span>KSh {{ "%.2f"|format(total) }}</span>
+                </div>
+                
+                <div class="summary-row">
+                    <span>Shipping</span>
+                    <span class="shipping-note">Calculated at checkout</span>
+                </div>
+                
+                <div class="summary-row discount">
+                    <span>Discount</span>
+                    <span>- KSh 0.00</span>
+                </div>
+                
+                <div class="summary-divider"></div>
+                
+                <div class="summary-row total">
+                    <span>Total</span>
+                    <span>KSh {{ "%.2f"|format(total) }}</span>
+                </div>
+                
+                <div class="summary-actions">
+                    <a href="{{ url_for('categories') }}" class="btn btn-outline">
+                        <i class="fas fa-arrow-left"></i> Continue Shopping
+                    </a>
+                    <a href="{{ url_for('checkout') }}" class="btn btn-primary">
+                        Proceed to Checkout <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+                
+                <div class="payment-methods">
+                    <h4>Secure Payment</h4>
+                    <div class="payment-icons">
+                        <i class="fab fa-cc-m-pesa" title="M-Pesa"></i>
+                        <i class="fab fa-cc-visa" title="Visa"></i>
+                        <i class="fab fa-cc-mastercard" title="Mastercard"></i>
+                        <i class="fas fa-mobile-alt" title="Airtel Money"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="cart-promo">
+                <h4>Have a Promo Code?</h4>
+                <div class="promo-form">
+                    <input type="text" placeholder="Enter promo code">
+                    <button class="btn btn-secondary">Apply</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% else %}
+    <div class="empty-cart">
+        <div class="empty-cart-icon">
+            <i class="fas fa-shopping-cart"></i>
+        </div>
+        <h2>Your Cart is Empty</h2>
+        <p>Looks like you haven't added any items to your cart yet.</p>
+        <a href="{{ url_for('categories') }}" class="btn btn-primary">
+            <i class="fas fa-shopping-bag"></i> Start Shopping
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+/* Cart Styles */
+.page-title {
+    text-align: center;
+    font-size: 2.5rem;
+    margin: 40px 0;
+    color: #333;
+}
+
+.cart-container {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 30px;
+    margin-bottom: 60px;
+}
+
+@media (max-width: 992px) {
+    .cart-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Cart Items */
+.cart-items {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.cart-header {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr 0.5fr;
+    padding: 20px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #eee;
+    font-weight: 600;
+    color: #333;
+}
+
+.cart-item {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr 0.5fr;
+    padding: 20px;
+    align-items: center;
+    border-bottom: 1px solid #eee;
+    transition: background 0.3s;
+}
+
+.cart-item:hover {
+    background: #f9f9f9;
+}
+
+.item-product {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.product-image {
+    width: 100px;
+    height: 100px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #eee;
+}
+
+.product-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.product-details h3 {
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+    color: #333;
+}
+
+.product-variants {
+    display: flex;
+    gap: 15px;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.variant {
+    background: #f0f0f0;
+    padding: 2px 10px;
+    border-radius: 12px;
+}
+
+/* Quantity Control */
+.quantity-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.quantity-btn {
+    width: 35px;
+    height: 35px;
+    border: 1px solid #ddd;
+    background: white;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+}
+
+.quantity-btn:hover {
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
+}
+
+.quantity-input {
+    width: 60px;
+    text-align: center;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
+}
+
+.price, .total-price {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #667eea;
+}
+
+/* Remove Button */
+.remove-btn {
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: #fee;
+    color: #e74c3c;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+}
+
+.remove-btn:hover {
+    background: #e74c3c;
+    color: white;
+}
+
+/* Cart Summary */
+.cart-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.summary-card {
+    background: white;
+    border-radius: 15px;
+    padding: 30px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+}
+
+.summary-card h3 {
+    margin-bottom: 25px;
+    font-size: 1.5rem;
+    color: #333;
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px dashed #eee;
+}
+
+.summary-row:last-child {
+    border-bottom: none;
+}
+
+.summary-row.total {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #333;
+    margin-top: 10px;
+}
+
+.summary-divider {
+    height: 2px;
+    background: #667eea;
+    margin: 20px 0;
+}
+
+.summary-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 25px;
+}
+
+.summary-actions .btn {
+    width: 100%;
+    text-align: center;
+    justify-content: center;
+}
+
+/* Payment Methods */
+.payment-methods {
+    margin-top: 25px;
+    padding-top: 25px;
+    border-top: 1px solid #eee;
+}
+
+.payment-methods h4 {
+    margin-bottom: 15px;
+    font-size: 1.1rem;
+}
+
+.payment-icons {
+    display: flex;
+    gap: 15px;
+    font-size: 2rem;
+    color: #555;
+}
+
+.payment-icons i {
+    opacity: 0.7;
+    transition: opacity 0.3s;
+}
+
+.payment-icons i:hover {
+    opacity: 1;
+}
+
+/* Cart Promo */
+.cart-promo {
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+}
+
+.cart-promo h4 {
+    margin-bottom: 15px;
+    font-size: 1.2rem;
+}
+
+.promo-form {
+    display: flex;
+    gap: 10px;
+}
+
+.promo-form input {
+    flex: 1;
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
+}
+
+/* Empty Cart */
+.empty-cart {
+    text-align: center;
+    padding: 60px 20px;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    margin: 40px auto;
+    max-width: 600px;
+}
+
+.empty-cart-icon {
+    font-size: 4rem;
+    color: #ddd;
+    margin-bottom: 20px;
+}
+
+.empty-cart h2 {
+    font-size: 2rem;
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.empty-cart p {
+    color: #666;
+    margin-bottom: 30px;
+    font-size: 1.1rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .cart-header {
+        display: none;
+    }
+    
+    .cart-item {
+        grid-template-columns: 1fr;
+        gap: 15px;
+        padding: 20px;
+        position: relative;
+    }
+    
+    .item-product {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .product-details h3 {
+        text-align: center;
+    }
+    
+    .item-quantity,
+    .item-price,
+    .item-total {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .item-actions {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+    }
+    
+    .summary-actions {
+        flex-direction: column;
+    }
+}
+</style>
+
+<script>
+function updateQuantity(index, change) {
+    const quantityInput = document.querySelectorAll('.quantity-input')[index];
+    let quantity = parseInt(quantityInput.value) + change;
+    
+    if (quantity < 1) quantity = 1;
+    
+    // Update the UI
+    quantityInput.value = quantity;
+    
+    // Here you would typically make an API call to update the cart
+    // For now, we'll just show a message
+    showToast('Quantity updated', 'info');
+}
+
+function removeItem(index) {
+    if (confirm('Are you sure you want to remove this item from your cart?')) {
+        // Here you would typically make an API call to remove the item
+        // For now, we'll just show a message
+        showToast('Item removed from cart', 'success');
+        
+        // Reload the page to reflect changes
+        setTimeout(() => {
+            window.location.reload();
+        }, 1000);
+    }
+}
+
+function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `
+        <div class="toast-content">
+            <i class="fas ${type === 'success' ? 'fa-check-circle' : 
+                          type === 'error' ? 'fa-exclamation-circle' : 
+                          'fa-info-circle'}"></i>
+            <span>${message}</span>
+        </div>
+        <button class="toast-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${type === 'success' ? '#d4edda' : 
+                     type === 'error' ? '#f8d7da' : 
+                     '#d1ecf1'};
+        color: ${type === 'success' ? '#155724' : 
+                type === 'error' ? '#721c24' : 
+                '#0c5460'};
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-width: 300px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 9999;
+        animation: slideInRight 0.3s ease-out;
+    `;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.remove();
+        }
+    }, 5000);
+}
+
+// Add animation styles
+if (!document.querySelector('#toast-animations')) {
+    const style = document.createElement('style');
+    style.id = 'toast-animations';
+    style.textContent = `
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+}
+</script>
+{% endblock %}
