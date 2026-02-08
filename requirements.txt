@@ -1,8 +1,76 @@
+# Core Flask Framework
 Flask==2.3.3
 Flask-PyMongo==2.3.0
-Flask-Login==0.6.3
-python-dotenv==1.0.0
-pymongo[srv]==4.4.1
-bcrypt==4.0.1
-gunicorn==21.2.0
+Flask-Login==0.6.2
+Flask-WTF==1.1.1
+
+# Database & Data Handling
+pymongo==4.6.0
+dnspython==2.4.2
+motor==3.3.2
+
+# Authentication & Security
+bcrypt==4.1.2
+passlib==1.7.4
+itsdangerous==2.1.2
 Werkzeug==2.3.7
+Jinja2==3.1.2
+
+# Payment Processing
+paystackapi==1.1.7
+requests==2.31.0
+urllib3==2.0.7
+
+# File Handling
+Pillow==10.1.0
+python-magic==0.4.27
+
+# Email & Notifications
+flask-mail==0.9.1
+
+# Environment Variables
+python-dotenv==1.0.0
+
+# Date & Time
+python-dateutil==2.8.2
+pytz==2023.3
+
+# Data Processing
+numpy==1.24.4
+pandas==2.0.3
+
+# Web Utilities
+gunicorn==21.2.0
+whitenoise==6.5.0
+blinker==1.7.0
+
+# Development & Testing
+pytest==7.4.3
+pytest-flask==1.2.0
+Faker==19.9.0
+
+# Optional: For image processing if you add image uploads
+python-resize-image==1.1.20
+
+# Optional: For generating PDF invoices/receipts
+reportlab==4.0.4
+PyPDF2==3.0.1
+
+# Optional: For advanced email templates
+premailer==3.10.0
+
+# Optional: For caching
+Flask-Caching==2.0.2
+
+# Optional: For API rate limiting
+Flask-Limiter==3.5.1
+
+# Optional: For background tasks
+celery==5.3.4
+redis==5.0.1
+
+# Optional: For monitoring
+Flask-MonitoringDashboard==3.1.6
+
+# Optional: For generating QR codes
+qrcode==7.4.2
