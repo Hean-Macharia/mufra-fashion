@@ -5,6 +5,8 @@ from flask_login import LoginManager, login_user, login_required, logout_user, c
 from bson.objectid import ObjectId
 from paystackapi.paystack import Paystack
 import uuid
+import base64
+import json
 from datetime import datetime
 import bcrypt
 from dotenv import load_dotenv
@@ -217,6 +219,240 @@ def inject_total_value():
     
     return {'total_value': total_value}
 
+class MpesaService:
+    def __init__(self, consumer_key, consumer_secret, environment='sandbox'):
+        self.consumer_key = consumer_key
+        self.consumer_secret = consumer_secret
+        self.environment = environment
+        
+        if environment == 'production':
+            self.base_url = 'https://api.safaricom.co.ke'
+        else:
+            self.base_url = 'https://sandbox.safaricom.co.ke'
+        
+        self.access_token = None
+        self.token_expiry = None
+
+    def get_access_token(self):
+        """Get M-Pesa API access token"""
+        try:
+            # Encode consumer key and secret
+            auth_string = f"{self.consumer_key}:{self.consumer_secret}"
+            encoded_auth = base64.b64encode(auth_string.encode()).decode()
+            
+            headers = {
+                'Authorization': f'Basic {encoded_auth}'
+            }
+            
+            url = f"{self.base_url}/oauth/v1/generate?grant_type=client_credentials"
+            
+            response = requests.get(url, headers=headers)
+            
+            if response.status_code == 200:
+                data = response.json()
+                self.access_token = data.get('access_token')
+                self.token_expiry = datetime.now().timestamp() + int(data.get('expires_in', 3600))
+                return self.access_token
+            else:
+                print(f"M-Pesa token error: {response.text}")
+                return None
+                
+        except Exception as e:
+            print(f"Error getting M-Pesa token: {e}")
+            return None
+
+    def stk_push(self, phone_number, amount, account_reference, transaction_desc):
+        """Initiate STK Push payment"""
+        try:
+            # Get access token if not available or expired
+            if not self.access_token or (self.token_expiry and datetime.now().timestamp() > self.token_expiry):
+                self.get_access_token()
+            
+            if not self.access_token:
+                return {'success': False, 'error': 'Failed to authenticate with M-Pesa'}
+            
+            # Format phone number
+            if phone_number.startswith('0'):
+                phone_number = '254' + phone_number[1:]
+            elif phone_number.startswith('+254'):
+                phone_number = phone_number[1:]
+            elif phone_number.startswith('254'):
+                pass  # Already correct
+            else:
+                phone_number = '254' + phone_number
+            
+            # Remove any spaces or dashes
+            phone_number = phone_number.replace(' ', '').replace('-', '')
+            
+            # For sandbox, use test credentials
+            if self.environment == 'sandbox':
+                business_shortcode = '174379'
+                passkey = 'bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919'
+                callback_url = 'https://mufra-fashion.onrender.com/callback/mpesa'
+            else:
+                business_shortcode = 'YOUR_BUSINESS_SHORTCODE'
+                passkey = 'YOUR_PASSKEY'
+                callback_url = 'https://mufra-fashion.onrender.com/callback/mpesa'
+            
+            # Generate timestamp
+            timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+            
+            # Generate password
+            password_string = f"{business_shortcode}{passkey}{timestamp}"
+            password = base64.b64encode(password_string.encode()).decode()
+            
+            # STK Push request
+            stk_url = f"{self.base_url}/mpesa/stkpush/v1/processrequest"
+            
+            headers = {
+                'Authorization': f'Bearer {self.access_token}',
+                'Content-Type': 'application/json'
+            }
+            
+            payload = {
+                'BusinessShortCode': business_shortcode,
+                'Password': password,
+                'Timestamp': timestamp,
+                'TransactionType': 'CustomerPayBillOnline',
+                'Amount': int(amount),
+                'PartyA': phone_number,
+                'PartyB': business_shortcode,
+                'PhoneNumber': phone_number,
+                'CallBackURL': callback_url,
+                'AccountReference': account_reference,
+                'TransactionDesc': transaction_desc
+            }
+            
+            response = requests.post(stk_url, json=payload, headers=headers)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('ResponseCode') == '0':
+                    return {
+                        'success': True,
+                        'checkout_request_id': data.get('CheckoutRequestID'),
+                        'customer_message': data.get('CustomerMessage'),
+                        'merchant_request_id': data.get('MerchantRequestID')
+                    }
+                else:
+                    return {
+                        'success': False,
+                        'error': data.get('ResponseDescription', 'STK Push failed')
+                    }
+            else:
+                return {
+                    'success': False,
+                    'error': f"HTTP {response.status_code}: {response.text}"
+                }
+                
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+
+class AirtelMoneyService:
+    def __init__(self, client_id, client_secret, environment='sandbox'):
+        self.client_id = client_id
+        self.client_secret = client_secret
+        self.environment = environment
+        
+        if environment == 'production':
+            self.base_url = 'https://openapi.airtel.africa'
+        else:
+            self.base_url = 'https://openapiuat.airtel.africa'
+        
+        self.access_token = None
+
+    def get_access_token(self):
+        """Get Airtel Money API access token"""
+        try:
+            url = f"{self.base_url}/auth/oauth2/token"
+            
+            headers = {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+            
+            data = {
+                'client_id': self.client_id,
+                'client_secret': self.client_secret,
+                'grant_type': 'client_credentials'
+            }
+            
+            response = requests.post(url, headers=headers, data=data)
+            
+            if response.status_code == 200:
+                data = response.json()
+                self.access_token = data.get('access_token')
+                return self.access_token
+            else:
+                print(f"Airtel token error: {response.text}")
+                return None
+                
+        except Exception as e:
+            print(f"Error getting Airtel token: {e}")
+            return None
+
+    def initiate_payment(self, msisdn, amount, transaction_id, callback_url):
+        """Initiate Airtel Money payment"""
+        try:
+            if not self.access_token:
+                self.get_access_token()
+            
+            if not self.access_token:
+                return {'success': False, 'error': 'Failed to authenticate with Airtel'}
+            
+            # Format phone number
+            if msisdn.startswith('0'):
+                msisdn = '254' + msisdn[1:]
+            elif msisdn.startswith('+254'):
+                msisdn = msisdn[1:]
+            
+            url = f"{self.base_url}/merchant/v1/payments/"
+            
+            headers = {
+                'Authorization': f'Bearer {self.access_token}',
+                'Content-Type': 'application/json',
+                'X-Country': 'KE',
+                'X-Currency': 'KES'
+            }
+            
+            payload = {
+                'reference': transaction_id,
+                'subscriber': {
+                    'country': 'KE',
+                    'currency': 'KES',
+                    'msisdn': msisdn
+                },
+                'transaction': {
+                    'amount': str(amount),
+                    'country': 'KE',
+                    'currency': 'KES',
+                    'id': transaction_id
+                }
+            }
+            
+            response = requests.post(url, json=payload, headers=headers)
+            
+            if response.status_code in [200, 201]:
+                data = response.json()
+                if data.get('status', {}).get('code') == '200':
+                    return {
+                        'success': True,
+                        'transaction_id': transaction_id,
+                        'message': 'Payment request sent to customer'
+                    }
+                else:
+                    return {
+                        'success': False,
+                        'error': data.get('status', {}).get('message', 'Payment failed')
+                    }
+            else:
+                return {
+                    'success': False,
+                    'error': f"HTTP {response.status_code}: {response.text}"
+                }
+                
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+
 # ========== HELPER FUNCTIONS ==========
 def get_demo_products():
     """Return demo products for testing"""
@@ -334,6 +570,276 @@ def home():
     
     return render_template('index.html', products=products)
 
+@app.route('/callback/paystack/mobile', methods=['POST'])
+def paystack_mobile_callback():
+    """Handle Paystack mobile money callback (webhook)"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'status': 'error', 'message': 'No data received'}), 400
+        
+        event = data.get('event')
+        
+        if event == 'charge.success':
+            # Payment successful
+            charge_data = data.get('data', {})
+            reference = charge_data.get('reference')
+            
+            if not reference:
+                return jsonify({'status': 'error', 'message': 'No reference'}), 400
+            
+            # Find the order
+            if db_connected:
+                order = mongo.db.orders.find_one({'reference': reference})
+                if not order:
+                    # Try alternative reference field
+                    order = mongo.db.orders.find_one({'paystack_mobile_ref': reference})
+            else:
+                order = None
+                if 'orders' in session:
+                    for o in session['orders']:
+                        if o.get('reference') == reference or o.get('paystack_mobile_ref') == reference:
+                            order = o
+                            break
+            
+            if order:
+                # Update order status
+                update_data = {
+                    'payment_status': 'completed',
+                    'status': 'confirmed',
+                    'transaction_id': charge_data.get('id'),
+                    'paid_at': datetime.now(),
+                    'payment_details': {
+                        'channel': charge_data.get('channel', 'mobile_money'),
+                        'mobile_money_provider': charge_data.get('authorization', {}).get('mobile_money_provider', 'unknown'),
+                        'last4': charge_data.get('authorization', {}).get('last4', ''),
+                        'paid_at': charge_data.get('paid_at', '')
+                    }
+                }
+                
+                if db_connected:
+                    mongo.db.orders.update_one(
+                        {'reference': reference},
+                        {'$set': update_data}
+                    )
+                else:
+                    # Update in session
+                    if 'orders' in session:
+                        for i, o in enumerate(session['orders']):
+                            if o.get('reference') == reference or o.get('paystack_mobile_ref') == reference:
+                                session['orders'][i].update(update_data)
+                                session.modified = True
+                                break
+                
+                print(f"✅ Mobile money payment completed for order: {order.get('order_id')}")
+            
+            return jsonify({'status': 'success'}), 200
+        
+        elif event == 'charge.failed':
+            # Payment failed
+            charge_data = data.get('data', {})
+            reference = charge_data.get('reference')
+            
+            if reference:
+                if db_connected:
+                    mongo.db.orders.update_one(
+                        {'reference': reference},
+                        {'$set': {
+                            'payment_status': 'failed',
+                            'payment_error': charge_data.get('gateway_response', 'Payment failed'),
+                            'updated_at': datetime.now()
+                        }}
+                    )
+            
+            return jsonify({'status': 'received'}), 200
+        
+        return jsonify({'status': 'ignored'}), 200
+        
+    except Exception as e:
+        print(f"❌ Paystack mobile callback error: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 400
+    
+@app.route('/api/check_payment_status/<order_id>', methods=['GET'])
+def check_payment_status(order_id):
+    """Check payment status for an order (especially for mobile money)"""
+    try:
+        # Find the order
+        if db_connected:
+            order = mongo.db.orders.find_one({'order_id': order_id})
+        else:
+            order = None
+            if 'orders' in session:
+                for o in session['orders']:
+                    if str(o.get('order_id')) == order_id:
+                        order = o
+                        break
+        
+        if not order:
+            return jsonify({'success': False, 'error': 'Order not found'}), 404
+        
+        # If order has a Paystack reference, check status with Paystack
+        reference = order.get('reference') or order.get('paystack_ref') or order.get('paystack_mobile_ref')
+        
+        if reference and order.get('payment_status') in ['pending', 'processing']:
+            try:
+                # Check with Paystack API
+                url = f"https://api.paystack.co/transaction/verify/{reference}"
+                headers = {"Authorization": f"Bearer {PAYSTACK_SECRET_KEY}"}
+                
+                response = requests.get(url, headers=headers)
+                result = response.json()
+                
+                if response.status_code == 200 and result.get('status'):
+                    transaction_data = result.get('data', {})
+                    
+                    if transaction_data.get('status') == 'success':
+                        # Payment successful
+                        update_data = {
+                            'payment_status': 'completed',
+                            'status': 'confirmed',
+                            'transaction_id': transaction_data.get('id'),
+                            'paid_at': datetime.now()
+                        }
+                        
+                        if db_connected:
+                            mongo.db.orders.update_one(
+                                {'order_id': order_id},
+                                {'$set': update_data}
+                            )
+                        else:
+                            if 'orders' in session:
+                                for i, o in enumerate(session['orders']):
+                                    if str(o.get('order_id')) == order_id:
+                                        session['orders'][i].update(update_data)
+                                        session.modified = True
+                                        break
+                        
+                        return jsonify({
+                            'success': True,
+                            'status': 'completed',
+                            'message': 'Payment completed successfully',
+                            'order_status': 'confirmed'
+                        })
+                    
+                    elif transaction_data.get('status') == 'failed':
+                        # Payment failed
+                        update_data = {
+                            'payment_status': 'failed',
+                            'payment_error': transaction_data.get('gateway_response', 'Payment failed')
+                        }
+                        
+                        if db_connected:
+                            mongo.db.orders.update_one(
+                                {'order_id': order_id},
+                                {'$set': update_data}
+                            )
+                        
+                        return jsonify({
+                            'success': True,
+                            'status': 'failed',
+                            'message': transaction_data.get('gateway_response', 'Payment failed'),
+                            'order_status': 'pending'
+                        })
+                    
+                    elif transaction_data.get('status') in ['pending', 'send_pending']:
+                        # Still pending
+                        return jsonify({
+                            'success': True,
+                            'status': 'processing',
+                            'message': 'Payment request sent. Please check your phone.',
+                            'order_status': 'pending'
+                        })
+                
+            except Exception as e:
+                print(f"Error checking payment status with Paystack: {e}")
+                # Continue to return current status
+        
+        # Return current status
+        return jsonify({
+            'success': True,
+            'status': order.get('payment_status', 'pending'),
+            'order_status': order.get('status', 'pending'),
+            'message': order.get('paystack_response', '')
+        })
+        
+    except Exception as e:
+        print(f"❌ Error checking payment status: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+def verify_paystack_webhook(request):
+    """Verify that webhook is from Paystack"""
+    try:
+        signature = request.headers.get('x-paystack-signature')
+        if not signature:
+            return False
+        
+        # In production, you should verify the signature
+        # For now, we'll accept all webhooks in test mode
+        # You should implement proper signature verification in production
+        return True
+        
+    except Exception as e:
+        print(f"Webhook verification error: {e}")
+        return False
+
+
+
+def handle_successful_payment(data):
+    """Handle successful payment from webhook"""
+    try:
+        charge_data = data.get('data', {})
+        reference = charge_data.get('reference')
+        
+        if not reference:
+            return jsonify({'status': 'error', 'message': 'No reference'}), 400
+        
+        # Find order by reference
+        if db_connected:
+            order = mongo.db.orders.find_one({'$or': [
+                {'reference': reference},
+                {'paystack_ref': reference},
+                {'paystack_mobile_ref': reference}
+            ]})
+        else:
+            order = None
+            if 'orders' in session:
+                for o in session['orders']:
+                    if (o.get('reference') == reference or 
+                        o.get('paystack_ref') == reference or
+                        o.get('paystack_mobile_ref') == reference):
+                        order = o
+                        break
+        
+        if order:
+            # Update order
+            update_data = {
+                'payment_status': 'completed',
+                'status': 'confirmed',
+                'transaction_id': charge_data.get('id'),
+                'paid_at': datetime.now(),
+                'webhook_processed': True
+            }
+            
+            if db_connected:
+                mongo.db.orders.update_one(
+                    {'_id': order['_id']},
+                    {'$set': update_data}
+                )
+            else:
+                if 'orders' in session:
+                    for i, o in enumerate(session['orders']):
+                        if str(o.get('_id')) == str(order.get('_id')):
+                            session['orders'][i].update(update_data)
+                            session.modified = True
+                            break
+            
+            print(f"✅ Webhook: Order {order.get('order_id')} marked as paid")
+        
+        return jsonify({'status': 'success'}), 200
+        
+    except Exception as e:
+        print(f"Error handling successful payment: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 @app.route('/categories')
 def categories():
     category = request.args.get('category', 'all')
@@ -585,8 +1091,9 @@ def checkout():
                 'user_id': session.get('user_id')
             }
             
-            # If Paystack is selected, initialize payment
+            # Handle different payment methods
             if payment_method == 'paystack':
+                # Handle Paystack card/bank payments
                 try:
                     # Generate a unique reference
                     paystack_ref = f"MUFRA{datetime.now().strftime('%Y%m%d%H%M%S')}{uuid.uuid4().hex[:8].upper()}"
@@ -641,13 +1148,252 @@ def checkout():
                                          error=f"Payment processing error: {str(e)}",
                                          discount=discount)
             
+            elif payment_method == 'mpesa':
+                # Handle M-Pesa through Paystack STK Push
+                mpesa_number = request.form.get('mpesa_number')
+                if not mpesa_number:
+                    return render_template('checkout.html',
+                                         error="Please enter your M-Pesa number",
+                                         discount=discount)
+                
+                # Format phone number for Paystack
+                phone = mpesa_number.replace('+254', '').replace(' ', '').replace('-', '')
+                if phone.startswith('0'):
+                    phone = phone[1:]  # Remove leading 0
+                phone = '254' + phone  # Add 254 prefix
+                
+                try:
+                    # Generate a unique reference
+                    paystack_ref = f"MUFRA-MPESA-{datetime.now().strftime('%Y%m%d%H%M%S')}{uuid.uuid4().hex[:8].upper()}"
+                    
+                    # Paystack mobile money API endpoint
+                    url = "https://api.paystack.co/charge"
+                    
+                    headers = {
+                        "Authorization": f"Bearer {PAYSTACK_SECRET_KEY}",
+                        "Content-Type": "application/json"
+                    }
+                    
+                    payload = {
+                        "email": email or f"customer_{order_data['phone']}@mufrafashions.com",
+                        "amount": int(total_amount * 100),  # Convert to kobo
+                        "mobile_money": {
+                            "phone": phone,
+                            "provider": "mpesa"
+                        },
+                        "reference": paystack_ref,
+                        "callback_url": url_for('paystack_webhook', _external=True),
+                        "metadata": {
+                            "order_id": order_data['order_id'],
+                            "customer_name": order_data['name'],
+                            "payment_method": "mpesa",
+                            "phone": phone
+                        }
+                    }
+                    
+                    print(f"📱 Initiating M-Pesa payment for order {order_id}")
+                    print(f"📞 Phone: {phone}, Amount: {total_amount}")
+                    
+                    response = requests.post(url, json=payload, headers=headers)
+                    result = response.json()
+                    
+                    print(f"📨 Paystack M-Pesa response: {result}")
+                    
+                    if response.status_code == 200 and result.get('status'):
+                        data = result.get('data', {})
+                        
+                        if data.get('status') == 'success':
+                            # Payment already completed (rare for mobile money)
+                            order_data['payment_status'] = 'completed'
+                            order_data['status'] = 'confirmed'
+                            order_data['transaction_id'] = data.get('id')
+                            order_data['reference'] = paystack_ref
+                            order_data['paid_at'] = datetime.now()
+                            order_data['paystack_response'] = data.get('message', 'Payment successful')
+                            
+                        elif data.get('status') in ['pending', 'send_pending']:
+                            # STK Push sent, waiting for user to complete
+                            order_data['payment_status'] = 'processing'
+                            order_data['status'] = 'pending'
+                            order_data['reference'] = paystack_ref
+                            order_data['stk_push_sent'] = True
+                            order_data['paystack_mobile_ref'] = paystack_ref
+                            order_data['paystack_response'] = data.get('message', 'STK Push sent')
+                            order_data['display_text'] = data.get('display_text', 'Enter your M-Pesa PIN to complete payment')
+                            
+                        else:
+                            error_msg = result.get('message', data.get('gateway_response', 'M-Pesa payment failed'))
+                            print(f"❌ M-Pesa payment error: {error_msg}")
+                            return render_template('checkout.html',
+                                                 error=f"M-Pesa payment failed: {error_msg}",
+                                                 discount=discount)
+                    else:
+                        error_msg = result.get('message', 'Payment initialization failed')
+                        print(f"❌ M-Pesa API error: {error_msg}")
+                        return render_template('checkout.html',
+                                             error=f"M-Pesa payment failed: {error_msg}",
+                                             discount=discount)
+                    
+                    # Save order
+                    if db_connected:
+                        mongo.db.orders.insert_one(order_data)
+                    else:
+                        if 'orders' not in session:
+                            session['orders'] = []
+                        session['orders'].append(order_data)
+                        session.modified = True
+                    
+                    # Clear cart
+                    session.pop('cart', None)
+                    
+                    return redirect(url_for('order_confirmation', order_id=order_data['order_id']))
+                    
+                except Exception as e:
+                    print(f"❌ M-Pesa Paystack error: {e}")
+                    # Still save order but mark as pending
+                    order_data['payment_status'] = 'pending'
+                    order_data['payment_error'] = str(e)
+                    
+                    # Save order anyway
+                    if db_connected:
+                        mongo.db.orders.insert_one(order_data)
+                    else:
+                        if 'orders' not in session:
+                            session['orders'] = []
+                        session['orders'].append(order_data)
+                        session.modified = True
+                    
+                    # Clear cart
+                    session.pop('cart', None)
+                    
+                    return redirect(url_for('order_confirmation', order_id=order_data['order_id']))
+            
+            elif payment_method == 'airtel':
+                # Handle Airtel Money through Paystack STK Push
+                airtel_number = request.form.get('airtel_number')
+                if not airtel_number:
+                    return render_template('checkout.html',
+                                         error="Please enter your Airtel Money number",
+                                         discount=discount)
+                
+                # Format phone number for Paystack
+                phone = airtel_number.replace('+254', '').replace(' ', '').replace('-', '')
+                if phone.startswith('0'):
+                    phone = phone[1:]  # Remove leading 0
+                phone = '254' + phone  # Add 254 prefix
+                
+                try:
+                    # Generate a unique reference
+                    paystack_ref = f"MUFRA-AIRTEL-{datetime.now().strftime('%Y%m%d%H%M%S')}{uuid.uuid4().hex[:8].upper()}"
+                    
+                    # Paystack mobile money API endpoint
+                    url = "https://api.paystack.co/charge"
+                    
+                    headers = {
+                        "Authorization": f"Bearer {PAYSTACK_SECRET_KEY}",
+                        "Content-Type": "application/json"
+                    }
+                    
+                    payload = {
+                        "email": email or f"customer_{order_data['phone']}@mufrafashions.com",
+                        "amount": int(total_amount * 100),  # Convert to kobo
+                        "mobile_money": {
+                            "phone": phone,
+                            "provider": "airtel"
+                        },
+                        "reference": paystack_ref,
+                        "callback_url": url_for('paystack_webhook', _external=True),
+                        "metadata": {
+                            "order_id": order_data['order_id'],
+                            "customer_name": order_data['name'],
+                            "payment_method": "airtel",
+                            "phone": phone
+                        }
+                    }
+                    
+                    print(f"📱 Initiating Airtel Money payment for order {order_id}")
+                    print(f"📞 Phone: {phone}, Amount: {total_amount}")
+                    
+                    response = requests.post(url, json=payload, headers=headers)
+                    result = response.json()
+                    
+                    print(f"📨 Paystack Airtel response: {result}")
+                    
+                    if response.status_code == 200 and result.get('status'):
+                        data = result.get('data', {})
+                        
+                        if data.get('status') == 'success':
+                            # Payment already completed
+                            order_data['payment_status'] = 'completed'
+                            order_data['status'] = 'confirmed'
+                            order_data['transaction_id'] = data.get('id')
+                            order_data['reference'] = paystack_ref
+                            order_data['paid_at'] = datetime.now()
+                            order_data['paystack_response'] = data.get('message', 'Payment successful')
+                            
+                        elif data.get('status') in ['pending', 'send_pending']:
+                            # Payment request sent, waiting for user
+                            order_data['payment_status'] = 'processing'
+                            order_data['status'] = 'pending'
+                            order_data['reference'] = paystack_ref
+                            order_data['stk_push_sent'] = True
+                            order_data['paystack_mobile_ref'] = paystack_ref
+                            order_data['paystack_response'] = data.get('message', 'Payment request sent')
+                            order_data['display_text'] = data.get('display_text', 'Enter your Airtel Money PIN to complete payment')
+                            
+                        else:
+                            error_msg = result.get('message', data.get('gateway_response', 'Airtel payment failed'))
+                            print(f"❌ Airtel payment error: {error_msg}")
+                            return render_template('checkout.html',
+                                                 error=f"Airtel Money payment failed: {error_msg}",
+                                                 discount=discount)
+                    else:
+                        error_msg = result.get('message', 'Payment initialization failed')
+                        print(f"❌ Airtel API error: {error_msg}")
+                        return render_template('checkout.html',
+                                             error=f"Airtel Money payment failed: {error_msg}",
+                                             discount=discount)
+                    
+                    # Save order
+                    if db_connected:
+                        mongo.db.orders.insert_one(order_data)
+                    else:
+                        if 'orders' not in session:
+                            session['orders'] = []
+                        session['orders'].append(order_data)
+                        session.modified = True
+                    
+                    # Clear cart
+                    session.pop('cart', None)
+                    
+                    return redirect(url_for('order_confirmation', order_id=order_data['order_id']))
+                    
+                except Exception as e:
+                    print(f"❌ Airtel Paystack error: {e}")
+                    # Still save order but mark as pending
+                    order_data['payment_status'] = 'pending'
+                    order_data['payment_error'] = str(e)
+                    
+                    # Save order anyway
+                    if db_connected:
+                        mongo.db.orders.insert_one(order_data)
+                    else:
+                        if 'orders' not in session:
+                            session['orders'] = []
+                        session['orders'].append(order_data)
+                        session.modified = True
+                    
+                    # Clear cart
+                    session.pop('cart', None)
+                    
+                    return redirect(url_for('order_confirmation', order_id=order_data['order_id']))
+            
             else:
-                # For other payment methods (MPesa, Airtel, Cash on Delivery)
-                # Update payment status based on method
-                if payment_method in ['mpesa', 'airtel']:
-                    order_data['payment_status'] = 'processing'
-                elif payment_method == 'cod':
+                # For Cash on Delivery and other methods
+                if payment_method == 'cod':
                     order_data['payment_status'] = 'pending_cod'
+                elif payment_method in ['mpesa', 'airtel']:
+                    order_data['payment_status'] = 'processing'
                 
                 # Save order
                 if db_connected:
@@ -665,6 +1411,8 @@ def checkout():
 
         except Exception as e:
             print(f"❌ Checkout error: {e}")
+            import traceback
+            traceback.print_exc()
             return render_template('checkout.html', error=str(e), discount=discount)
 
     # GET request → show checkout form with cart data
@@ -704,7 +1452,6 @@ def checkout():
                          cart_items=cart_items,
                          cart_total=cart_total,
                          discount=discount)
-
 @app.route('/paystack/callback')
 def paystack_callback():
     """Handle Paystack payment callback"""
@@ -785,42 +1532,121 @@ def paystack_callback():
 
 @app.route('/paystack/webhook', methods=['POST'])
 def paystack_webhook():
-    """Handle Paystack webhook for server-to-server notifications"""
+    """Handle Paystack webhook for server-to-server notifications (including mobile money)"""
     try:
-        # Verify it's from Paystack
-        signature = request.headers.get('x-paystack-signature')
-        payload = request.get_data()
-        
-        # In production, verify the signature
-        # For now, we'll trust the payload
+        # Verify it's from Paystack (in production, verify signature)
+        # For now, we'll trust the payload for testing
         
         data = request.get_json()
         event = data.get('event')
         
+        print(f"📨 Paystack webhook received: {event}")
+        
         if event == 'charge.success':
-            reference = data['data']['reference']
+            charge_data = data.get('data', {})
+            reference = charge_data.get('reference')
             
-            # Find and update order
+            if not reference:
+                print("❌ No reference in webhook")
+                return jsonify({'status': 'error', 'message': 'No reference'}), 400
+            
+            print(f"✅ Payment successful for reference: {reference}")
+            
+            # Find the order using the reference
             if db_connected:
-                order = mongo.db.orders.find_one({'paystack_ref': reference})
-                if order:
+                # Check all possible reference fields
+                order = mongo.db.orders.find_one({'$or': [
+                    {'paystack_ref': reference},
+                    {'reference': reference},
+                    {'paystack_mobile_ref': reference}
+                ]})
+            else:
+                order = None
+                if 'orders' in session:
+                    for o in session['orders']:
+                        if (o.get('paystack_ref') == reference or 
+                            o.get('reference') == reference or
+                            o.get('paystack_mobile_ref') == reference):
+                            order = o
+                            break
+            
+            if order:
+                # Update order status
+                update_data = {
+                    'status': 'confirmed',
+                    'payment_status': 'completed',
+                    'transaction_id': charge_data.get('id'),
+                    'paid_at': datetime.now(),
+                    'webhook_processed': True,
+                    'payment_details': {
+                        'channel': charge_data.get('channel', ''),
+                        'gateway_response': charge_data.get('gateway_response', ''),
+                        'paid_at': charge_data.get('paid_at', ''),
+                        'authorization': charge_data.get('authorization', {})
+                    }
+                }
+                
+                # Check if it's mobile money
+                if charge_data.get('authorization', {}).get('channel') == 'mobile_money':
+                    update_data['payment_details']['mobile_money_provider'] = charge_data.get('authorization', {}).get('mobile_money_provider', '')
+                    update_data['payment_details']['mobile_money_number'] = charge_data.get('authorization', {}).get('mobile_money_number', '')
+                
+                if db_connected:
                     mongo.db.orders.update_one(
-                        {'paystack_ref': reference},
-                        {'$set': {
-                            'status': 'paid',
-                            'payment_status': 'completed',
-                            'paid_at': datetime.now(),
-                            'webhook_processed': True
-                        }}
+                        {'_id': order['_id']},
+                        {'$set': update_data}
                     )
-                    print(f"✅ Webhook: Order {order['order_id']} marked as paid")
+                else:
+                    # Update in session
+                    if 'orders' in session:
+                        for i, o in enumerate(session['orders']):
+                            if str(o.get('_id')) == str(order.get('_id')):
+                                session['orders'][i].update(update_data)
+                                session.modified = True
+                                break
+                
+                print(f"✅ Webhook: Order {order.get('order_id')} marked as paid")
+                
+                # Clear cart if it exists in session
+                if 'cart' in session:
+                    session.pop('cart', None)
+                    print("✅ Cart cleared after successful payment")
+            
+            else:
+                print(f"⚠️ Order not found for reference: {reference}")
             
             return jsonify({'status': 'success'}), 200
+        
+        elif event == 'charge.failed':
+            charge_data = data.get('data', {})
+            reference = charge_data.get('reference')
+            
+            print(f"❌ Payment failed for reference: {reference}")
+            
+            if reference:
+                if db_connected:
+                    mongo.db.orders.update_one(
+                        {'$or': [
+                            {'paystack_ref': reference},
+                            {'reference': reference},
+                            {'paystack_mobile_ref': reference}
+                        ]},
+                        {'$set': {
+                            'payment_status': 'failed',
+                            'payment_error': charge_data.get('gateway_response', 'Payment failed'),
+                            'updated_at': datetime.now()
+                        }}
+                    )
+                    print(f"✅ Marked order as failed: {reference}")
+            
+            return jsonify({'status': 'received'}), 200
         
         return jsonify({'status': 'ignored'}), 200
         
     except Exception as e:
         print(f"❌ Webhook error: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'status': 'error', 'message': str(e)}), 400
 
 @app.route('/order_confirmation/<order_id>')

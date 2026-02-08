@@ -764,4 +764,60 @@ function shareOrder() {
     animation: successPulse 2s ease-in-out infinite;
 }
 </style>
+<script>
+// Check payment status for mobile money payments
+function checkPaymentStatus() {
+    const orderId = "{{ order.order_id }}";
+    const paymentMethod = "{{ order.payment_method }}";
+    
+    // Only check for mobile money payments
+    if (paymentMethod !== 'mpesa' && paymentMethod !== 'airtel') {
+        return;
+    }
+    
+    fetch(`/api/check_payment_status/${orderId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (data.status === 'completed') {
+                    // Payment completed, refresh page
+                    window.location.reload();
+                } else if (data.status === 'failed') {
+                    // Show error message
+                    showPaymentError();
+                }
+                // If still processing, check again in 10 seconds
+                else if (data.status === 'processing') {
+                    setTimeout(checkPaymentStatus, 10000);
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error checking payment status:', error);
+        });
+}
+
+function showPaymentError() {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+    alertDiv.innerHTML = `
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        <strong>Payment Failed!</strong> Your mobile money payment failed. Please try again or contact support.
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const container = document.querySelector('.container');
+    container.insertBefore(alertDiv, container.firstChild);
+}
+
+// Start checking payment status if using mobile money
+document.addEventListener('DOMContentLoaded', function() {
+    const paymentMethod = "{{ order.payment_method }}";
+    
+    if (paymentMethod === 'mpesa' || paymentMethod === 'airtel') {
+        // Start checking after 5 seconds
+        setTimeout(checkPaymentStatus, 5000);
+    }
+});
+</script>
 {% endblock %}
