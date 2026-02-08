@@ -3,477 +3,656 @@
 {% block title %}My Orders - MUFRA FASHIONS{% endblock %}
 
 {% block content %}
-<div class="container">
-    <h1 class="page-title">My Orders</h1>
-    
-    {% if orders and orders|length > 0 %}
-    <div class="orders-list">
-        {% for order in orders %}
-        <div class="order-card">
-            <div class="order-header">
-                <div class="order-info">
-                    <h3>Order #{{ order._id|string|truncate(10, true, '') }}</h3>
-                    <p class="order-date">
-                        <i class="fas fa-calendar"></i>
-                        {{ order.created_at.strftime('%B %d, %Y') if order.created_at else 'Date not available' }}
-                    </p>
+<div class="container py-5">
+    <!-- Page Header -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <nav aria-label="breadcrumb" class="mb-3">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('home') }}" class="text-decoration-none">Home</a></li>
+                    <li class="breadcrumb-item"><a href="#account" class="text-decoration-none">Account</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">My Orders</li>
+                </ol>
+            </nav>
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="display-5 fw-bold mb-2">My Orders</h1>
+                    <p class="text-muted">Track and manage your purchases</p>
                 </div>
-                <div class="order-status">
-                    <span class="status-badge status-{{ order.status }}">
-                        {{ order.status|title }}
-                    </span>
-                </div>
-            </div>
-            
-            <div class="order-body">
-                <div class="order-details">
-                    <div class="detail-item">
-                        <strong>Customer:</strong> {{ order.name }}
-                    </div>
-                    <div class="detail-item">
-                        <strong>Phone:</strong> {{ order.phone }}
-                    </div>
-                    <div class="detail-item">
-                        <strong>Address:</strong> {{ order.address }}, {{ order.city }}, {{ order.region }}
-                    </div>
-                </div>
-                
-                <div class="order-items">
-                    <h4>Order Items</h4>
-                    {% if order.items and order.items|length > 0 %}
-                    <div class="items-list">
-                        {% for item in order.items %}
-                        <div class="item-row">
-                            <div class="item-name">{{ item.name }}</div>
-                            <div class="item-meta">
-                                <span class="item-quantity">Qty: {{ item.quantity }}</span>
-                                {% if item.size %}
-                                <span class="item-size">Size: {{ item.size }}</span>
-                                {% endif %}
-                                {% if item.color %}
-                                <span class="item-color">Color: {{ item.color }}</span>
-                                {% endif %}
-                            </div>
-                            <div class="item-price">KSh {{ "%.2f"|format(item.item_total) }}</div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                    {% else %}
-                    <p class="no-items">No items in this order</p>
-                    {% endif %}
-                </div>
-                
-                <div class="order-totals">
-                    <div class="total-row">
-                        <span>Subtotal:</span>
-                        <span>KSh {{ "%.2f"|format(order.cart_total) }}</span>
-                    </div>
-                    <div class="total-row">
-                        <span>Delivery Fee:</span>
-                        <span>KSh {{ "%.2f"|format(order.delivery_fee) }}</span>
-                    </div>
-                    <div class="total-row grand-total">
-                        <span>Total Amount:</span>
-                        <span>KSh {{ "%.2f"|format(order.total_amount) }}</span>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="order-footer">
-                <div class="order-actions">
-                    <a href="{{ url_for('order_confirmation', order_id=order._id) }}" 
-                       class="btn btn-secondary">
-                        <i class="fas fa-eye"></i> View Receipt
-                    </a>
-                    {% if order.status == 'pending' %}
-                    <button class="btn btn-outline" onclick="cancelOrder('{{ order._id }}')">
-                        <i class="fas fa-times"></i> Cancel Order
-                    </button>
-                    {% endif %}
-                </div>
+                <a href="{{ url_for('categories') }}" class="btn btn-primary">
+                    <i class="bi bi-bag me-2"></i>Continue Shopping
+                </a>
             </div>
         </div>
-        {% endfor %}
     </div>
-    {% else %}
-    <div class="empty-orders">
-        <div class="empty-icon">
-            <i class="fas fa-shopping-bag"></i>
+
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 col-6 mb-3">
+            <div class="card border-0 shadow-sm bg-primary text-white">
+                <div class="card-body text-center">
+                    <h2 class="display-6 fw-bold mb-0">{{ orders|length if orders else 0 }}</h2>
+                    <small>Total Orders</small>
+                </div>
+            </div>
         </div>
-        <h3>No Orders Yet</h3>
-        <p>You haven't placed any orders yet. Start shopping to see your orders here.</p>
-        <a href="{{ url_for('categories') }}" class="btn btn-primary">
-            <i class="fas fa-shopping-cart"></i> Start Shopping
-        </a>
+        <div class="col-md-3 col-6 mb-3">
+            <div class="card border-0 shadow-sm bg-success text-white">
+                <div class="card-body text-center">
+                    <h2 class="display-6 fw-bold mb-0">
+                        {{ orders|selectattr('status', 'equalto', 'delivered')|list|length if orders else 0 }}
+                    </h2>
+                    <small>Delivered</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6 mb-3">
+            <div class="card border-0 shadow-sm bg-warning text-white">
+                <div class="card-body text-center">
+                    <h2 class="display-6 fw-bold mb-0">
+                        {{ orders|selectattr('status', 'equalto', 'processing')|list|length if orders else 0 }}
+                    </h2>
+                    <small>Processing</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6 mb-3">
+            <div class="card border-0 shadow-sm bg-danger text-white">
+                <div class="card-body text-center">
+                    <h2 class="display-6 fw-bold mb-0">
+                        {{ orders|selectattr('status', 'equalto', 'cancelled')|list|length if orders else 0 }}
+                    </h2>
+                    <small>Cancelled</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <ul class="nav nav-pills mb-3" id="ordersTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="all-tab" data-bs-toggle="pill" data-bs-target="#all" type="button">
+                        All Orders ({{ orders|length if orders else 0 }})
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="pending-tab" data-bs-toggle="pill" data-bs-target="#pending" type="button">
+                        Pending ({{ orders|selectattr('status', 'equalto', 'pending')|list|length if orders else 0 }})
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="delivered-tab" data-bs-toggle="pill" data-bs-target="#delivered" type="button">
+                        Delivered ({{ orders|selectattr('status', 'equalto', 'delivered')|list|length if orders else 0 }})
+                    </button>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    {% if orders and orders|length > 0 %}
+    <div class="tab-content" id="ordersTabContent">
+        <!-- All Orders -->
+        <div class="tab-pane fade show active" id="all" role="tabpanel">
+            <div class="row">
+                {% for order in orders %}
+                <div class="col-12 mb-4">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <!-- Order Header -->
+                            <div class="row align-items-center mb-4">
+                                <div class="col-md-6 mb-3 mb-md-0">
+                                    <div class="d-flex align-items-center">
+                                        <div class="bg-light rounded-circle p-3 me-3">
+                                            <i class="bi bi-receipt text-primary fs-4"></i>
+                                        </div>
+                                        <div>
+                                            <h5 class="fw-bold mb-1">Order #{{ order._id|string|truncate(8, true, '')|upper }}</h5>
+                                            <p class="text-muted mb-0 small">
+                                                <i class="bi bi-calendar me-1"></i>
+                                                {{ order.created_at.strftime('%d %b, %Y') if order.created_at else 'Date N/A' }}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="d-flex justify-content-md-end align-items-center">
+                                        <div class="me-4">
+                                            <h6 class="text-muted mb-1">Total Amount</h6>
+                                            <h4 class="fw-bold text-primary mb-0">KSh {{ "%.2f"|format(order.total_amount) }}</h4>
+                                        </div>
+                                        <span class="badge rounded-pill bg-{{ order.status }}-subtle text-{{ order.status }} p-2">
+                                            {{ order.status|title }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Order Items -->
+                            <div class="mb-4">
+                                <h6 class="fw-bold mb-3">Items ({{ order.items|length }})</h6>
+                                <div class="row g-3">
+                                    {% for item in order.items %}
+                                    <div class="col-md-6">
+                                        <div class="d-flex align-items-center p-3 border rounded">
+                                            <div class="flex-shrink-0">
+                                                <img src="https://via.placeholder.com/80x80/e9ecef/6c757d?text=P" 
+                                                     class="rounded" 
+                                                     width="60" 
+                                                     height="60"
+                                                     alt="{{ item.name }}">
+                                            </div>
+                                            <div class="flex-grow-1 ms-3">
+                                                <h6 class="fw-bold mb-1">{{ item.name }}</h6>
+                                                <div class="d-flex align-items-center mb-2">
+                                                    <span class="badge bg-light text-dark me-2">Qty: {{ item.quantity }}</span>
+                                                    {% if item.size %}
+                                                    <span class="badge bg-light text-dark me-2">Size: {{ item.size }}</span>
+                                                    {% endif %}
+                                                    {% if item.color %}
+                                                    <span class="badge bg-light text-dark">Color: {{ item.color }}</span>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <small class="text-muted">Unit Price</small>
+                                                    <span class="fw-bold text-primary">KSh {{ "%.2f"|format(item.price) }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <!-- Order Details -->
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-4">
+                                    <div class="p-3 border rounded">
+                                        <h6 class="fw-bold mb-2">Customer Info</h6>
+                                        <p class="mb-1 small">{{ order.name }}</p>
+                                        <p class="mb-0 small text-muted">{{ order.phone }}</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="p-3 border rounded">
+                                        <h6 class="fw-bold mb-2">Delivery Address</h6>
+                                        <p class="mb-0 small text-muted">{{ order.address }}, {{ order.city }}</p>
+                                        <p class="mb-0 small text-muted">{{ order.region|title }}</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="p-3 border rounded">
+                                        <h6 class="fw-bold mb-2">Payment Details</h6>
+                                        <p class="mb-1 small">
+                                            <i class="bi bi-credit-card me-1"></i>
+                                            {{ order.payment_method|title }}
+                                        </p>
+                                        <p class="mb-0 small text-muted">
+                                            {% if order.payment_status %}
+                                            <span class="badge bg-success bg-opacity-10 text-success">Paid</span>
+                                            {% else %}
+                                            <span class="badge bg-warning bg-opacity-10 text-warning">Pending</span>
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Order Footer -->
+                            <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                                <div>
+                                    <small class="text-muted me-3">
+                                        <i class="bi bi-truck me-1"></i>
+                                        Delivery: 
+                                        {% if order.status == 'delivered' %}
+                                        <span class="text-success">Delivered</span>
+                                        {% elif order.status == 'shipped' %}
+                                        <span class="text-info">Shipped</span>
+                                        {% else %}
+                                        <span class="text-warning">Processing</span>
+                                        {% endif %}
+                                    </small>
+                                    {% if order.tracking_number %}
+                                    <small class="text-muted">
+                                        <i class="bi bi-upc-scan me-1"></i>
+                                        Tracking: {{ order.tracking_number }}
+                                    </small>
+                                    {% endif %}
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <a href="{{ url_for('order_confirmation', order_id=order._id) }}" 
+                                       class="btn btn-outline-primary btn-sm">
+                                        <i class="bi bi-eye me-1"></i>View Details
+                                    </a>
+                                    {% if order.status == 'pending' %}
+                                    <button class="btn btn-outline-danger btn-sm" 
+                                            onclick="cancelOrder('{{ order._id }}')">
+                                        <i class="bi bi-x-circle me-1"></i>Cancel
+                                    </button>
+                                    {% endif %}
+                                    {% if order.status == 'delivered' %}
+                                    <button class="btn btn-outline-success btn-sm">
+                                        <i class="bi bi-arrow-repeat me-1"></i>Reorder
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Pending Orders -->
+        <div class="tab-pane fade" id="pending" role="tabpanel">
+            <div class="row">
+                {% for order in orders if order.status == 'pending' %}
+                <div class="col-12 mb-4">
+                    {% include 'order_card.html' %}
+                </div>
+                {% else %}
+                <div class="col-12 text-center py-5">
+                    <div class="mb-4">
+                        <i class="bi bi-clock display-1 text-muted"></i>
+                    </div>
+                    <h4 class="mb-3">No Pending Orders</h4>
+                    <p class="text-muted mb-4">You don't have any pending orders at the moment.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Delivered Orders -->
+        <div class="tab-pane fade" id="delivered" role="tabpanel">
+            <div class="row">
+                {% for order in orders if order.status == 'delivered' %}
+                <div class="col-12 mb-4">
+                    {% include 'order_card.html' %}
+                </div>
+                {% else %}
+                <div class="col-12 text-center py-5">
+                    <div class="mb-4">
+                        <i class="bi bi-check-circle display-1 text-muted"></i>
+                    </div>
+                    <h4 class="mb-3">No Delivered Orders</h4>
+                    <p class="text-muted mb-4">Your delivered orders will appear here.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    <nav aria-label="Orders pagination" class="mt-4">
+        <ul class="pagination justify-content-center">
+            <li class="page-item disabled">
+                <a class="page-link" href="#">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+            </li>
+            <li class="page-item active"><a class="page-link" href="#">1</a></li>
+            <li class="page-item"><a class="page-link" href="#">2</a></li>
+            <li class="page-item"><a class="page-link" href="#">3</a></li>
+            <li class="page-item">
+                <span class="page-link">...</span>
+            </li>
+            <li class="page-item"><a class="page-link" href="#">5</a></li>
+            <li class="page-item">
+                <a class="page-link" href="#">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    {% else %}
+    <!-- Empty Orders State -->
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6 text-center">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body py-5">
+                    <div class="mb-4">
+                        <i class="bi bi-bag display-1 text-muted"></i>
+                    </div>
+                    <h2 class="h3 mb-3">No Orders Yet</h2>
+                    <p class="text-muted mb-4">
+                        You haven't placed any orders yet. Start shopping to see your order history here.
+                    </p>
+                    <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+                        <a href="{{ url_for('categories') }}" class="btn btn-primary btn-lg px-4">
+                            <i class="bi bi-bag me-2"></i>Start Shopping
+                        </a>
+                        <a href="{{ url_for('categories') }}?subcategory=new" class="btn btn-outline-primary btn-lg px-4">
+                            <i class="bi bi-star me-2"></i>New Arrivals
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Help Section -->
+            <div class="mt-5">
+                <h4 class="mb-4">How to Track Your Orders</h4>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="card h-100 border-0 bg-light">
+                            <div class="card-body text-center">
+                                <div class="mb-3">
+                                    <i class="bi bi-cart-check fs-1 text-primary"></i>
+                                </div>
+                                <h6 class="card-title">Place Order</h6>
+                                <p class="card-text small">Add items to cart and complete checkout</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card h-100 border-0 bg-light">
+                            <div class="card-body text-center">
+                                <div class="mb-3">
+                                    <i class="bi bi-clock fs-1 text-primary"></i>
+                                </div>
+                                <h6 class="card-title">Track Status</h6>
+                                <p class="card-text small">Monitor your order progress here</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card h-100 border-0 bg-light">
+                            <div class="card-body text-center">
+                                <div class="mb-3">
+                                    <i class="bi bi-truck fs-1 text-primary"></i>
+                                </div>
+                                <h6 class="card-title">Receive Delivery</h6>
+                                <p class="card-text small">Get your order delivered to your doorstep</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     {% endif %}
 </div>
 
-<style>
-.page-title {
-    text-align: center;
-    font-size: 2.5rem;
-    margin: 40px 0;
-    color: #333;
-}
-
-.orders-list {
-    max-width: 800px;
-    margin: 0 auto;
-}
-
-.order-card {
-    background: white;
-    border-radius: 15px;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-    margin-bottom: 30px;
-    overflow: hidden;
-    border: 1px solid #eee;
-}
-
-.order-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px;
-    background: #f8f9fa;
-    border-bottom: 1px solid #eee;
-}
-
-.order-info h3 {
-    margin: 0 0 8px 0;
-    color: #333;
-    font-size: 1.3rem;
-}
-
-.order-date {
-    margin: 0;
-    color: #666;
-    font-size: 0.9rem;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.order-date i {
-    color: #667eea;
-}
-
-.status-badge {
-    padding: 6px 15px;
-    border-radius: 20px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.status-pending {
-    background: #fff3cd;
-    color: #856404;
-}
-
-.status-processing {
-    background: #cce5ff;
-    color: #004085;
-}
-
-.status-shipped {
-    background: #d4edda;
-    color: #155724;
-}
-
-.status-delivered {
-    background: #d1ecf1;
-    color: #0c5460;
-}
-
-.status-cancelled {
-    background: #f8d7da;
-    color: #721c24;
-}
-
-.order-body {
-    padding: 25px;
-}
-
-.order-details {
-    margin-bottom: 25px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid #eee;
-}
-
-.detail-item {
-    margin-bottom: 8px;
-    color: #555;
-}
-
-.detail-item strong {
-    color: #333;
-    min-width: 80px;
-    display: inline-block;
-}
-
-.order-items h4 {
-    font-size: 1.1rem;
-    color: #333;
-    margin-bottom: 15px;
-    padding-bottom: 10px;
-    border-bottom: 2px solid #f0f0f0;
-}
-
-.items-list {
-    margin-bottom: 20px;
-}
-
-.item-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 0;
-    border-bottom: 1px dashed #eee;
-}
-
-.item-row:last-child {
-    border-bottom: none;
-}
-
-.item-name {
-    flex: 2;
-    font-weight: 500;
-    color: #333;
-}
-
-.item-meta {
-    flex: 2;
-    display: flex;
-    gap: 15px;
-    font-size: 0.9rem;
-    color: #666;
-}
-
-.item-price {
-    flex: 1;
-    text-align: right;
-    font-weight: 600;
-    color: #667eea;
-}
-
-.no-items {
-    text-align: center;
-    color: #999;
-    font-style: italic;
-    padding: 20px;
-    background: #f9f9f9;
-    border-radius: 8px;
-}
-
-.order-totals {
-    background: #f8f9fa;
-    padding: 20px;
-    border-radius: 10px;
-    margin-top: 20px;
-}
-
-.total-row {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 12px;
-    color: #555;
-    font-size: 1rem;
-}
-
-.grand-total {
-    font-size: 1.2rem;
-    font-weight: 700;
-    color: #333;
-    margin-top: 15px;
-    padding-top: 15px;
-    border-top: 2px solid #ddd;
-}
-
-.order-footer {
-    padding: 20px;
-    border-top: 1px solid #eee;
-    background: #f8f9fa;
-}
-
-.order-actions {
-    display: flex;
-    gap: 15px;
-    justify-content: flex-end;
-}
-
-.empty-orders {
-    text-align: center;
-    padding: 60px 20px;
-    background: white;
-    border-radius: 15px;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-    max-width: 600px;
-    margin: 40px auto;
-}
-
-.empty-icon {
-    font-size: 4rem;
-    color: #ddd;
-    margin-bottom: 20px;
-}
-
-.empty-orders h3 {
-    color: #333;
-    margin-bottom: 15px;
-    font-size: 1.8rem;
-}
-
-.empty-orders p {
-    color: #666;
-    margin-bottom: 30px;
-    max-width: 400px;
-    margin-left: auto;
-    margin-right: auto;
-    line-height: 1.6;
-}
-
-@media (max-width: 768px) {
-    .order-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
-    }
-    
-    .item-row {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
-    }
-    
-    .item-meta {
-        flex-wrap: wrap;
-        gap: 10px;
-    }
-    
-    .item-price {
-        align-self: flex-end;
-    }
-    
-    .order-actions {
-        flex-direction: column;
-    }
-    
-    .order-actions .btn {
-        width: 100%;
-        text-align: center;
-    }
-}
-</style>
-
-<script>
-function cancelOrder(orderId) {
-    if (confirm('Are you sure you want to cancel this order? This action cannot be undone.')) {
-        fetch('/api/cancel_order', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: new URLSearchParams({
-                'order_id': orderId
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showToast('Order cancelled successfully!', 'success');
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1500);
-            } else {
-                showToast(data.error || 'Failed to cancel order', 'error');
-            }
-        })
-        .catch(error => {
-            showToast('Error cancelling order', 'error');
-            console.error('Error:', error);
-        });
-    }
-}
-
-function showToast(message, type = 'success') {
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    toast.innerHTML = `
-        <div class="toast-content">
-            <i class="fas ${type === 'success' ? 'fa-check-circle' : 
-                          type === 'error' ? 'fa-exclamation-circle' : 
-                          'fa-info-circle'}"></i>
-            <span>${message}</span>
+<!-- Cancel Order Modal -->
+<div class="modal fade" id="cancelOrderModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Cancel Order</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to cancel this order? This action cannot be undone.</p>
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    Cancellation may be subject to terms and conditions.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-danger" onclick="confirmCancelOrder()">Cancel Order</button>
+            </div>
         </div>
-        <button class="toast-close" onclick="this.parentElement.remove()">
-            <i class="fas fa-times"></i>
-        </button>
-    `;
-    
-    toast.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: ${type === 'success' ? '#d4edda' : 
-                     type === 'error' ? '#f8d7da' : 
-                     '#d1ecf1'};
-        color: ${type === 'success' ? '#155724' : 
-                type === 'error' ? '#721c24' : 
-                '#0c5460'};
-        padding: 1rem 1.5rem;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        min-width: 300px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        z-index: 9999;
-        animation: slideInRight 0.3s ease-out;
-    `;
-    
-    document.body.appendChild(toast);
-    
-    setTimeout(() => {
-        if (toast.parentNode) {
-            toast.remove();
-        }
-    }, 5000);
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentOrderId = null;
+
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize tooltips
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+
+function cancelOrder(orderId) {
+    currentOrderId = orderId;
+    const modal = new bootstrap.Modal(document.getElementById('cancelOrderModal'));
+    modal.show();
 }
 
-// Add animation styles
-if (!document.querySelector('#toast-animations')) {
-    const style = document.createElement('style');
-    style.id = 'toast-animations';
-    style.textContent = `
-        @keyframes slideInRight {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
+function confirmCancelOrder() {
+    if (!currentOrderId) return;
+    
+    const modal = bootstrap.Modal.getInstance(document.getElementById('cancelOrderModal'));
+    modal.hide();
+    
+    // Show loading
+    showToast('Cancelling order...', 'info');
+    
+    fetch('/api/cancel_order', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ order_id: currentOrderId })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Order cancelled successfully!', 'success');
+            // Reload page after delay
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        } else {
+            showToast(data.message || 'Failed to cancel order', 'danger');
         }
-        
-        .toast-close {
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: inherit;
-            margin-left: 1rem;
-            padding: 0.25rem;
-            border-radius: 4px;
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('Error cancelling order', 'danger');
+    });
+}
+
+// Tab switching
+document.getElementById('ordersTab').addEventListener('shown.bs.tab', function(event) {
+    const activeTab = event.target.getAttribute('data-bs-target');
+    localStorage.setItem('activeOrdersTab', activeTab);
+});
+
+// Restore active tab
+document.addEventListener('DOMContentLoaded', function() {
+    const activeTab = localStorage.getItem('activeOrdersTab');
+    if (activeTab) {
+        const tab = document.querySelector(`[data-bs-target="${activeTab}"]`);
+        if (tab) {
+            new bootstrap.Tab(tab).show();
         }
-        
-        .toast-close:hover {
-            background-color: rgba(0, 0, 0, 0.1);
-        }
+    }
+});
+
+// Toast notification using Bootstrap
+function showToast(message, type = 'success') {
+    // Create toast container if it doesn't exist
+    let toastContainer = document.getElementById('toastContainer');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toastContainer';
+        toastContainer.className = 'position-fixed top-0 end-0 p-3';
+        toastContainer.style.zIndex = '9999';
+        document.body.appendChild(toastContainer);
+    }
+    
+    // Create toast element
+    const toastId = 'toast-' + Date.now();
+    const toast = document.createElement('div');
+    toast.id = toastId;
+    toast.className = `toast align-items-center text-white bg-${type} border-0`;
+    toast.role = 'alert';
+    toast.setAttribute('aria-live', 'assertive');
+    toast.setAttribute('aria-atomic', 'true');
+    
+    toast.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">
+                <i class="bi ${type === 'success' ? 'bi-check-circle-fill' : 
+                               type === 'danger' ? 'bi-exclamation-circle-fill' : 
+                               'bi-info-circle-fill'} me-2"></i>
+                ${message}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
     `;
-    document.head.appendChild(style);
+    
+    toastContainer.appendChild(toast);
+    
+    const bsToast = new bootstrap.Toast(toast, {
+        delay: 3000,
+        autohide: true
+    });
+    bsToast.show();
+    
+    toast.addEventListener('hidden.bs.toast', function() {
+        toast.remove();
+    });
 }
 </script>
+
+<style>
+/* Custom Styles for Orders Page */
+.bg-pending-subtle {
+    background-color: rgba(255, 193, 7, 0.1);
+}
+
+.bg-processing-subtle {
+    background-color: rgba(13, 110, 253, 0.1);
+}
+
+.bg-shipped-subtle {
+    background-color: rgba(25, 135, 84, 0.1);
+}
+
+.bg-delivered-subtle {
+    background-color: rgba(13, 202, 240, 0.1);
+}
+
+.bg-cancelled-subtle {
+    background-color: rgba(220, 53, 69, 0.1);
+}
+
+.text-pending {
+    color: #ffc107;
+}
+
+.text-processing {
+    color: #0d6efd;
+}
+
+.text-shipped {
+    color: #198754;
+}
+
+.text-delivered {
+    color: #0dcaf0;
+}
+
+.text-cancelled {
+    color: #dc3545;
+}
+
+/* Order Card Styles */
+.card {
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+.nav-pills .nav-link {
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+}
+
+.nav-pills .nav-link.active {
+    background-color: var(--bs-primary);
+    box-shadow: 0 4px 12px rgba(13, 110, 253, 0.25);
+}
+
+/* Stats Cards */
+.card.bg-primary, 
+.card.bg-success, 
+.card.bg-warning, 
+.card.bg-danger {
+    border: none;
+    border-radius: 12px;
+}
+
+/* Hover effects */
+.order-card-hover:hover {
+    transform: translateY(-2px);
+    transition: all 0.3s ease;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .display-5 {
+        font-size: 2rem;
+    }
+    
+    .d-flex.justify-content-between.align-items-center {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+    
+    .row.align-items-center.mb-4 {
+        text-align: center;
+    }
+    
+    .d-flex.justify-content-md-end {
+        justify-content: center !important;
+    }
+    
+    .nav-pills {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+}
+
+/* Animation for order cards */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.col-12.mb-4 {
+    animation: fadeIn 0.5s ease-out;
+    animation-fill-mode: both;
+}
+
+.col-12.mb-4:nth-child(1) { animation-delay: 0.1s; }
+.col-12.mb-4:nth-child(2) { animation-delay: 0.2s; }
+.col-12.mb-4:nth-child(3) { animation-delay: 0.3s; }
+.col-12.mb-4:nth-child(4) { animation-delay: 0.4s; }
+
+/* Badge styling */
+.badge {
+    font-weight: 500;
+    letter-spacing: 0.3px;
+}
+
+/* Button hover effects */
+.btn-outline-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(13, 110, 253, 0.25);
+}
+
+.btn-outline-danger:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.25);
+}
+</style>
 {% endblock %}

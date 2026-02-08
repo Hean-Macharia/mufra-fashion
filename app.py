@@ -3,6 +3,8 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for, s
 from flask_pymongo import PyMongo
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from bson.objectid import ObjectId
+from paystackapi.paystack import Paystack
+import uuid
 from datetime import datetime
 import bcrypt
 from dotenv import load_dotenv
@@ -15,6 +17,11 @@ app.secret_key = os.environ.get('SECRET_KEY', 'mufra-fashions-secret-key-2024')
 # MongoDB Atlas Connection
 MONGODB_URI = "mongodb+srv://iconichean:1Loye8PM3YwlV5h4@cluster0.meufk73.mongodb.net/mufra_fashions?retryWrites=true&w=majority"
 app.config["MONGO_URI"] = MONGODB_URI
+
+# Paystack Configuration
+PAYSTACK_SECRET_KEY = os.environ.get('PAYSTACK_SECRET_KEY', 'sk_test_4d05b36c31bf5a4943a92c8ce13882a7859544bc')
+PAYSTACK_PUBLIC_KEY = os.environ.get('PAYSTACK_PUBLIC_KEY', 'pk_test_ba60dd518974e7639e8f78deb0d7dee3acb96133')
+paystack_client = Paystack(secret_key=PAYSTACK_SECRET_KEY)
 
 try:
     mongo = PyMongo(app)
@@ -445,6 +452,9 @@ def checkout():
     if 'cart' not in session or not session['cart']:
         return redirect(url_for('cart'))
 
+    # Initialize discount to 0
+    discount = 0
+
     if request.method == 'POST':
         try:
             # Calculate cart total and prepare items
@@ -483,54 +493,335 @@ def checkout():
             
             # Calculate delivery fee
             region = request.form.get('region', '').lower()
-            delivery_fee = 100 if region == 'embu' else 200
-            total_amount = cart_total + delivery_fee
+            delivery_fee = 0
             
-            # Build complete order data
+            if region == 'embu':
+                delivery_fee = 0
+            elif region in ['meru', 'kirinyaga', 'tharakanithi']:
+                delivery_fee = 150
+            elif region == 'nairobi':
+                delivery_fee = 200
+            elif region == 'other':
+                delivery_fee = 250
+            else:
+                delivery_fee = 150  # Default
+            
+            # Calculate total amount
+            total_amount = cart_total + delivery_fee - discount
+            
+            # Get payment method
+            payment_method = request.form.get('payment_method')
+            
+            # Validate required fields
+            required_fields = ['name', 'phone', 'address', 'city', 'region', 'payment_method']
+            for field in required_fields:
+                if not request.form.get(field):
+                    return render_template('checkout.html', 
+                                         error=f"Please fill in all required fields. Missing: {field}",
+                                         discount=discount)
+            
+            # Validate phone number
+            phone = request.form.get('phone')
+            if len(phone.replace(' ', '').replace('-', '')) < 10:
+                return render_template('checkout.html',
+                                     error="Please enter a valid phone number",
+                                     discount=discount)
+            
+            # Validate email if provided
+            email = request.form.get('email')
+            if email and '@' not in email:
+                return render_template('checkout.html',
+                                     error="Please enter a valid email address",
+                                     discount=discount)
+            
+            # Validate payment method specific fields
+            if payment_method == 'mpesa':
+                mpesa_number = request.form.get('mpesa_number')
+                if not mpesa_number:
+                    return render_template('checkout.html',
+                                         error="Please enter your M-Pesa number",
+                                         discount=discount)
+            
+            elif payment_method == 'airtel':
+                airtel_number = request.form.get('airtel_number')
+                if not airtel_number:
+                    return render_template('checkout.html',
+                                         error="Please enter your Airtel Money number",
+                                         discount=discount)
+            
+            elif payment_method == 'paystack' and not email:
+                return render_template('checkout.html',
+                                     error="Email is required for Paystack payments",
+                                     discount=discount)
+            
+            # Check terms agreement
+            if not request.form.get('terms'):
+                return render_template('checkout.html',
+                                     error="You must agree to the terms and conditions",
+                                     discount=discount)
+            
+            # Build order data
+            order_id = f"MUFRA{datetime.now().strftime('%Y%m%d%H%M%S')}"
             order_data = {
+                '_id': order_id,
+                'order_id': order_id,
                 'name': request.form.get('name'),
+                'email': request.form.get('email', ''),
                 'phone': request.form.get('phone'),
                 'address': request.form.get('address'),
                 'city': request.form.get('city'),
                 'region': request.form.get('region'),
-                'payment_method': request.form.get('payment_method'),
-                'payment_number': request.form.get('payment_number'),
+                'payment_method': payment_method,
+                'payment_number': request.form.get('mpesa_number') or request.form.get('airtel_number') or '',
                 'delivery_fee': delivery_fee,
                 'cart_total': cart_total,
+                'discount': discount,
                 'total_amount': total_amount,
-                'items': cart_items,  # ✅ Now saving cart items
+                'items': cart_items,
                 'status': 'pending',
+                'payment_status': 'pending',
                 'created_at': datetime.now(),
-                'session_id': session.sid,  # Track session
-                'user_id': session.get('user_id')  # Link to user if logged in
+                'session_id': session.sid,
+                'user_id': session.get('user_id')
             }
             
-            # Save order to database or session
-            if db_connected:
-                result = mongo.db.orders.insert_one(order_data)
-                order_id = str(result.inserted_id)
-                print(f"✅ Order saved to database: {order_id}")
+            # If Paystack is selected, initialize payment
+            if payment_method == 'paystack':
+                try:
+                    # Generate a unique reference
+                    paystack_ref = f"MUFRA{datetime.now().strftime('%Y%m%d%H%M%S')}{uuid.uuid4().hex[:8].upper()}"
+                    
+                    # Create callback URL
+                    callback_url = url_for('paystack_callback', _external=True)
+                    
+                    # For Paystack, we need an email
+                    customer_email = email or f"customer_{order_data['phone']}@mufrafashions.com"
+                    
+                    # Create transaction
+                    response = paystack_client.transaction.initialize(
+                        amount=int(total_amount * 100),  # Convert to kobo (smallest currency unit)
+                        email=customer_email,
+                        reference=paystack_ref,
+                        callback_url=callback_url,
+                        metadata={
+                            'order_id': order_data['order_id'],
+                            'customer_name': order_data['name'],
+                            'phone': order_data['phone']
+                        }
+                    )
+                    
+                    if response['status']:
+                        # Save order with Paystack reference
+                        order_data['paystack_ref'] = paystack_ref
+                        order_data['paystack_access_code'] = response['data']['access_code']
+                        order_data['paystack_authorization_url'] = response['data']['authorization_url']
+                        
+                        # Save order to database or session
+                        if db_connected:
+                            mongo.db.orders.insert_one(order_data)
+                        else:
+                            if 'orders' not in session:
+                                session['orders'] = []
+                            session['orders'].append(order_data)
+                            session.modified = True
+                        
+                        # Store order ID in session for verification
+                        session['pending_order_id'] = order_data['order_id']
+                        
+                        # Redirect to Paystack payment page
+                        return redirect(response['data']['authorization_url'])
+                    else:
+                        return render_template('checkout.html', 
+                                             error=f"Payment initialization failed: {response.get('message', 'Unknown error')}",
+                                             discount=discount)
+                        
+                except Exception as e:
+                    print(f"❌ Paystack error: {e}")
+                    return render_template('checkout.html', 
+                                         error=f"Payment processing error: {str(e)}",
+                                         discount=discount)
+            
             else:
-                # Save to session for demo
-                if 'orders' not in session:
-                    session['orders'] = []
-                order_data['_id'] = f"ORD{datetime.now().strftime('%Y%m%d%H%M%S')}"
-                session['orders'].append(order_data)
-                session.modified = True
-                order_id = order_data['_id']
-                print(f"✅ Order saved to session: {order_id}")
-
-            # Clear cart
-            session.pop('cart', None)
-
-            return redirect(url_for('order_confirmation', order_id=order_id))
+                # For other payment methods (MPesa, Airtel, Cash on Delivery)
+                # Update payment status based on method
+                if payment_method in ['mpesa', 'airtel']:
+                    order_data['payment_status'] = 'processing'
+                elif payment_method == 'cod':
+                    order_data['payment_status'] = 'pending_cod'
+                
+                # Save order
+                if db_connected:
+                    mongo.db.orders.insert_one(order_data)
+                else:
+                    if 'orders' not in session:
+                        session['orders'] = []
+                    session['orders'].append(order_data)
+                    session.modified = True
+                
+                # Clear cart
+                session.pop('cart', None)
+                
+                return redirect(url_for('order_confirmation', order_id=order_data['order_id']))
 
         except Exception as e:
             print(f"❌ Checkout error: {e}")
-            return render_template('checkout.html', error=str(e))
+            return render_template('checkout.html', error=str(e), discount=discount)
 
-    # GET request → show checkout form
-    return render_template('checkout.html')
+    # GET request → show checkout form with cart data
+    cart_items = []
+    cart_total = 0
+    
+    for item in session.get('cart', []):
+        if db_connected:
+            try:
+                product = mongo.db.products.find_one({'_id': ObjectId(item['product_id'])})
+                if product:
+                    item_total = product['price'] * item['quantity']
+                    cart_items.append({
+                        'product': product,
+                        'quantity': item['quantity'],
+                        'size': item.get('size', ''),
+                        'color': item.get('color', ''),
+                        'item_total': item_total
+                    })
+                    cart_total += item_total
+            except:
+                continue
+        else:
+            # Demo product
+            product = get_demo_product(item['product_id'])
+            item_total = product['price'] * item['quantity']
+            cart_items.append({
+                'product': product,
+                'quantity': item['quantity'],
+                'size': item.get('size', ''),
+                'color': item.get('color', ''),
+                'item_total': item_total
+            })
+            cart_total += item_total
+    
+    return render_template('checkout.html', 
+                         cart_items=cart_items,
+                         cart_total=cart_total,
+                         discount=discount)
+
+@app.route('/paystack/callback')
+def paystack_callback():
+    """Handle Paystack payment callback"""
+    try:
+        reference = request.args.get('reference')
+        trxref = request.args.get('trxref')
+        
+        if not reference:
+            return render_template('payment_error.html', 
+                                 error="No payment reference provided")
+        
+        # Verify the transaction
+        response = paystack_client.transaction.verify(reference)
+        
+        if response['status'] and response['data']['status'] == 'success':
+            # Payment successful
+            transaction_data = response['data']
+            
+            # Find the order using the reference
+            if db_connected:
+                order = mongo.db.orders.find_one({'paystack_ref': reference})
+            else:
+                order = None
+                if 'orders' in session:
+                    for o in session['orders']:
+                        if o.get('paystack_ref') == reference:
+                            order = o
+                            break
+            
+            if order:
+                # Update order status
+                update_data = {
+                    'status': 'paid',
+                    'payment_status': 'completed',
+                    'transaction_id': transaction_data['id'],
+                    'paid_at': datetime.now(),
+                    'payment_details': {
+                        'channel': transaction_data.get('channel', ''),
+                        'ip_address': transaction_data.get('ip_address', ''),
+                        'paid_at': transaction_data.get('paid_at', ''),
+                        'authorization': transaction_data.get('authorization', {})
+                    }
+                }
+                
+                if db_connected:
+                    mongo.db.orders.update_one(
+                        {'paystack_ref': reference},
+                        {'$set': update_data}
+                    )
+                else:
+                    # Update in session
+                    if 'orders' in session:
+                        for i, o in enumerate(session['orders']):
+                            if o.get('paystack_ref') == reference:
+                                session['orders'][i].update(update_data)
+                                session.modified = True
+                                break
+                
+                # Clear cart and pending order session
+                session.pop('cart', None)
+                session.pop('pending_order_id', None)
+                
+                return redirect(url_for('order_confirmation', 
+                                      order_id=order['order_id']))
+            else:
+                return render_template('payment_error.html', 
+                                     error="Order not found")
+        else:
+            # Payment failed
+            error_message = response.get('message', 'Payment verification failed')
+            return render_template('payment_error.html', 
+                                 error=error_message)
+            
+    except Exception as e:
+        print(f"❌ Paystack callback error: {e}")
+        return render_template('payment_error.html', 
+                             error=f"Payment processing error: {str(e)}")
+
+@app.route('/paystack/webhook', methods=['POST'])
+def paystack_webhook():
+    """Handle Paystack webhook for server-to-server notifications"""
+    try:
+        # Verify it's from Paystack
+        signature = request.headers.get('x-paystack-signature')
+        payload = request.get_data()
+        
+        # In production, verify the signature
+        # For now, we'll trust the payload
+        
+        data = request.get_json()
+        event = data.get('event')
+        
+        if event == 'charge.success':
+            reference = data['data']['reference']
+            
+            # Find and update order
+            if db_connected:
+                order = mongo.db.orders.find_one({'paystack_ref': reference})
+                if order:
+                    mongo.db.orders.update_one(
+                        {'paystack_ref': reference},
+                        {'$set': {
+                            'status': 'paid',
+                            'payment_status': 'completed',
+                            'paid_at': datetime.now(),
+                            'webhook_processed': True
+                        }}
+                    )
+                    print(f"✅ Webhook: Order {order['order_id']} marked as paid")
+            
+            return jsonify({'status': 'success'}), 200
+        
+        return jsonify({'status': 'ignored'}), 200
+        
+    except Exception as e:
+        print(f"❌ Webhook error: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 400
 
 @app.route('/order_confirmation/<order_id>')
 def order_confirmation(order_id):

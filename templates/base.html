@@ -4,292 +4,410 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MUFRA FASHIONS - {% block title %}Home{% endblock %}</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap">
+    
+    {% block head %}{% endblock %}
 </head>
 <body>
     <!-- Top Bar -->
-    <div class="top-bar">
+    <div class="bg-dark text-white py-2 d-none d-lg-block">
         <div class="container">
-            <div class="top-bar-content">
-                <div class="top-bar-left">
-                    <span><i class="fas fa-phone"></i> +254 712 345 678</span>
-                    <span><i class="fas fa-envelope"></i> info@mufrafashions.com</span>
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <div class="d-flex align-items-center gap-4">
+                        <span><i class="bi bi-telephone me-1"></i> +254 712 345 678</span>
+                        <span><i class="bi bi-envelope me-1"></i> info@mufrafashions.com</span>
+                    </div>
                 </div>
-                <div class="top-bar-right">
-                    {% if current_user.is_authenticated %}
-                        <span>Welcome, {{ current_user.username }}</span>
-                        <a href="{{ url_for('admin_logout') }}">Logout</a>
-                    {% else %}
-                        <a href="{{ url_for('admin_login') }}"><i class="fas fa-user-shield"></i> Admin</a>
-                    {% endif %}
+                <div class="col-md-6 text-end">
+                    <div class="d-flex align-items-center justify-content-end gap-3">
+                        {% if current_user.is_authenticated %}
+                            <span class="text-light">Welcome, {{ current_user.username }}</span>
+                            <a href="{{ url_for('admin_logout') }}" class="text-white text-decoration-none">
+                                <i class="bi bi-box-arrow-right me-1"></i>Logout
+                            </a>
+                        {% else %}
+                            <a href="{{ url_for('admin_login') }}" class="text-white text-decoration-none">
+                                <i class="bi bi-shield-lock me-1"></i>Admin Login
+                            </a>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Header -->
-    <header class="header">
-        <div class="container">
-            <div class="header-content">
+    <header class="sticky-top bg-white shadow-sm">
+        <div class="container py-3">
+            <div class="row align-items-center">
                 <!-- Logo -->
-                <div class="logo">
-                    <a href="{{ url_for('home') }}">
-                        <h1><i class="fas fa-crown"></i> MUFRA FASHIONS</h1>
-                        <p class="logo-tagline">Style That Speaks</p>
+                <div class="col-lg-3 col-md-4 col-6">
+                    <a href="{{ url_for('home') }}" class="text-decoration-none">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-gem fs-1 text-primary me-2"></i>
+                            <div>
+                                <h1 class="h3 mb-0 fw-bold text-dark">MUFRA FASHIONS</h1>
+                                <small class="text-muted">Style That Speaks</small>
+                            </div>
+                        </div>
                     </a>
                 </div>
 
                 <!-- Search Bar -->
-                <div class="search-bar">
-                    <form action="{{ url_for('categories') }}" method="get">
-                        <input type="text" name="search" placeholder="Search products, brands, categories..." 
-                               value="{{ request.args.get('search', '') }}">
-                        <button type="submit">
-                            <i class="fas fa-search"></i>
-                        </button>
+                <div class="col-lg-5 col-md-8 d-none d-md-block">
+                    <form action="{{ url_for('categories') }}" method="get" class="position-relative">
+                        <div class="input-group">
+                            <input type="text" 
+                                   name="search" 
+                                   class="form-control border-end-0" 
+                                   placeholder="Search products, brands, categories..."
+                                   value="{{ request.args.get('search', '') }}">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-search"></i>
+                            </button>
+                        </div>
                     </form>
                 </div>
 
                 <!-- Header Actions -->
-                <div class="header-actions">
-                    <div class="action-item">
-                        <a href="{{ url_for('cart') }}" class="cart-btn">
-                            <i class="fas fa-shopping-cart"></i>
-                            <span class="cart-count" id="cartCount">
+                <div class="col-lg-4 col-md-12 col-6">
+                    <div class="d-flex align-items-center justify-content-end gap-4">
+                        <!-- Mobile Search Toggle -->
+                        <button class="btn btn-outline-secondary d-md-none" type="button" data-bs-toggle="collapse" data-bs-target="#mobileSearch">
+                            <i class="bi bi-search"></i>
+                        </button>
+
+                        <!-- Cart -->
+                        <a href="{{ url_for('cart') }}" class="position-relative text-decoration-none text-dark">
+                            <i class="bi bi-cart3 fs-4"></i>
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="cartCount">
                                 {{ session.cart|length if session.cart else 0 }}
                             </span>
-                            <span class="action-label">Cart</span>
+                            <span class="d-none d-lg-inline ms-1">Cart</span>
                         </a>
-                    </div>
-                    <div class="action-item">
-                        <a href="{{ url_for('categories') }}" class="wishlist-btn">
-                            <i class="fas fa-heart"></i>
-                            <span class="action-label">Wishlist</span>
+
+                        <!-- Wishlist -->
+                        <a href="{{ url_for('categories') }}" class="text-decoration-none text-dark">
+                            <i class="bi bi-heart fs-4"></i>
+                            <span class="d-none d-lg-inline ms-1">Wishlist</span>
                         </a>
-                    </div>
-                    <div class="action-item">
-                        <a href="#account" class="account-btn">
-                            <i class="fas fa-user"></i>
-                            <span class="action-label">Account</span>
-                        </a>
+
+                        <!-- Account -->
+                        <div class="dropdown">
+                            <a href="#" class="text-decoration-none text-dark dropdown-toggle" role="button" data-bs-toggle="dropdown">
+                                <i class="bi bi-person-circle fs-4"></i>
+                                <span class="d-none d-lg-inline ms-1">Account</span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>My Profile</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="bi bi-box-arrow-in-right me-2"></i>Login</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="bi bi-pencil-square me-2"></i>Register</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#"><i class="bi bi-question-circle me-2"></i>Help Center</a></li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Mobile Menu Toggle -->
-                <button class="mobile-menu-toggle" id="mobileMenuToggle">
-                    <i class="fas fa-bars"></i>
-                </button>
+                <!-- Mobile Search -->
+                <div class="col-12 mt-2">
+                    <div class="collapse" id="mobileSearch">
+                        <form action="{{ url_for('categories') }}" method="get">
+                            <div class="input-group">
+                                <input type="text" 
+                                       name="search" 
+                                       class="form-control" 
+                                       placeholder="Search..."
+                                       value="{{ request.args.get('search', '') }}">
+                                <button type="submit" class="btn btn-primary">Search</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
+
+        <!-- Navigation -->
+        <nav class="navbar navbar-expand-lg navbar-light bg-light border-top">
+            <div class="container">
+                <button class="navbar-toggler ms-auto" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav me-auto">
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.endpoint == 'home' %}active fw-bold{% endif %}" href="{{ url_for('home') }}">
+                                <i class="bi bi-house-door me-1"></i>Home
+                            </a>
+                        </li>
+                        
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle {% if request.endpoint == 'categories' %}active fw-bold{% endif %}" 
+                               href="{{ url_for('categories') }}" 
+                               role="button" 
+                               data-bs-toggle="dropdown">
+                                <i class="bi bi-grid me-1"></i>Categories
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{{ url_for('categories') }}?category=all">All Categories</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><h6 class="dropdown-header">Main Categories</h6></li>
+                                <li><a class="dropdown-item" href="{{ url_for('categories') }}?category=shoes">Shoes</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('categories') }}?category=clothes">Clothes</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><h6 class="dropdown-header">Special Categories</h6></li>
+                                <li><a class="dropdown-item" href="{{ url_for('categories') }}?subcategory=new">New Arrivals</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('categories') }}?subcategory=secondhand">Second Hand</a></li>
+                            </ul>
+                        </li>
+                        
+                        <li class="nav-item">
+                            <a class="nav-link" href="#new-arrivals">
+                                <i class="bi bi-star me-1"></i>New Arrivals
+                            </a>
+                        </li>
+                        
+                        <li class="nav-item">
+                            <a class="nav-link" href="#deals">
+                                <i class="bi bi-fire me-1"></i>Hot Deals
+                            </a>
+                        </li>
+                        
+                        <li class="nav-item">
+                            <a class="nav-link" href="#about">
+                                <i class="bi bi-info-circle me-1"></i>About Us
+                            </a>
+                        </li>
+                        
+                        <li class="nav-item">
+                            <a class="nav-link" href="#contact">
+                                <i class="bi bi-telephone me-1"></i>Contact
+                            </a>
+                        </li>
+                    </ul>
+                    
+                    <!-- Additional navigation items if needed -->
+                    <div class="d-flex gap-2">
+                        <a href="#deals" class="btn btn-danger btn-sm">
+                            <i class="bi bi-lightning"></i> Flash Sale
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </nav>
     </header>
 
-    <!-- Navigation -->
-    <nav class="navbar" id="mainNav">
-        <div class="container">
-            <ul class="nav-menu">
-                <li><a href="{{ url_for('home') }}" class="{% if request.endpoint == 'home' %}active{% endif %}">
-                    <i class="fas fa-home"></i> Home
-                </a></li>
-                <li class="dropdown">
-                    <a href="{{ url_for('categories') }}" class="{% if request.endpoint == 'categories' %}active{% endif %}">
-                        <i class="fas fa-th-large"></i> Categories
-                        <i class="fas fa-chevron-down"></i>
-                    </a>
-                    <div class="dropdown-menu">
-                        <a href="{{ url_for('categories') }}?category=all">All Categories</a>
-                        <a href="{{ url_for('categories') }}?category=shoes">Shoes</a>
-                        <a href="{{ url_for('categories') }}?category=clothes">Clothes</a>
-                        <div class="dropdown-divider"></div>
-                        <a href="{{ url_for('categories') }}?subcategory=new">New Arrivals</a>
-                        <a href="{{ url_for('categories') }}?subcategory=secondhand">Second Hand</a>
-                    </div>
-                </li>
-                <li><a href="#new-arrivals">
-                    <i class="fas fa-star"></i> New Arrivals
-                </a></li>
-                <li><a href="#deals">
-                    <i class="fas fa-fire"></i> Hot Deals
-                </a></li>
-                <li><a href="#about">
-                    <i class="fas fa-info-circle"></i> About Us
-                </a></li>
-                <li><a href="#contact">
-                    <i class="fas fa-phone-alt"></i> Contact
-                </a></li>
-            </ul>
-        </div>
-    </nav>
-
     <!-- Main Content -->
-    <main class="main-content">
+    <main class="py-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="container mb-4">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+        
         {% block content %}{% endblock %}
     </main>
 
     <!-- Newsletter Section -->
-    <section class="newsletter">
+    <section class="bg-primary text-white py-5">
         <div class="container">
-            <div class="newsletter-content">
-                <div class="newsletter-text">
-                    <h3>Stay Updated</h3>
-                    <p>Subscribe to our newsletter for the latest fashion trends and exclusive offers</p>
+            <div class="row align-items-center">
+                <div class="col-lg-6 mb-4 mb-lg-0">
+                    <h3 class="fw-bold mb-2">Stay Updated</h3>
+                    <p class="mb-0 opacity-75">Subscribe to our newsletter for the latest fashion trends and exclusive offers</p>
                 </div>
-                <form class="newsletter-form">
-                    <input type="email" placeholder="Enter your email address" required>
-                    <button type="submit">Subscribe</button>
-                </form>
+                <div class="col-lg-6">
+                    <form class="d-flex">
+                        <input type="email" class="form-control form-control-lg me-2" placeholder="Enter your email address" required>
+                        <button type="submit" class="btn btn-light btn-lg px-4">Subscribe</button>
+                    </form>
+                </div>
             </div>
         </div>
     </section>
 
     <!-- Footer -->
-    <footer class="footer">
+    <footer class="bg-dark text-white pt-5">
         <div class="container">
-            <div class="footer-content">
+            <div class="row g-4">
                 <!-- Company Info -->
-                <div class="footer-section">
-                    <div class="footer-logo">
-                        <h3><i class="fas fa-crown"></i> MUFRA FASHIONS</h3>
-                        <p>Your one-stop shop for quality fashion at affordable prices.</p>
-                    </div>
-                    <div class="social-links">
-                        <a href="#"><i class="fab fa-facebook"></i></a>
-                        <a href="#"><i class="fab fa-twitter"></i></a>
-                        <a href="#"><i class="fab fa-instagram"></i></a>
-                        <a href="#"><i class="fab fa-tiktok"></i></a>
+                <div class="col-lg-3 col-md-6">
+                    <div class="mb-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <i class="bi bi-gem fs-2 text-primary me-2"></i>
+                            <h3 class="h5 mb-0">MUFRA FASHIONS</h3>
+                        </div>
+                        <p class="text-light opacity-75 small">Your one-stop shop for quality fashion at affordable prices.</p>
+                        <div class="social-links mt-3">
+                            <a href="#" class="text-white me-3"><i class="bi bi-facebook fs-5"></i></a>
+                            <a href="#" class="text-white me-3"><i class="bi bi-twitter fs-5"></i></a>
+                            <a href="#" class="text-white me-3"><i class="bi bi-instagram fs-5"></i></a>
+                            <a href="#" class="text-white"><i class="bi bi-tiktok fs-5"></i></a>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Quick Links -->
-                <div class="footer-section">
-                    <h4>Quick Links</h4>
-                    <ul>
-                        <li><a href="{{ url_for('home') }}">Home</a></li>
-                        <li><a href="{{ url_for('categories') }}">Categories</a></li>
-                        <li><a href="#new-arrivals">New Arrivals</a></li>
-                        <li><a href="#deals">Hot Deals</a></li>
-                        <li><a href="#about">About Us</a></li>
+                <div class="col-lg-2 col-md-6">
+                    <h5 class="mb-3">Quick Links</h5>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><a href="{{ url_for('home') }}" class="text-light opacity-75 text-decoration-none">Home</a></li>
+                        <li class="mb-2"><a href="{{ url_for('categories') }}" class="text-light opacity-75 text-decoration-none">Categories</a></li>
+                        <li class="mb-2"><a href="#new-arrivals" class="text-light opacity-75 text-decoration-none">New Arrivals</a></li>
+                        <li class="mb-2"><a href="#deals" class="text-light opacity-75 text-decoration-none">Hot Deals</a></li>
+                        <li class="mb-2"><a href="#about" class="text-light opacity-75 text-decoration-none">About Us</a></li>
                     </ul>
                 </div>
 
                 <!-- Categories -->
-                <div class="footer-section">
-                    <h4>Categories</h4>
-                    <ul>
-                        <li><a href="{{ url_for('categories') }}?category=shoes">Shoes</a></li>
-                        <li><a href="{{ url_for('categories') }}?category=clothes">Clothes</a></li>
-                        <li><a href="{{ url_for('categories') }}?subcategory=new">New Items</a></li>
-                        <li><a href="{{ url_for('categories') }}?subcategory=secondhand">Second Hand</a></li>
-                        <li><a href="{{ url_for('categories') }}">All Products</a></li>
+                <div class="col-lg-2 col-md-6">
+                    <h5 class="mb-3">Categories</h5>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><a href="{{ url_for('categories') }}?category=shoes" class="text-light opacity-75 text-decoration-none">Shoes</a></li>
+                        <li class="mb-2"><a href="{{ url_for('categories') }}?category=clothes" class="text-light opacity-75 text-decoration-none">Clothes</a></li>
+                        <li class="mb-2"><a href="{{ url_for('categories') }}?subcategory=new" class="text-light opacity-75 text-decoration-none">New Items</a></li>
+                        <li class="mb-2"><a href="{{ url_for('categories') }}?subcategory=secondhand" class="text-light opacity-75 text-decoration-none">Second Hand</a></li>
+                        <li class="mb-2"><a href="{{ url_for('categories') }}" class="text-light opacity-75 text-decoration-none">All Products</a></li>
                     </ul>
                 </div>
 
                 <!-- Contact Info -->
-                <div class="footer-section">
-                    <h4>Contact Us</h4>
-                    <div class="contact-info">
-                        <p><i class="fas fa-map-marker-alt"></i> 123 Fashion Street, Embu, Kenya</p>
-                        <p><i class="fas fa-phone"></i> +254 712 345 678</p>
-                        <p><i class="fas fa-envelope"></i> info@mufrafashions.com</p>
-                        <p><i class="fas fa-clock"></i> Mon-Sat: 8:00 AM - 8:00 PM</p>
-                    </div>
+                <div class="col-lg-3 col-md-6">
+                    <h5 class="mb-3">Contact Us</h5>
+                    <ul class="list-unstyled">
+                        <li class="mb-2 d-flex align-items-start">
+                            <i class="bi bi-geo-alt me-2 mt-1"></i>
+                            <span class="text-light opacity-75">123 Fashion Street, Embu, Kenya</span>
+                        </li>
+                        <li class="mb-2 d-flex align-items-center">
+                            <i class="bi bi-telephone me-2"></i>
+                            <span class="text-light opacity-75">+254 712 345 678</span>
+                        </li>
+                        <li class="mb-2 d-flex align-items-center">
+                            <i class="bi bi-envelope me-2"></i>
+                            <span class="text-light opacity-75">info@mufrafashions.com</span>
+                        </li>
+                        <li class="mb-2 d-flex align-items-center">
+                            <i class="bi bi-clock me-2"></i>
+                            <span class="text-light opacity-75">Mon-Sat: 8:00 AM - 8:00 PM</span>
+                        </li>
+                    </ul>
                 </div>
 
                 <!-- Payment Methods -->
-                <div class="footer-section">
-                    <h4>Payment Methods</h4>
-                    <div class="payment-methods">
-                        <i class="fab fa-cc-m-pesa" title="M-Pesa"></i>
-                        <i class="fab fa-cc-visa" title="Visa"></i>
-                        <i class="fab fa-cc-mastercard" title="Mastercard"></i>
-                        <i class="fas fa-mobile-alt" title="Airtel Money"></i>
-                        <i class="fas fa-money-bill-wave" title="Cash on Delivery"></i>
+                <div class="col-lg-2 col-md-6">
+                    <h5 class="mb-3">Payment Methods</h5>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="badge bg-light text-dark p-2"><i class="bi bi-wallet2 me-1"></i>M-Pesa</span>
+                        <span class="badge bg-light text-dark p-2">Visa</span>
+                        <span class="badge bg-light text-dark p-2">Mastercard</span>
+                        <span class="badge bg-light text-dark p-2">Airtel Money</span>
+                        <span class="badge bg-light text-dark p-2">Cash</span>
                     </div>
                 </div>
             </div>
 
             <!-- Footer Bottom -->
-            <div class="footer-bottom">
-                <div class="footer-bottom-content">
-                    <p>&copy; 2024 MUFRA FASHIONS. All rights reserved.</p>
-                    <div class="footer-links">
-                        <a href="#privacy">Privacy Policy</a>
-                        <a href="#terms">Terms of Service</a>
-                        <a href="#shipping">Shipping Policy</a>
-                        <a href="#returns">Return Policy</a>
+            <div class="border-top border-secondary mt-4 pt-4">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <p class="mb-0 text-light opacity-75 small">
+                            &copy; 2024 MUFRA FASHIONS. All rights reserved.
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="text-md-end">
+                            <a href="#privacy" class="text-light opacity-75 text-decoration-none me-3 small">Privacy Policy</a>
+                            <a href="#terms" class="text-light opacity-75 text-decoration-none me-3 small">Terms of Service</a>
+                            <a href="#shipping" class="text-light opacity-75 text-decoration-none me-3 small">Shipping Policy</a>
+                            <a href="#returns" class="text-light opacity-75 text-decoration-none small">Return Policy</a>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </footer>
 
-    <!-- Quick Action Buttons -->
-    <div class="quick-actions">
-        <button class="quick-action-btn" onclick="scrollToTop()" title="Back to Top">
-            <i class="fas fa-arrow-up"></i>
-        </button>
-        <button class="quick-action-btn" onclick="window.open('https://wa.me/254712345678', '_blank')" title="Chat on WhatsApp">
-            <i class="fab fa-whatsapp"></i>
-        </button>
-        <button class="quick-action-btn" onclick="window.location.href='{{ url_for('cart') }}'" title="View Cart">
-            <i class="fas fa-shopping-cart"></i>
-            <span class="cart-badge" id="floatingCartCount">{{ session.cart|length if session.cart else 0 }}</span>
-        </button>
+    <!-- Floating Action Buttons -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1050;">
+        <div class="d-flex flex-column gap-2">
+            <!-- WhatsApp -->
+            <a href="https://wa.me/254712345678" 
+               target="_blank" 
+               class="btn btn-success btn-lg rounded-circle shadow-lg" 
+               title="Chat on WhatsApp">
+                <i class="bi bi-whatsapp"></i>
+            </a>
+            
+            <!-- Back to Top -->
+            <button onclick="scrollToTop()" 
+                    class="btn btn-primary btn-lg rounded-circle shadow-lg" 
+                    title="Back to Top" 
+                    id="backToTop">
+                <i class="bi bi-arrow-up"></i>
+            </button>
+            
+            <!-- Quick Cart -->
+            <a href="{{ url_for('cart') }}" 
+               class="btn btn-warning btn-lg rounded-circle shadow-lg position-relative" 
+               title="View Cart">
+                <i class="bi bi-cart3"></i>
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="floatingCartCount">
+                    {{ session.cart|length if session.cart else 0 }}
+                </span>
+            </a>
+        </div>
     </div>
 
-    <!-- JavaScript -->
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JS -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-    
-    <!-- Inline JavaScript for Base Template -->
+
+    <!-- Inline JavaScript -->
     <script>
-    // Mobile menu toggle
     document.addEventListener('DOMContentLoaded', function() {
-        const mobileMenuToggle = document.getElementById('mobileMenuToggle');
-        const mainNav = document.getElementById('mainNav');
+        // Back to top button visibility
+        const backToTop = document.getElementById('backToTop');
+        window.addEventListener('scroll', function() {
+            if (window.scrollY > 300) {
+                backToTop.style.opacity = '1';
+                backToTop.style.visibility = 'visible';
+            } else {
+                backToTop.style.opacity = '0';
+                backToTop.style.visibility = 'hidden';
+            }
+        });
         
-        if (mobileMenuToggle && mainNav) {
-            mobileMenuToggle.addEventListener('click', function() {
-                mainNav.classList.toggle('active');
-                mobileMenuToggle.innerHTML = mainNav.classList.contains('active') 
-                    ? '<i class="fas fa-times"></i>' 
-                    : '<i class="fas fa-bars"></i>';
-            });
-        }
+        // Initialize with hidden state
+        backToTop.style.opacity = '0';
+        backToTop.style.visibility = 'hidden';
+        backToTop.style.transition = 'opacity 0.3s, visibility 0.3s';
         
-        // Update cart count from session
+        // Update cart count
         updateCartCount();
-        
-        // Initialize dropdowns
-        initializeDropdowns();
     });
-    
-    function updateCartCount() {
-        // Update all cart count elements
-        const cartCount = {{ session.cart|length if session.cart else 0 }};
-        document.querySelectorAll('.cart-count, .cart-badge').forEach(el => {
-            el.textContent = cartCount;
-        });
-    }
-    
-    function initializeDropdowns() {
-        const dropdowns = document.querySelectorAll('.dropdown');
-        dropdowns.forEach(dropdown => {
-            dropdown.addEventListener('mouseenter', function() {
-                this.classList.add('open');
-            });
-            
-            dropdown.addEventListener('mouseleave', function() {
-                this.classList.remove('open');
-            });
-            
-            // Touch support for mobile
-            dropdown.addEventListener('touchstart', function(e) {
-                e.preventDefault();
-                this.classList.toggle('open');
-            });
-        });
-    }
     
     function scrollToTop() {
         window.scrollTo({
@@ -298,12 +416,13 @@
         });
     }
     
-    // Listen for cart updates
-    document.addEventListener('cartUpdated', function() {
-        updateCartCount();
-    });
+    function updateCartCount() {
+        const cartCount = {{ session.cart|length if session.cart else 0 }};
+        document.querySelectorAll('#cartCount, #floatingCartCount').forEach(el => {
+            el.textContent = cartCount;
+        });
+    }
     
-    // Add to cart function
     function addToCart(productId, quantity = 1, size = '', color = '') {
         fetch('/add_to_cart', {
             method: 'POST',
@@ -320,104 +439,68 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Update cart count
-                document.dispatchEvent(new Event('cartUpdated'));
-                
-                // Show success message
-                showToast('Added to cart!', 'success');
-                
-                // Update UI
                 updateCartCount();
+                showToast('Added to cart!', 'success');
             } else {
-                showToast('Error adding to cart', 'error');
+                showToast('Error adding to cart', 'danger');
             }
         })
         .catch(error => {
-            showToast('Error adding to cart', 'error');
+            showToast('Error adding to cart', 'danger');
             console.error('Error:', error);
         });
     }
     
-    // Toast notification
+    // Toast notification using Bootstrap
     function showToast(message, type = 'success') {
-        const toast = document.createElement('div');
-        toast.className = `toast toast-${type}`;
-        toast.innerHTML = `
-            <div class="toast-content">
-                <i class="fas ${type === 'success' ? 'fa-check-circle' : 
-                              type === 'error' ? 'fa-exclamation-circle' : 
-                              'fa-info-circle'}"></i>
-                <span>${message}</span>
-            </div>
-            <button class="toast-close" onclick="this.parentElement.remove()">
-                <i class="fas fa-times"></i>
-            </button>
-        `;
-        
-        toast.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: ${type === 'success' ? '#d4edda' : 
-                         type === 'error' ? '#f8d7da' : 
-                         '#d1ecf1'};
-            color: ${type === 'success' ? '#155724' : 
-                    type === 'error' ? '#721c24' : 
-                    '#0c5460'};
-            padding: 1rem 1.5rem;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            min-width: 300px;
-            max-width: 400px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            z-index: 9999;
-            animation: slideInRight 0.3s ease-out;
-        `;
-        
-        document.body.appendChild(toast);
-        
-        // Auto remove after 5 seconds
-        setTimeout(() => {
-            if (toast.parentNode) {
-                toast.remove();
-            }
-        }, 5000);
-        
-        // Add animation styles if not present
-        if (!document.querySelector('#toast-animations')) {
-            const style = document.createElement('style');
-            style.id = 'toast-animations';
-            style.textContent = `
-                @keyframes slideInRight {
-                    from {
-                        transform: translateX(100%);
-                        opacity: 0;
-                    }
-                    to {
-                        transform: translateX(0);
-                        opacity: 1;
-                    }
-                }
-                
-                .toast-close {
-                    background: none;
-                    border: none;
-                    cursor: pointer;
-                    color: inherit;
-                    margin-left: 1rem;
-                    padding: 0.25rem;
-                    border-radius: 4px;
-                }
-                
-                .toast-close:hover {
-                    background-color: rgba(0, 0, 0, 0.1);
-                }
-            `;
-            document.head.appendChild(style);
+        // Create toast container if it doesn't exist
+        let toastContainer = document.getElementById('toastContainer');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.id = 'toastContainer';
+            toastContainer.className = 'position-fixed top-0 end-0 p-3';
+            toastContainer.style.zIndex = '9999';
+            document.body.appendChild(toastContainer);
         }
+        
+        // Create toast element
+        const toastId = 'toast-' + Date.now();
+        const toast = document.createElement('div');
+        toast.id = toastId;
+        toast.className = `toast align-items-center text-white bg-${type} border-0`;
+        toast.role = 'alert';
+        toast.setAttribute('aria-live', 'assertive');
+        toast.setAttribute('aria-atomic', 'true');
+        
+        toast.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="bi ${type === 'success' ? 'bi-check-circle-fill' : 
+                                   type === 'danger' ? 'bi-exclamation-circle-fill' : 
+                                   'bi-info-circle-fill'} me-2"></i>
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        `;
+        
+        toastContainer.appendChild(toast);
+        
+        // Initialize and show toast
+        const bsToast = new bootstrap.Toast(toast, {
+            delay: 3000,
+            autohide: true
+        });
+        bsToast.show();
+        
+        // Remove toast from DOM after it's hidden
+        toast.addEventListener('hidden.bs.toast', function() {
+            toast.remove();
+        });
     }
+    
+    // Listen for cart updates
+    document.addEventListener('cartUpdated', updateCartCount);
     </script>
     
     {% block scripts %}{% endblock %}
