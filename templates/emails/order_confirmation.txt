@@ -1,0 +1,38 @@
+Order Confirmation - MUFRA FASHIONS
+
+Dear Customer,
+
+Your order has been received and is being processed. Here are your order details:
+
+Order ID: {{ order_id }}
+Order Date: {{ date }}
+Order Status: Processing
+
+ORDER SUMMARY:
+{% for item in items %}
+- {{ item.name }}
+  Quantity: {{ item.quantity }}
+  Price: KES {{ item.price }}
+  Total: KES {{ item.price * item.quantity }}
+{% endfor %}
+
+Total Amount: KES {{ total }}
+
+SHIPPING ADDRESS:
+{{ shipping_address.street }}
+{{ shipping_address.city }}
+{{ shipping_address.county }}
+{% if shipping_address.postal_code %}{{ shipping_address.postal_code }}{% endif %}
+Phone: {{ shipping_address.phone }}
+
+You will receive another email when your order ships. You can also track your order status by logging into your account.
+
+If you have any questions about your order, please contact our customer support team.
+
+Best regards,
+The MUFRA FASHIONS Team
+
+---
+© {{ year }} MUFRA FASHIONS. All rights reserved.
+123 Fashion Street, Embu, Kenya
+Email: support@mufrafashions.com | Phone: +254 712 345 678

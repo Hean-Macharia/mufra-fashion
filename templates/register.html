@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block title %}Register - MUFRA FASHIONS{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0"><i class="fas fa-user-plus me-2"></i>Create Account</h3>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('register') }}">
+                        <div class="mb-3">
+                            <label class="form-label">Full Name *</label>
+                            <input type="text" class="form-control" name="name" 
+                                   value="{{ request.form.name if request.form }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Email Address *</label>
+                            <input type="email" class="form-control" name="email" 
+                                   value="{{ request.form.email if request.form }}" required>
+                            <div class="form-text">We'll send a verification code to this email</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Phone Number *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">+254</span>
+                                <input type="tel" class="form-control" name="phone" 
+                                       value="{{ request.form.phone if request.form }}" 
+                                       pattern="[0-9]{9}" placeholder="712345678" required>
+                            </div>
+                            <div class="form-text">Enter your 9-digit phone number without the leading 0</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Password *</label>
+                            <input type="password" class="form-control" name="password" 
+                                   id="password" required>
+                            <div class="form-text">Minimum 8 characters with letters and numbers</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="form-label">Confirm Password *</label>
+                            <input type="password" class="form-control" name="confirm_password" 
+                                   id="confirm_password" required>
+                            <div class="invalid-feedback" id="password-error">
+                                Passwords do not match
+                            </div>
+                        </div>
+                        
+                        <div class="form-check mb-4">
+                            <input class="form-check-input" type="checkbox" id="terms" required>
+                            <label class="form-check-label" for="terms">
+                                I agree to the <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal">Terms and Conditions</a> and <a href="#" data-bs-toggle="modal" data-bs-target="#privacyModal">Privacy Policy</a> *
+                            </label>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-user-plus me-2"></i> Create Account
+                            </button>
+                        </div>
+                        
+                        <hr class="my-4">
+                        
+                        <div class="text-center">
+                            <p class="mb-0">Already have an account? 
+                                <a href="{{ url_for('login') }}" class="text-decoration-none">
+                                    Login here
+                                </a>
+                            </p>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Terms Modal -->
+<div class="modal fade" id="termsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Terms and Conditions</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Same as checkout modal -->
+                <p>Your registration is subject to acceptance by MUFRA FASHIONS...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Privacy Modal -->
+<div class="modal fade" id="privacyModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Privacy Policy</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <h6>1. Information We Collect</h6>
+                <p>We collect personal information you provide when registering, placing orders, or contacting us.</p>
+                
+                <h6>2. How We Use Your Information</h6>
+                <p>To process orders, communicate with you, improve our services, and send promotional materials.</p>
+                
+                <h6>3. Information Sharing</h6>
+                <p>We do not sell your personal information. We may share with payment processors and delivery services.</p>
+                
+                <h6>4. Security</h6>
+                <p>We implement security measures to protect your personal information.</p>
+                
+                <h6>5. Your Rights</h6>
+                <p>You can access, correct, or delete your personal information through your account settings.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Password confirmation
+    $('#confirm_password').on('input', function() {
+        const password = $('#password').val();
+        const confirm = $(this).val();
+        
+        if (password !== confirm) {
+            $(this).addClass('is-invalid');
+            $('#password-error').show();
+        } else {
+            $(this).removeClass('is-invalid');
+            $('#password-error').hide();
+        }
+    });
+    
+    // Password strength
+    $('#password').on('input', function() {
+        const password = $(this).val();
+        let strength = 0;
+        
+        if (password.length >= 8) strength++;
+        if (/[A-Z]/.test(password)) strength++;
+        if (/[0-9]/.test(password)) strength++;
+        if (/[^A-Za-z0-9]/.test(password)) strength++;
+        
+        // Update strength indicator
+        $('#password-strength').removeClass().addClass('strength-' + strength);
+    });
+    
+    // Form validation
+    $('form').submit(function(e) {
+        const password = $('#password').val();
+        const confirm = $('#confirm_password').val();
+        
+        if (password !== confirm) {
+            e.preventDefault();
+            showToast('Error', 'Passwords do not match', 'error');
+            return false;
+        }
+        
+        if (password.length < 8) {
+            e.preventDefault();
+            showToast('Error', 'Password must be at least 8 characters', 'error');
+            return false;
+        }
+        
+        if (!$('#terms').is(':checked')) {
+            e.preventDefault();
+            showToast('Error', 'Please accept the terms and conditions', 'error');
+            return false;
+        }
+    });
+});
+</script>
+{% endblock %}
+{% endblock %}

@@ -1,0 +1,503 @@
+{% extends "base.html" %}
+
+{% block title %}My Account - MUFRA FASHIONS{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-lg-3 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <div class="avatar-circle mb-3">
+                            <i class="fas fa-user fa-3x text-primary"></i>
+                        </div>
+                        <h5>{{ user.name }}</h5>
+                        <p class="text-muted small">{{ user.email }}</p>
+                    </div>
+                    
+                    <ul class="nav flex-column account-nav">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#dashboard" data-bs-toggle="tab">
+                                <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#orders" data-bs-toggle="tab">
+                                <i class="fas fa-shopping-bag me-2"></i> My Orders
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#addresses" data-bs-toggle="tab">
+                                <i class="fas fa-map-marker-alt me-2"></i> Addresses
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#wishlist" data-bs-toggle="tab">
+                                <i class="fas fa-heart me-2"></i> Wishlist
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#settings" data-bs-toggle="tab">
+                                <i class="fas fa-cog me-2"></i> Account Settings
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-danger" href="{{ url_for('logout') }}">
+                                <i class="fas fa-sign-out-alt me-2"></i> Logout
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="col-lg-9">
+            <div class="tab-content">
+                <!-- Dashboard Tab -->
+                <div class="tab-pane fade show active" id="dashboard">
+                    <div class="card">
+                        <div class="card-header">
+                            <h4 class="mb-0"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-4">
+                                <div class="col-md-4 mb-3">
+                                    <div class="stat-card p-3 bg-primary text-white rounded">
+                                        <h6>Total Orders</h6>
+                                        <h3>{{ orders|length }}</h3>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <div class="stat-card p-3 bg-success text-white rounded">
+                                        <h6>Pending Orders</h6>
+                                        <h3>{{ orders|selectattr('status', 'equalto', 'pending')|list|length }}</h3>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <div class="stat-card p-3 bg-info text-white rounded">
+                                        <h6>Total Spent</h6>
+                                        <h3>KES {{ orders|sum(attribute='total') }}</h3>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <h5 class="mb-3">Recent Orders</h5>
+                            {% if orders %}
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Order #</th>
+                                            <th>Date</th>
+                                            <th>Status</th>
+                                            <th>Total</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for order in orders[:5] %}
+                                        <tr>
+                                            <td>{{ order.order_id }}</td>
+                                            <td>{{ order.created_at.strftime('%Y-%m-%d') }}</td>
+                                            <td>
+                                                <span class="badge bg-{{ 'success' if order.status == 'delivered' else 'warning' if order.status == 'processing' else 'info' }}">
+                                                    {{ order.status|title }}
+                                                </span>
+                                            </td>
+                                            <td>KES {{ order.total }}</td>
+                                            <td>
+                                                <a href="#order{{ order.order_id }}" 
+                                                   class="btn btn-sm btn-outline-primary"
+                                                   data-bs-toggle="modal">
+                                                    View
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-shopping-bag fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">You haven't placed any orders yet.</p>
+                                <a href="{{ url_for('categories') }}" class="btn btn-primary">
+                                    Start Shopping
+                                </a>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Orders Tab -->
+                <div class="tab-pane fade" id="orders">
+                    <div class="card">
+                        <div class="card-header">
+                            <h4 class="mb-0"><i class="fas fa-shopping-bag me-2"></i>My Orders</h4>
+                        </div>
+                        <div class="card-body">
+                            {% if orders %}
+                            <div class="accordion" id="ordersAccordion">
+                                {% for order in orders %}
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button collapsed" type="button" 
+                                                data-bs-toggle="collapse" 
+                                                data-bs-target="#order{{ loop.index }}">
+                                            <div class="d-flex justify-content-between w-100 me-3">
+                                                <div>
+                                                    <strong>Order #{{ order.order_id }}</strong>
+                                                    <small class="text-muted ms-3">
+                                                        {{ order.created_at.strftime('%B %d, %Y') }}
+                                                    </small>
+                                                </div>
+                                                <div>
+                                                    <span class="badge bg-{{ 'success' if order.status == 'delivered' else 'warning' if order.status == 'processing' else 'info' }} me-2">
+                                                        {{ order.status|title }}
+                                                    </span>
+                                                    <strong>KES {{ order.total }}</strong>
+                                                </div>
+                                            </div>
+                                        </button>
+                                    </h2>
+                                    <div id="order{{ loop.index }}" class="accordion-collapse collapse">
+                                        <div class="accordion-body">
+                                            <div class="row">
+                                                <div class="col-md-8">
+                                                    <h6>Items Ordered</h6>
+                                                    {% for item in order.items %}
+                                                    <div class="d-flex mb-3">
+                                                        <div class="flex-shrink-0">
+                                                            <img src="{{ url_for('static', filename='uploads/' + item.image) if item.image else 'https://via.placeholder.com/60x60?text=Product' }}" 
+                                                                 class="cart-item-image" alt="{{ item.name }}">
+                                                        </div>
+                                                        <div class="flex-grow-1 ms-3">
+                                                            <h6 class="mb-1">{{ item.name }}</h6>
+                                                            <small class="text-muted">
+                                                                Qty: {{ item.quantity }} | 
+                                                                {% if item.size %}Size: {{ item.size }} | {% endif %}
+                                                                {% if item.color %}Color: {{ item.color }}{% endif %}
+                                                            </small>
+                                                            <p class="mb-0">KES {{ item.price * item.quantity }}</p>
+                                                        </div>
+                                                    </div>
+                                                    {% endfor %}
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <h6>Order Summary</h6>
+                                                    <p class="mb-1"><strong>Subtotal:</strong> KES {{ order.subtotal }}</p>
+                                                    <p class="mb-1"><strong>Delivery:</strong> KES {{ order.delivery_fee }}</p>
+                                                    <p class="mb-3"><strong>Total:</strong> KES {{ order.total }}</p>
+                                                    
+                                                    <h6>Shipping Address</h6>
+                                                    <address class="small">
+                                                        {{ order.shipping_address.street }}<br>
+                                                        {{ order.shipping_address.city }}<br>
+                                                        {{ order.shipping_address.county }}<br>
+                                                        Phone: {{ order.shipping_address.phone }}
+                                                    </address>
+                                                    
+                                                    <div class="mt-3">
+                                                        <button class="btn btn-sm btn-outline-primary">
+                                                            <i class="fas fa-print"></i> Print Invoice
+                                                        </button>
+                                                        {% if order.status == 'delivered' %}
+                                                        <button class="btn btn-sm btn-outline-success" 
+                                                                data-bs-toggle="modal" 
+                                                                data-bs-target="#reviewModal{{ order.order_id }}">
+                                                            Write Review
+                                                        </button>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <div class="text-center py-5">
+                                <i class="fas fa-shopping-bag fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">You haven't placed any orders yet.</p>
+                                <a href="{{ url_for('categories') }}" class="btn btn-primary">
+                                    Start Shopping
+                                </a>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Addresses Tab -->
+                <div class="tab-pane fade" id="addresses">
+                    <div class="card">
+                        <div class="card-header">
+                            <h4 class="mb-0"><i class="fas fa-map-marker-alt me-2"></i>My Addresses</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="text-end mb-3">
+                                <button class="btn btn-primary" data-bs-toggle="modal" 
+                                        data-bs-target="#addAddressModal">
+                                    <i class="fas fa-plus me-2"></i> Add New Address
+                                </button>
+                            </div>
+                            
+                            <div class="row">
+                                <!-- Sample address - in real app, fetch from database -->
+                                <div class="col-md-6 mb-3">
+                                    <div class="card h-100 border-primary">
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between mb-2">
+                                                <h6>Primary Address</h6>
+                                                <span class="badge bg-primary">Default</span>
+                                            </div>
+                                            <address>
+                                                <strong>John Doe</strong><br>
+                                                123 Main Street<br>
+                                                Embu, Embu County<br>
+                                                Kenya<br>
+                                                Phone: +254 712 345 678
+                                            </address>
+                                            <div class="mt-3">
+                                                <button class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-edit"></i> Edit
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger">
+                                                    <i class="fas fa-trash"></i> Remove
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Wishlist Tab -->
+                <div class="tab-pane fade" id="wishlist">
+                    <div class="card">
+                        <div class="card-header">
+                            <h4 class="mb-0"><i class="fas fa-heart me-2"></i>My Wishlist</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <!-- Sample wishlist items -->
+                                <div class="col-md-4 mb-4">
+                                    <div class="card h-100">
+                                        <div class="position-relative">
+                                            <img src="https://via.placeholder.com/300x200?text=Product" 
+                                                 class="card-img-top product-image" alt="Product">
+                                            <button class="btn btn-danger btn-sm position-absolute top-0 end-0 m-2">
+                                                <i class="fas fa-heart-broken"></i>
+                                            </button>
+                                        </div>
+                                        <div class="card-body">
+                                            <h5 class="card-title">Product Name</h5>
+                                            <p class="price">KES 3,500</p>
+                                            <div class="d-grid">
+                                                <button class="btn btn-primary btn-sm">
+                                                    <i class="fas fa-cart-plus"></i> Add to Cart
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Settings Tab -->
+                <div class="tab-pane fade" id="settings">
+                    <div class="card">
+                        <div class="card-header">
+                            <h4 class="mb-0"><i class="fas fa-cog me-2"></i>Account Settings</h4>
+                        </div>
+                        <div class="card-body">
+                            <form id="accountSettingsForm">
+                                <h5 class="mb-3">Personal Information</h5>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Full Name</label>
+                                        <input type="text" class="form-control" value="{{ user.name }}">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Email Address</label>
+                                        <input type="email" class="form-control" value="{{ user.email }}" readonly>
+                                    </div>
+                                </div>
+                                
+                                <div class="row mb-4">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Phone Number</label>
+                                        <input type="tel" class="form-control" value="{{ user.phone }}">
+                                    </div>
+                                </div>
+                                
+                                <h5 class="mb-3">Change Password</h5>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Current Password</label>
+                                        <input type="password" class="form-control">
+                                    </div>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col-md-6">
+                                        <label class="form-label">New Password</label>
+                                        <input type="password" class="form-control">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Confirm New Password</label>
+                                        <input type="password" class="form-control">
+                                    </div>
+                                </div>
+                                
+                                <div class="d-grid gap-2 d-md-flex">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-2"></i> Save Changes
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Address Modal -->
+<div class="modal fade" id="addAddressModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Address</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addAddressForm">
+                    <div class="mb-3">
+                        <label class="form-label">Full Name</label>
+                        <input type="text" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Phone Number</label>
+                        <input type="tel" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Street Address</label>
+                        <input type="text" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">City/Town</label>
+                        <input type="text" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">County</label>
+                        <select class="form-select" required>
+                            <option value="">Select County</option>
+                            <option value="Embu">Embu</option>
+                            <!-- Other counties -->
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Postal Code</label>
+                        <input type="text" class="form-control">
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="setDefault">
+                        <label class="form-check-label" for="setDefault">
+                            Set as default shipping address
+                        </label>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">Save Address</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_css %}
+<style>
+.account-nav .nav-link {
+    color: #495057;
+    padding: 0.75rem 1rem;
+    border-radius: 5px;
+    margin-bottom: 0.25rem;
+}
+
+.account-nav .nav-link:hover,
+.account-nav .nav-link.active {
+    background-color: #0d6efd;
+    color: white;
+}
+
+.avatar-circle {
+    width: 80px;
+    height: 80px;
+    background-color: #e3f2fd;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+}
+
+.stat-card {
+    transition: transform 0.3s;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Tab switching
+    $('.account-nav a').click(function(e) {
+        e.preventDefault();
+        $(this).tab('show');
+    });
+    
+    // Update active tab in URL
+    $('a[data-bs-toggle="tab"]').on('shown.bs.tab', function(e) {
+        history.pushState(null, null, '#' + e.target.getAttribute('href').substring(1));
+    });
+    
+    // Restore active tab from URL
+    const hash = window.location.hash.substring(1);
+    if (hash) {
+        $('.account-nav a[href="#' + hash + '"]').tab('show');
+    }
+    
+    // Account settings form
+    $('#accountSettingsForm').submit(function(e) {
+        e.preventDefault();
+        showToast('Success', 'Account settings updated successfully', 'success');
+    });
+    
+    // Add address form
+    $('#addAddressForm').submit(function(e) {
+        e.preventDefault();
+        $('#addAddressModal').modal('hide');
+        showToast('Success', 'Address added successfully', 'success');
+        $(this)[0].reset();
+    });
+});
+</script>
+{% endblock %}
+{% endblock %}

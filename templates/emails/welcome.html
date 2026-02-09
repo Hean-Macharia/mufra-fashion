@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to MUFRA FASHIONS</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f4f4; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header { background-color: #0d6efd; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { padding: 30px; }
+        .benefits { background-color: #e3f2fd; padding: 20px; border-radius: 5px; margin: 20px 0; }
+        .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; border-top: 1px solid #eee; }
+        .button { display: inline-block; padding: 12px 30px; background-color: #0d6efd; color: white; text-decoration: none; border-radius: 5px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>MUFRA FASHIONS</h1>
+            <p>Welcome to Our Fashion Community!</p>
+        </div>
+        
+        <div class="content">
+            <h2>Welcome {{ name }}!</h2>
+            <p>Thank you for joining MUFRA FASHIONS. We're excited to have you as part of our fashion community!</p>
+            
+            <div class="benefits">
+                <h3>Your Member Benefits:</h3>
+                <p>✓ Free shipping on orders over KES 5000</p>
+                <p>✓ Exclusive member discounts</p>
+                <p>✓ Early access to new collections</p>
+                <p>✓ Earn rewards points on every purchase</p>
+                <p>✓ Easy 30-day returns</p>
+            </div>
+            
+            <p>To get started, browse our latest collections:</p>
+            <a href="http://localhost:5000/categories" class="button">Shop Now</a>
+            
+            <p>If you have any questions or need assistance, our customer support team is here to help.</p>
+            
+            <p>Happy shopping!<br>
+            The MUFRA FASHIONS Team</p>
+        </div>
+        
+        <div class="footer">
+            <p>&copy; {{ year }} MUFRA FASHIONS. All rights reserved.</p>
+            <p>123 Fashion Street, Embu, Kenya</p>
+            <p>Email: support@mufrafashions.com | Phone: +254 712 345 678</p>
+        </div>
+    </div>
+</body>
+</html>

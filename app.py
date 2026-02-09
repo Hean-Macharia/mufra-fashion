@@ -1,2117 +1,1640 @@
 import os
-from flask import Flask, render_template, request, jsonify, redirect, url_for, session
-from flask_pymongo import PyMongo
-from flask_login import LoginManager, login_user, login_required, logout_user, current_user
-from bson.objectid import ObjectId
-import uuid
-import base64
 import json
-from datetime import datetime
-import bcrypt
+import random
+import string
+from datetime import datetime, timedelta
+from functools import wraps
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
+from flask_pymongo import PyMongo
+from flask_mail import Mail, Message
+from bson.objectid import ObjectId
+from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 import requests
+import uuid
+import jwt
 from dotenv import load_dotenv
 
+# Load environment variables
 load_dotenv()
 
+# Initialize Flask app
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'mufra-fashions-secret-key-2024')
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'mufra-fashions-secret-key-2024')
 
-# MongoDB Atlas Connection
-MONGODB_URI = "mongodb+srv://iconichean:1Loye8PM3YwlV5h4@cluster0.meufk73.mongodb.net/mufra_fashions?retryWrites=true&w=majority"
-app.config["MONGO_URI"] = MONGODB_URI
+# MongoDB configuration
+MONGODB_CONNECTION_STRING = os.getenv('MONGO_URI', 'mongodb+srv://iconichean:1Loye8PM3YwlV5h4@cluster0.meufk73.mongodb.net/mufra_fashions?retryWrites=true&w=majority')
+app.config['MONGO_URI'] = MONGODB_CONNECTION_STRING
 
-# Paystack Configuration
-PAYSTACK_SECRET_KEY = os.environ.get('PAYSTACK_SECRET_KEY', 'sk_test_4d05b36c31bf5a4943a92c8ce13882a7859544bc')
-PAYSTACK_PUBLIC_KEY = os.environ.get('PAYSTACK_PUBLIC_KEY', 'pk_test_ba60dd518974e7639e8f78deb0d7dee3acb96133')
+# File upload configuration
+app.config['UPLOAD_FOLDER'] = 'static/uploads'
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
+# Email configuration
+app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
+app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT', 587))
+app.config['MAIL_USE_TLS'] = os.getenv('MAIL_USE_TLS', 'True').lower() == 'true'
+app.config['MAIL_USE_SSL'] = os.getenv('MAIL_USE_SSL', 'False').lower() == 'true'
+app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME', 'your-email@gmail.com')
+app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD', 'your-app-password')
+app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER', 'noreply@mufrafashions.com')
+app.config['MAIL_SUPPRESS_SEND'] = os.getenv('MAIL_SUPPRESS_SEND', 'False').lower() == 'true'
 
-try:
-    mongo = PyMongo(app)
-    # Test connection
-    mongo.db.command('ping')
-    print("✅ MongoDB Atlas connection established!")
-    db_connected = True
-except Exception as e:
-    print(f"❌ MongoDB connection error: {e}")
-    print("⚠️ Running in demo mode without database...")
-    mongo = None
-    db_connected = False
+# Paystack configuration
+PAYSTACK_PUBLIC_KEY = os.getenv('PAYSTACK_PUBLIC_KEY', 'pk_test_ba60dd518974e7639e8f78deb0d7dee3acb96133')
+PAYSTACK_SECRET_KEY = os.getenv('PAYSTACK_SECRET_KEY', 'sk_test_4d05b36c31bf5a4943a92c8ce13882a7859544bc')
+PAYSTACK_BASE_URL = 'https://api.paystack.co'
 
-# Flask-Login Setup
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = 'admin_login'
+# Allowed file extensions for product images
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
-class User:
-    def __init__(self, user_data):
-        self.id = str(user_data.get('_id', 'demo'))
-        self.username = user_data.get('username', '')
-        self.email = user_data.get('email', '')
-        self.is_admin = user_data.get('is_admin', False)
-    
-    def is_authenticated(self):
-        return True
-    
-    def is_active(self):
-        return True
-    
-    def is_anonymous(self):
-        return False
-    
-    def get_id(self):
-        return self.id
+# Initialize extensions
+mongo = PyMongo(app, connectTimeoutMS=30000, socketTimeoutMS=30000, retryWrites=True)
+mail = Mail(app)
 
-@login_manager.user_loader
-def load_user(user_id):
-    try:
-        print(f"\n=== LOADING USER: {user_id} ===")
-        
-        if db_connected:
-            user_data = mongo.db.users.find_one({'_id': ObjectId(user_id)})
-            if user_data:
-                print(f"User found in DB: {user_data['username']}")
-                return User(user_data)
-        
-        # Check session for demo admin
-        if user_id == 'demo_admin_id' or (session.get('is_admin') and session.get('user_id') == user_id):
-            print("Loading demo admin from session")
-            return User({
-                '_id': user_id,
-                'username': 'admin',
-                'email': 'admin@mufrafashions.com',
-                'is_admin': True
-            })
-            
-    except Exception as e:
-        print(f"Error loading user: {e}")
-    
-    print("No user found")
-    return None
-
-def initialize_database():
-    """Initialize database with admin user if not exists"""
-    if not db_connected:
-        print("⚠️ Using demo mode - no database connection")
-        return
-    
-    try:
-        print("🔧 Setting up database...")
-        
-        # Create admin user if not exists
-        admin_exists = mongo.db.users.find_one({'username': 'admin'})
-        if not admin_exists:
-            hashed_password = bcrypt.hashpw('admin123'.encode('utf-8'), bcrypt.gensalt())
-            mongo.db.users.insert_one({
-                'username': 'admin',
-                'email': 'admin@mufrafashions.com',
-                'password': hashed_password,
-                'is_admin': True,
-                'created_at': datetime.utcnow()
-            })
-            print("✅ Admin user created (admin/admin123)")
-        else:
-            print("✅ Admin user exists")
-        
-        # Check if sample products exist
-        product_count = mongo.db.products.count_documents({})
-        if product_count == 0:
-            sample_products = [
-                {
-                    '_id': ObjectId(),
-                    'name': 'Men\'s Running Shoes',
-                    'description': 'Comfortable running shoes for men',
-                    'price': 45.99,
-                    'category': 'shoes',
-                    'subcategory': 'new',
-                    'sizes': ['8', '9', '10', '11'],
-                    'colors': ['black', 'blue', 'white'],
-                    'stock': 50,
-                    'images': ['https://images.unsplash.com/photo-1542291026-7eec264c27ff?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80'],
-                    'created_at': datetime.utcnow(),
-                    'is_active': True
-                },
-                {
-                    '_id': ObjectId(),
-                    'name': 'Women\'s Casual Dress',
-                    'description': 'Elegant casual dress for women',
-                    'price': 35.50,
-                    'category': 'clothes',
-                    'subcategory': 'new',
-                    'sizes': ['S', 'M', 'L', 'XL'],
-                    'colors': ['red', 'black', 'blue'],
-                    'stock': 30,
-                    'images': ['https://images.unsplash.com/photo-1595777457583-95e059d581b8?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80'],
-                    'created_at': datetime.utcnow(),
-                    'is_active': True
-                },
-                {
-                    '_id': ObjectId(),
-                    'name': 'Second-hand Leather Jacket',
-                    'description': 'Good condition leather jacket',
-                    'price': 25.00,
-                    'category': 'clothes',
-                    'subcategory': 'secondhand',
-                    'sizes': ['M', 'L'],
-                    'colors': ['brown', 'black'],
-                    'stock': 5,
-                    'images': ['https://images.unsplash.com/photo-1551028719-00167b16eac5?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80'],
-                    'created_at': datetime.utcnow(),
-                    'is_active': True
-                },
-                {
-                    '_id': ObjectId(),
-                    'name': 'Basketball Sneakers',
-                    'description': 'High-performance basketball shoes',
-                    'price': 65.99,
-                    'category': 'shoes',
-                    'subcategory': 'new',
-                    'sizes': ['7', '8', '9', '10', '11', '12'],
-                    'colors': ['white', 'red', 'blue'],
-                    'stock': 25,
-                    'images': ['https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80'],
-                    'created_at': datetime.utcnow(),
-                    'is_active': True
-                }
-            ]
-            mongo.db.products.insert_many(sample_products)
-            print(f"✅ Added {len(sample_products)} sample products")
-        
-        print("🎉 Database setup complete!")
-        
-    except Exception as e:
-        print(f"⚠️ Database setup warning: {e}")
-
-# ========== CONTEXT PROCESSORS ==========
-@app.context_processor
-def inject_current_time():
-    return {'current_time': datetime.now().strftime('%B %d, %Y %I:%M %p')}
-
-@app.context_processor
-def inject_total_revenue():
-    if db_connected:
-        try:
-            pipeline = [
-                {'$match': {'status': {'$in': ['completed', 'delivered']}}},
-                {'$group': {'_id': None, 'total': {'$sum': '$total_amount'}}}
-            ]
-            result = list(mongo.db.orders.aggregate(pipeline))
-            total_revenue = result[0]['total'] if result else 0
-        except:
-            total_revenue = 0
-    else:
-        total_revenue = len(session.get('orders', [])) * 100
-    
-    return {'total_revenue': total_revenue}
-
-@app.context_processor
-def inject_total_value():
-    if db_connected:
-        try:
-            pipeline = [
-                {'$group': {'_id': None, 'total': {'$sum': {'$multiply': ['$price', '$stock']}}}}
-            ]
-            result = list(mongo.db.products.aggregate(pipeline))
-            total_value = result[0]['total'] if result else 0
-        except:
-            total_value = 0
-    else:
-        total_value = 1500  # Demo value
-    
-    return {'total_value': total_value}
-
-
+# Ensure upload folder exists
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # ========== HELPER FUNCTIONS ==========
-def get_demo_products():
-    """Return demo products for testing"""
-    print("Loading DEMO products")
-    return [
-        {
-            '_id': '1',
-            'name': 'Men\'s Running Shoes',
-            'description': 'Comfortable running shoes for daily use',
-            'price': 45.99,
-            'category': 'shoes',
-            'subcategory': 'new',
-            'images': ['https://images.unsplash.com/photo-1542291026-7eec264c27ff?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80']
-        },
-        {
-            '_id': '2',
-            'name': 'Women\'s Casual Dress',
-            'description': 'Elegant dress for casual occasions',
-            'price': 35.50,
-            'category': 'clothes',
-            'subcategory': 'new',
-            'images': ['https://images.unsplash.com/photo-1595777457583-95e059d581b8?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80']
-        },
-        {
-            '_id': '3',
-            'name': 'Leather Jacket',
-            'description': 'Stylish second-hand leather jacket',
-            'price': 25.00,
-            'category': 'clothes',
-            'subcategory': 'secondhand',
-            'images': ['https://images.unsplash.com/photo-1551028719-00167b16eac5?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80']
-        },
-        {
-            '_id': '4',
-            'name': 'Basketball Sneakers',
-            'description': 'High-performance sports shoes',
-            'price': 65.99,
-            'category': 'shoes',
-            'subcategory': 'new',
-            'images': ['https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80']
-        }
-    ]
 
-def get_filtered_demo_products(category, subcategory):
-    """Return filtered demo products"""
-    products = [
-        {'_id': '1', 'name': 'Men\'s Running Shoes', 'price': 45.99, 'category': 'shoes', 'subcategory': 'new',
-         'images': ['https://images.unsplash.com/photo-1542291026-7eec264c27ff?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80']},
-        {'_id': '2', 'name': 'Women\'s Casual Dress', 'price': 35.50, 'category': 'clothes', 'subcategory': 'new',
-         'images': ['https://images.unsplash.com/photo-1595777457583-95e059d581b8?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80']},
-        {'_id': '3', 'name': 'Leather Jacket', 'price': 25.00, 'category': 'clothes', 'subcategory': 'secondhand',
-         'images': ['https://images.unsplash.com/photo-1551028719-00167b16eac5?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80']},
-        {'_id': '4', 'name': 'Basketball Sneakers', 'price': 65.99, 'category': 'shoes', 'subcategory': 'new',
-         'images': ['https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80']}
-    ]
-    
-    # Filter demo products
-    filtered = []
-    for p in products:
-        if category != 'all' and p.get('category') != category:
-            continue
-        if subcategory != 'all' and p.get('subcategory', 'new') != subcategory:
-            continue
-        filtered.append(p)
-    
-    return filtered
+def get_db():
+    """Get database instance"""
+    return mongo.db
 
-def get_demo_product(product_id):
-    """Return a demo product"""
-    return {
-        '_id': product_id, 
-        'name': 'Sample Product', 
-        'price': 29.99, 
-        'description': 'This is a sample product description.',
-        'sizes': ['S', 'M', 'L'], 
-        'colors': ['Red', 'Blue', 'Black'],
-        'stock': 10, 
-        'images': ['https://via.placeholder.com/500'],
-        'category': 'clothes',
-        'subcategory': 'new'
-    }
+def get_collection(collection_name):
+    """Get or create a collection"""
+    db = get_db()
+    if collection_name not in db.list_collection_names():
+        db.create_collection(collection_name)
+    return db[collection_name]
 
-# ========== MAIN ROUTES ==========
-@app.route('/')
-def home():
-    print("\n" + "="*50)
-    print("HOME PAGE REQUEST")
-    print("="*50)
-    
-    try:
-        if db_connected:
-            print("Database is CONNECTED")
-            
-            # Try to get products
-            products = list(mongo.db.products.find({'is_active': True}).limit(8))
-            print(f"Found {len(products)} products in database")
-            
-            if not products:
-                print("No products found in database, using demo products")
-                products = get_demo_products()
-            else:
-                # Log each product
-                for i, p in enumerate(products):
-                    print(f"Product {i+1}: ID={p.get('_id')}, Name='{p.get('name')}', Price={p.get('price')}")
-        else:
-            print("Database is NOT connected, using demo mode")
-            products = get_demo_products()
-            
-    except Exception as e:
-        print(f"ERROR loading products: {e}")
-        products = get_demo_products()
-    
-    print(f"Rendering template with {len(products)} products")
-    print("="*50 + "\n")
-    
-    return render_template('index.html', products=products)
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-@app.route('/callback/paystack/mobile', methods=['POST'])
-def paystack_mobile_callback():
-    """Handle Paystack mobile money callback (webhook)"""
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            return redirect(url_for('login'))
+        users_collection = get_collection('users')
+        user = users_collection.find_one({'_id': ObjectId(session['user_id'])})
+        if not user or user.get('role') != 'admin':
+            flash('Admin access required', 'danger')
+            return redirect(url_for('home'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def generate_otp():
+    return ''.join(random.choices(string.digits, k=6))
+
+def generate_order_id():
+    return 'MUFRA' + ''.join(random.choices(string.digits, k=8))
+
+def send_email(to, subject, template, **kwargs):
+    """Send email to a recipient using direct SMTP"""
     try:
-        data = request.get_json()
+        print(f"\n{'='*60}")
+        print(f"📧 SENDING EMAIL TO: {to}")
+        print(f"📋 SUBJECT: {subject}")
+        print(f"📝 TEMPLATE: {template}")
         
-        if not data:
-            return jsonify({'status': 'error', 'message': 'No data received'}), 400
+        # Always show OTP in console for development
+        if 'otp' in kwargs:
+            print(f"🔐 OTP FOR USER: {kwargs['otp']}")
+            print(f"   User can enter this code to verify")
         
-        event = data.get('event')
+        # Check if we should suppress sending
+        if app.config.get('MAIL_SUPPRESS_SEND', False):
+            print(f"\n⚠️  MAIL_SUPPRESS_SEND is True - email will not be sent")
+            print(f"{'='*60}\n")
+            return True
         
-        if event == 'charge.success':
-            # Payment successful
-            charge_data = data.get('data', {})
-            reference = charge_data.get('reference')
-            
-            if not reference:
-                return jsonify({'status': 'error', 'message': 'No reference'}), 400
-            
-            # Find the order
-            if db_connected:
-                order = mongo.db.orders.find_one({'reference': reference})
-                if not order:
-                    # Try alternative reference field
-                    order = mongo.db.orders.find_one({'paystack_mobile_ref': reference})
-            else:
-                order = None
-                if 'orders' in session:
-                    for o in session['orders']:
-                        if o.get('reference') == reference or o.get('paystack_mobile_ref') == reference:
-                            order = o
-                            break
-            
-            if order:
-                # Update order status
-                update_data = {
-                    'payment_status': 'completed',
-                    'status': 'confirmed',
-                    'transaction_id': charge_data.get('id'),
-                    'paid_at': datetime.now(),
-                    'payment_details': {
-                        'channel': charge_data.get('channel', 'mobile_money'),
-                        'mobile_money_provider': charge_data.get('authorization', {}).get('mobile_money_provider', 'unknown'),
-                        'last4': charge_data.get('authorization', {}).get('last4', ''),
-                        'paid_at': charge_data.get('paid_at', '')
-                    }
-                }
-                
-                if db_connected:
-                    mongo.db.orders.update_one(
-                        {'reference': reference},
-                        {'$set': update_data}
-                    )
-                else:
-                    # Update in session
-                    if 'orders' in session:
-                        for i, o in enumerate(session['orders']):
-                            if o.get('reference') == reference or o.get('paystack_mobile_ref') == reference:
-                                session['orders'][i].update(update_data)
-                                session.modified = True
-                                break
-                
-                print(f"✅ Mobile money payment completed for order: {order.get('order_id')}")
-            
-            return jsonify({'status': 'success'}), 200
+        # Use direct SMTP (more reliable than Flask-Mail)
+        import smtplib
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
         
-        elif event == 'charge.failed':
-            # Payment failed
-            charge_data = data.get('data', {})
-            reference = charge_data.get('reference')
-            
-            if reference:
-                if db_connected:
-                    mongo.db.orders.update_one(
-                        {'reference': reference},
-                        {'$set': {
-                            'payment_status': 'failed',
-                            'payment_error': charge_data.get('gateway_response', 'Payment failed'),
-                            'updated_at': datetime.now()
-                        }}
-                    )
-            
-            return jsonify({'status': 'received'}), 200
+        # Create message
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = subject
+        msg['From'] = app.config['MAIL_DEFAULT_SENDER']
+        msg['To'] = to
         
-        return jsonify({'status': 'ignored'}), 200
+        try:
+            # Try to render templates
+            html_body = render_template(f'emails/{template}.html', **kwargs)
+            text_body = render_template(f'emails/{template}.txt', **kwargs)
+        except:
+            # Fallback templates
+            html_body = f"""
+            <html>
+            <body>
+                <h2>{subject}</h2>
+                <p>Hello {kwargs.get('name', 'User')},</p>
+                <p>Your verification code is: <strong>{kwargs.get('otp', 'N/A')}</strong></p>
+            </body>
+            </html>
+            """
+            text_body = f"{subject}\n\nHello {kwargs.get('name', 'User')},\n\nYour verification code is: {kwargs.get('otp', 'N/A')}"
         
-    except Exception as e:
-        print(f"❌ Paystack mobile callback error: {e}")
-        return jsonify({'status': 'error', 'message': str(e)}), 400
-    
-@app.route('/api/check_payment_status/<order_id>', methods=['GET'])
-def check_payment_status(order_id):
-    """Check payment status for an order (especially for mobile money)"""
-    try:
-        # Find the order
-        if db_connected:
-            order = mongo.db.orders.find_one({'order_id': order_id})
-        else:
-            order = None
-            if 'orders' in session:
-                for o in session['orders']:
-                    if str(o.get('order_id')) == order_id:
-                        order = o
-                        break
+        # Attach parts
+        part1 = MIMEText(text_body, 'plain')
+        part2 = MIMEText(html_body, 'html')
+        msg.attach(part1)
+        msg.attach(part2)
         
-        if not order:
-            return jsonify({'success': False, 'error': 'Order not found'}), 404
+        # Send email
+        with smtplib.SMTP(app.config['MAIL_SERVER'], app.config['MAIL_PORT']) as server:
+            server.starttls()
+            server.login(app.config['MAIL_USERNAME'], app.config['MAIL_PASSWORD'])
+            server.send_message(msg)
         
-        # If order has a Paystack reference, check status with Paystack
-        reference = order.get('reference') or order.get('paystack_ref') or order.get('paystack_mobile_ref')
-        
-        if reference and order.get('payment_status') in ['pending', 'processing']:
-            try:
-                # Check with Paystack API
-                url = f"https://api.paystack.co/transaction/verify/{reference}"
-                headers = {"Authorization": f"Bearer {PAYSTACK_SECRET_KEY}"}
-                
-                response = requests.get(url, headers=headers)
-                result = response.json()
-                
-                if response.status_code == 200 and result.get('status'):
-                    transaction_data = result.get('data', {})
-                    
-                    if transaction_data.get('status') == 'success':
-                        # Payment successful
-                        update_data = {
-                            'payment_status': 'completed',
-                            'status': 'confirmed',
-                            'transaction_id': transaction_data.get('id'),
-                            'paid_at': datetime.now()
-                        }
-                        
-                        if db_connected:
-                            mongo.db.orders.update_one(
-                                {'order_id': order_id},
-                                {'$set': update_data}
-                            )
-                        else:
-                            if 'orders' in session:
-                                for i, o in enumerate(session['orders']):
-                                    if str(o.get('order_id')) == order_id:
-                                        session['orders'][i].update(update_data)
-                                        session.modified = True
-                                        break
-                        
-                        return jsonify({
-                            'success': True,
-                            'status': 'completed',
-                            'message': 'Payment completed successfully',
-                            'order_status': 'confirmed'
-                        })
-                    
-                    elif transaction_data.get('status') == 'failed':
-                        # Payment failed
-                        update_data = {
-                            'payment_status': 'failed',
-                            'payment_error': transaction_data.get('gateway_response', 'Payment failed')
-                        }
-                        
-                        if db_connected:
-                            mongo.db.orders.update_one(
-                                {'order_id': order_id},
-                                {'$set': update_data}
-                            )
-                        
-                        return jsonify({
-                            'success': True,
-                            'status': 'failed',
-                            'message': transaction_data.get('gateway_response', 'Payment failed'),
-                            'order_status': 'pending'
-                        })
-                    
-                    elif transaction_data.get('status') in ['pending', 'send_pending']:
-                        # Still pending
-                        return jsonify({
-                            'success': True,
-                            'status': 'processing',
-                            'message': 'Payment request sent. Please check your phone.',
-                            'order_status': 'pending'
-                        })
-                
-            except Exception as e:
-                print(f"Error checking payment status with Paystack: {e}")
-                # Continue to return current status
-        
-        # Return current status
-        return jsonify({
-            'success': True,
-            'status': order.get('payment_status', 'pending'),
-            'order_status': order.get('status', 'pending'),
-            'message': order.get('paystack_response', '')
-        })
-        
-    except Exception as e:
-        print(f"❌ Error checking payment status: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-def verify_paystack_webhook(request):
-    """Verify that webhook is from Paystack"""
-    try:
-        signature = request.headers.get('x-paystack-signature')
-        if not signature:
-            return False
-        
-        # In production, you should verify the signature
-        # For now, we'll accept all webhooks in test mode
-        # You should implement proper signature verification in production
+        print(f"✅ Email sent successfully to: {to}")
+        print(f"{'='*60}\n")
         return True
         
     except Exception as e:
-        print(f"Webhook verification error: {e}")
+        print(f"❌ ERROR SENDING EMAIL: {e}")
+        print(f"\n🔍 Debug info:")
+        print(f"  To: {to}")
+        print(f"  Subject: {subject}")
+        
+        if 'otp' in kwargs:
+            print(f"\n🔐 IMPORTANT: OTP FOR USER: {kwargs['otp']}")
+            print(f"   User can use this code to verify their account")
+        
+        print(f"{'='*60}\n")
         return False
+def send_verification_email(email, name, otp):
+    """Send OTP verification email"""
+    subject = "Verify Your Email - MUFRA FASHIONS"
+    return send_email(
+        to=email,
+        subject=subject,
+        template='verify_email',
+        name=name,
+        otp=otp,
+        year=datetime.now().year
+    )
 
+def send_order_confirmation(email, order_id, total, items, shipping_address):
+    """Send order confirmation email"""
+    subject = f"Order Confirmation #{order_id} - MUFRA FASHIONS"
+    return send_email(
+        to=email,
+        subject=subject,
+        template='order_confirmation',
+        order_id=order_id,
+        total=total,
+        items=items,
+        shipping_address=shipping_address,
+        date=datetime.now().strftime('%B %d, %Y'),
+        year=datetime.now().year
+    )
 
+def send_welcome_email(email, name):
+    """Send welcome email"""
+    subject = "Welcome to MUFRA FASHIONS!"
+    return send_email(
+        to=email,
+        subject=subject,
+        template='welcome',
+        name=name,
+        year=datetime.now().year
+    )
 
-def handle_successful_payment(data):
-    """Handle successful payment from webhook"""
+def send_password_reset_email(email, name, reset_token):
+    """Send password reset email"""
+    subject = "Reset Your Password - MUFRA FASHIONS"
+    reset_url = url_for('reset_password', token=reset_token, _external=True)
+    return send_email(
+        to=email,
+        subject=subject,
+        template='password_reset',
+        name=name,
+        reset_url=reset_url,
+        year=datetime.now().year
+    )
+
+def initialize_sample_data():
+    """Initialize database with sample data"""
     try:
-        charge_data = data.get('data', {})
-        reference = charge_data.get('reference')
+        # Get collections
+        categories_collection = get_collection('categories')
+        products_collection = get_collection('products')
+        users_collection = get_collection('users')
         
-        if not reference:
-            return jsonify({'status': 'error', 'message': 'No reference'}), 400
+        # Create categories if none exist
+        if categories_collection.count_documents({}) == 0:
+            categories = [
+                {'name': 'Shoes', 'slug': 'shoes', 'description': 'Footwear for all occasions'},
+                {'name': 'Clothes', 'slug': 'clothes', 'description': 'Fashion clothing for everyone'},
+                {'name': 'New', 'slug': 'new', 'description': 'Brand new products'},
+                {'name': 'Second Hand', 'slug': 'second-hand', 'description': 'Quality second-hand items'}
+            ]
+            categories_collection.insert_many(categories)
+            print("✓ Categories created successfully")
         
-        # Find order by reference
-        if db_connected:
-            order = mongo.db.orders.find_one({'$or': [
-                {'reference': reference},
-                {'paystack_ref': reference},
-                {'paystack_mobile_ref': reference}
-            ]})
-        else:
-            order = None
-            if 'orders' in session:
-                for o in session['orders']:
-                    if (o.get('reference') == reference or 
-                        o.get('paystack_ref') == reference or
-                        o.get('paystack_mobile_ref') == reference):
-                        order = o
-                        break
+        # Create sample products if none exist
+        if products_collection.count_documents({}) == 0:
+            products = [
+                {
+                    'name': 'Premium Running Shoes',
+                    'description': 'High-quality running shoes with cushioned soles',
+                    'price': 4500,
+                    'category': 'Shoes',
+                    'subcategory': 'Sports',
+                    'condition': 'New',
+                    'sizes': ['8', '9', '10', '11'],
+                    'colors': ['Blue', 'White', 'Black'],
+                    'stock': 50,
+                    'image': 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+                    'featured': True,
+                    'rating': 4.5,
+                    'reviews_count': 23,
+                    'created_at': datetime.utcnow()
+                },
+                {
+                    'name': 'Casual Sneakers',
+                    'description': 'Comfortable casual sneakers for everyday wear',
+                    'price': 3200,
+                    'category': 'Shoes',
+                    'subcategory': 'Casual',
+                    'condition': 'New',
+                    'sizes': ['7', '8', '9', '10'],
+                    'colors': ['White', 'Gray', 'Navy'],
+                    'stock': 30,
+                    'image': 'https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+                    'featured': True,
+                    'rating': 4.2,
+                    'reviews_count': 15,
+                    'created_at': datetime.utcnow()
+                },
+                {
+                    'name': 'Designer T-Shirt',
+                    'description': 'Premium cotton t-shirt with designer print',
+                    'price': 1500,
+                    'category': 'Clothes',
+                    'subcategory': 'Tops',
+                    'condition': 'New',
+                    'sizes': ['S', 'M', 'L', 'XL'],
+                    'colors': ['Blue', 'White', 'Black'],
+                    'stock': 100,
+                    'image': 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+                    'featured': True,
+                    'rating': 4.7,
+                    'reviews_count': 42,
+                    'created_at': datetime.utcnow()
+                },
+                {
+                    'name': 'Denim Jeans',
+                    'description': 'Classic blue denim jeans',
+                    'price': 2800,
+                    'category': 'Clothes',
+                    'subcategory': 'Bottoms',
+                    'condition': 'Second Hand',
+                    'sizes': ['30', '32', '34', '36'],
+                    'colors': ['Blue'],
+                    'stock': 25,
+                    'image': 'https://images.unsplash.com/photo-1542272604-787c3835535d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+                    'featured': True,
+                    'rating': 4.3,
+                    'reviews_count': 18,
+                    'created_at': datetime.utcnow()
+                }
+            ]
+            products_collection.insert_many(products)
+            print("✓ Products created successfully")
         
-        if order:
-            # Update order
-            update_data = {
-                'payment_status': 'completed',
-                'status': 'confirmed',
-                'transaction_id': charge_data.get('id'),
-                'paid_at': datetime.now(),
-                'webhook_processed': True
+        # Create admin user if not exists
+        if users_collection.count_documents({'email': 'admin@mufra.com'}) == 0:
+            admin_user = {
+                'name': 'Admin',
+                'email': 'admin@mufra.com',
+                'phone': '+254700000000',
+                'password': generate_password_hash('admin123'),
+                'role': 'admin',
+                'verified': True,
+                'cart': [],
+                'wishlist': [],
+                'created_at': datetime.utcnow()
             }
-            
-            if db_connected:
-                mongo.db.orders.update_one(
-                    {'_id': order['_id']},
-                    {'$set': update_data}
-                )
-            else:
-                if 'orders' in session:
-                    for i, o in enumerate(session['orders']):
-                        if str(o.get('_id')) == str(order.get('_id')):
-                            session['orders'][i].update(update_data)
-                            session.modified = True
-                            break
-            
-            print(f"✅ Webhook: Order {order.get('order_id')} marked as paid")
+            users_collection.insert_one(admin_user)
+            print("✓ Admin user created successfully")
         
-        return jsonify({'status': 'success'}), 200
+        # Create other collections if they don't exist
+        get_collection('orders')
+        get_collection('reviews')
+        
+        print("✓ Database initialization completed successfully!")
         
     except Exception as e:
-        print(f"Error handling successful payment: {e}")
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+        print(f"⚠ Warning during database initialization: {e}")
+@app.route('/fix-admin-password')
+def fix_admin_password():
+    """Fix admin password (one-time use)"""
+    try:
+        users_collection = get_collection('users')
+        
+        # Find the admin user
+        admin = users_collection.find_one({'email': 'admin@mufra.com'})
+        
+        if not admin:
+            return "Admin user not found. Please create an admin user first."
+        
+        # Get the current password (could be str or bytes)
+        current_password = admin.get('password', '')
+        
+        # Convert to string for comparison
+        if isinstance(current_password, bytes):
+            password_str = current_password.decode('utf-8')
+        else:
+            password_str = str(current_password)
+        
+        # Check if password is already hashed
+        if password_str.startswith('pbkdf2:sha256:'):
+            return "Password is already hashed correctly"
+        
+        # Hash the password
+        hashed_password = generate_password_hash('admin123')
+        
+        # Update the password
+        users_collection.update_one(
+            {'_id': admin['_id']},
+            {'$set': {'password': hashed_password}}
+        )
+        
+        return """
+        <h2>Admin password has been fixed!</h2>
+        <p><strong>Email:</strong> admin@mufra.com</p>
+        <p><strong>New Password:</strong> admin123</p>
+        <p><a href="/login">Go to Login</a></p>
+        """
+    
+    except Exception as e:
+        return f"<h2>Error:</h2><p>{str(e)}</p>"
+    
+@app.route('/check-flask-mail-config')
+def check_flask_mail_config():
+    """Check Flask mail configuration"""
+    config_info = {
+        'MAIL_SERVER': app.config.get('MAIL_SERVER'),
+        'MAIL_PORT': app.config.get('MAIL_PORT'),
+        'MAIL_USE_TLS': app.config.get('MAIL_USE_TLS'),
+        'MAIL_USE_SSL': app.config.get('MAIL_USE_SSL'),
+        'MAIL_USERNAME': app.config.get('MAIL_USERNAME'),
+        'MAIL_PASSWORD_LENGTH': len(app.config.get('MAIL_PASSWORD', '')) if app.config.get('MAIL_PASSWORD') else 0,
+        'MAIL_PASSWORD_SET': bool(app.config.get('MAIL_PASSWORD')),
+        'MAIL_SUPPRESS_SEND': app.config.get('MAIL_SUPPRESS_SEND', False),
+        'MAIL_DEFAULT_SENDER': app.config.get('MAIL_DEFAULT_SENDER'),
+    }
+    
+    return f"""
+    <h2>Flask Mail Configuration</h2>
+    <pre>{json.dumps(config_info, indent=2)}</pre>
+    <p><strong>Note:</strong> Password is {'correctly set' if config_info['MAIL_PASSWORD_SET'] else 'NOT SET!'}</p>
+    """
+# ========== ROUTES ==========
+
+@app.route('/')
+def home():
+    """Home page"""
+    try:
+        products_collection = get_collection('products')
+        categories_collection = get_collection('categories')
+        
+        # Get featured products with default values
+        featured_products = list(products_collection.find({'featured': True}).limit(8))
+        for product in featured_products:
+            product.setdefault('rating', 0)
+            product.setdefault('reviews_count', 0)
+            product.setdefault('image', 'https://via.placeholder.com/400x300?text=Product+Image')
+        
+        # Get categories for navigation
+        categories = list(categories_collection.find({}))
+        
+        # Personalized recommendations
+        recommended_products = []
+        if 'user_id' in session:
+            users_collection = get_collection('users')
+            user = users_collection.find_one({'_id': ObjectId(session['user_id'])})
+            if user and 'viewed_products' in user:
+                viewed_categories = set()
+                for product_id in user.get('viewed_products', [])[-3:]:
+                    product = products_collection.find_one({'_id': ObjectId(product_id)})
+                    if product:
+                        viewed_categories.add(product['category'])
+                
+                if viewed_categories:
+                    recommended_products = list(products_collection.find({
+                        'category': {'$in': list(viewed_categories)},
+                        '_id': {'$nin': user.get('viewed_products', [])}
+                    }).limit(4))
+                    
+                    for product in recommended_products:
+                        product.setdefault('rating', 0)
+                        product.setdefault('reviews_count', 0)
+                        product.setdefault('image', 'https://via.placeholder.com/400x300?text=Product+Image')
+        
+        return render_template('index.html', 
+                             featured_products=featured_products,
+                             categories=categories,
+                             recommended_products=recommended_products)
+    except Exception as e:
+        print(f"Error in home route: {e}")
+        return render_template('index.html', 
+                             featured_products=[],
+                             categories=[],
+                             recommended_products=[])
+
 @app.route('/categories')
 def categories():
-    category = request.args.get('category', 'all')
-    subcategory = request.args.get('subcategory', 'all')
-    
-    if db_connected:
-        try:
-            query = {'is_active': True}
-            if category != 'all':
-                query['category'] = category
-            if subcategory != 'all':
-                query['subcategory'] = subcategory
-            
-            products = list(mongo.db.products.find(query))
-        except:
-            products = get_filtered_demo_products(category, subcategory)
-    else:
-        products = get_filtered_demo_products(category, subcategory)
-    
-    return render_template('categories.html', 
-                         products=products, 
-                         selected_category=category, 
-                         selected_subcategory=subcategory)
+    """Categories page with filtering"""
+    try:
+        category = request.args.get('category', '')
+        condition = request.args.get('condition', '')
+        min_price = request.args.get('min_price', 0, type=int)
+        max_price = request.args.get('max_price', 100000, type=int)
+        
+        # Build query
+        query = {}
+        if category:
+            query['category'] = category
+        if condition:
+            query['condition'] = condition
+        if min_price > 0 or max_price < 100000:
+            query['price'] = {'$gte': min_price, '$lte': max_price}
+        
+        # Get products and categories
+        products_collection = get_collection('products')
+        categories_collection = get_collection('categories')
+        
+        products = list(products_collection.find(query))
+        
+        # Ensure all products have required fields
+        for product in products:
+            product.setdefault('rating', 0)
+            product.setdefault('reviews_count', 0)
+            product.setdefault('stock', 0)
+            product.setdefault('featured', False)
+            product.setdefault('sizes', [])
+            product.setdefault('colors', [])
+            product.setdefault('image', 'https://via.placeholder.com/400x300?text=Product+Image')
+        
+        categories_list = list(categories_collection.find({}))
+        
+        return render_template('categories.html', 
+                             products=products,
+                             categories=categories_list,
+                             selected_category=category,
+                             selected_condition=condition)
+    except Exception as e:
+        print(f"Error in categories route: {e}")
+        flash('Error loading categories', 'danger')
+        return render_template('categories.html', 
+                             products=[],
+                             categories=[],
+                             selected_category='',
+                             selected_condition='')
 
 @app.route('/product/<product_id>')
-def product_detail(product_id):
-    if db_connected:
-        try:
-            product = mongo.db.products.find_one({'_id': ObjectId(product_id)})
-            if not product:
-                product = get_demo_product(product_id)
-            reviews = []
-        except:
-            product = get_demo_product(product_id)
-            reviews = []
-    else:
-        product = get_demo_product(product_id)
-        reviews = []
-    
-    return render_template('product.html', product=product, reviews=reviews)
-
-@app.route('/add_to_cart', methods=['POST'])
-def add_to_cart():
-    if 'cart' not in session:
-        session['cart'] = []
-    
+def product_details(product_id):
+    """Product details page"""
     try:
-        product_id = request.form.get('product_id')
+        products_collection = get_collection('products')
+        reviews_collection = get_collection('reviews')
+        
+        product = products_collection.find_one({'_id': ObjectId(product_id)})
+        if not product:
+            flash('Product not found', 'danger')
+            return redirect(url_for('home'))
+        
+        # Ensure product has all required fields
+        product.setdefault('rating', 0)
+        product.setdefault('reviews_count', 0)
+        product.setdefault('stock', 0)
+        product.setdefault('sizes', [])
+        product.setdefault('colors', [])
+        product.setdefault('image', 'https://via.placeholder.com/400x300?text=Product+Image')
+        
+        # Get reviews
+        reviews = list(reviews_collection.find({'product_id': ObjectId(product_id)}).sort('created_at', -1))
+        
+        # Update viewed products if logged in
+        if 'user_id' in session:
+            users_collection = get_collection('users')
+            users_collection.update_one(
+                {'_id': ObjectId(session['user_id'])},
+                {'$addToSet': {'viewed_products': ObjectId(product_id)}}
+            )
+        
+        # Get related products
+        related_products = list(products_collection.find({
+            'category': product['category'],
+            '_id': {'$ne': ObjectId(product_id)}
+        }).limit(4))
+        
+        for p in related_products:
+            p.setdefault('rating', 0)
+            p.setdefault('image', 'https://via.placeholder.com/400x300?text=Product+Image')
+        
+        return render_template('product_details.html',
+                             product=product,
+                             reviews=reviews,
+                             related_products=related_products)
+    except Exception as e:
+        print(f"Error in product_details: {e}")
+        flash('Error loading product details', 'danger')
+        return redirect(url_for('home'))
+
+@app.route('/add-to-cart/<product_id>', methods=['POST'])
+def add_to_cart(product_id):
+    """Add item to cart"""
+    try:
+        products_collection = get_collection('products')
+        product = products_collection.find_one({'_id': ObjectId(product_id)})
+        
+        if not product:
+            return jsonify({'success': False, 'message': 'Product not found'})
+        
+        # Get form data
+        size = request.form.get('size')
+        color = request.form.get('color')
         quantity = int(request.form.get('quantity', 1))
-        size = request.form.get('size', '')
-        color = request.form.get('color', '')
         
-        # Check if already in cart
-        for item in session['cart']:
-            if (item['product_id'] == product_id and 
-                item.get('size') == size and 
-                item.get('color') == color):
-                item['quantity'] += quantity
-                session.modified = True
-                return jsonify({'success': True, 'cart_count': len(session['cart'])})
+        # Check stock
+        if product.get('stock', 0) < quantity:
+            return jsonify({'success': False, 'message': 'Insufficient stock'})
         
-        # Add new item
-        session['cart'].append({
-            'product_id': product_id,
-            'quantity': quantity,
+        # Create cart item
+        cart_item = {
+            'product_id': ObjectId(product_id),
+            'name': product['name'],
+            'price': product['price'],
             'size': size,
             'color': color,
-            'added_at': datetime.now().isoformat()
-        })
-        session.modified = True
+            'quantity': quantity,
+            'image': product.get('image', ''),
+            'stock': product.get('stock', 0)
+        }
         
-        return jsonify({'success': True, 'cart_count': len(session['cart'])})
+        if 'user_id' in session:
+            # Logged in user - store in database
+            users_collection = get_collection('users')
+            user = users_collection.find_one({'_id': ObjectId(session['user_id'])})
+            cart = user.get('cart', [])
+            
+            # Check if item already exists
+            item_found = False
+            for item in cart:
+                if (str(item['product_id']) == product_id and 
+                    item.get('size') == size and 
+                    item.get('color') == color):
+                    item['quantity'] += quantity
+                    item_found = True
+                    break
+            
+            if not item_found:
+                cart.append(cart_item)
+            
+            users_collection.update_one(
+                {'_id': ObjectId(session['user_id'])},
+                {'$set': {'cart': cart}}
+            )
+            cart_count = len(cart)
+        else:
+            # Guest user - store in session
+            cart = session.get('cart', [])
+            
+            # Check if item already exists
+            item_found = False
+            for item in cart:
+                if (str(item['product_id']) == product_id and 
+                    item.get('size') == size and 
+                    item.get('color') == color):
+                    item['quantity'] += quantity
+                    item_found = True
+                    break
+            
+            if not item_found:
+                cart.append(cart_item)
+            
+            session['cart'] = cart
+            cart_count = len(cart)
+        
+        return jsonify({'success': True, 'message': 'Added to cart', 'cart_count': cart_count})
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
+        print(f"Error in add_to_cart: {e}")
+        return jsonify({'success': False, 'message': 'Error adding to cart'})
 
 @app.route('/cart')
 def cart():
-    cart_items = []
-    total = 0
-    
-    # Get products from database or use demo
-    for item in session.get('cart', []):
-        if db_connected:
-            try:
-                product = mongo.db.products.find_one({'_id': ObjectId(item['product_id'])})
-                if product:
-                    item_total = product['price'] * item['quantity']
-                    cart_items.append({
-                        'product': product,
-                        'quantity': item['quantity'],
-                        'size': item.get('size', ''),
-                        'color': item.get('color', ''),
-                        'item_total': item_total
-                    })
-                    total += item_total
-            except:
-                continue
+    """Shopping cart page"""
+    try:
+        if 'user_id' in session:
+            users_collection = get_collection('users')
+            user = users_collection.find_one({'_id': ObjectId(session['user_id'])})
+            cart_items = user.get('cart', [])
         else:
-            # Demo product
-            product = get_demo_product(item['product_id'])
-            item_total = product['price'] * item['quantity']
-            cart_items.append({
-                'product': product,
-                'quantity': item['quantity'],
-                'size': item.get('size', ''),
-                'color': item.get('color', ''),
-                'item_total': item_total
-            })
-            total += item_total
-    
-    return render_template('cart.html', cart_items=cart_items, total=total)
+            cart_items = session.get('cart', [])
+        
+        # Calculate subtotal
+        subtotal = sum(item.get('price', 0) * item.get('quantity', 1) for item in cart_items)
+        
+        return render_template('cart.html', cart_items=cart_items, subtotal=subtotal)
+    except Exception as e:
+        print(f"Error in cart: {e}")
+        flash('Error loading cart', 'danger')
+        return render_template('cart.html', cart_items=[], subtotal=0)
 
-@app.route('/checkout', methods=['GET', 'POST'])
-def checkout():
-    # Redirect if cart is empty
-    if 'cart' not in session or not session['cart']:
+@app.route('/update-cart', methods=['POST'])
+def update_cart():
+    """Update cart item quantity"""
+    try:
+        item_index = int(request.form.get('item_index'))
+        quantity = int(request.form.get('quantity', 1))
+        
+        if quantity <= 0:
+            return jsonify({'success': False, 'message': 'Quantity must be greater than 0'})
+        
+        if 'user_id' in session:
+            users_collection = get_collection('users')
+            user = users_collection.find_one({'_id': ObjectId(session['user_id'])})
+            cart_items = user.get('cart', [])
+            
+            if 0 <= item_index < len(cart_items):
+                cart_items[item_index]['quantity'] = quantity
+                users_collection.update_one(
+                    {'_id': ObjectId(session['user_id'])},
+                    {'$set': {'cart': cart_items}}
+                )
+                return jsonify({'success': True})
+        else:
+            cart_items = session.get('cart', [])
+            
+            if 0 <= item_index < len(cart_items):
+                cart_items[item_index]['quantity'] = quantity
+                session['cart'] = cart_items
+                return jsonify({'success': True})
+        
+        return jsonify({'success': False, 'message': 'Item not found in cart'})
+    except Exception as e:
+        print(f"Error in update_cart: {e}")
+        return jsonify({'success': False, 'message': 'Error updating cart'})
+
+@app.route('/remove-from-cart/<int:item_index>')
+def remove_from_cart(item_index):
+    """Remove item from cart"""
+    try:
+        if 'user_id' in session:
+            users_collection = get_collection('users')
+            user = users_collection.find_one({'_id': ObjectId(session['user_id'])})
+            cart_items = user.get('cart', [])
+            
+            if 0 <= item_index < len(cart_items):
+                cart_items.pop(item_index)
+                users_collection.update_one(
+                    {'_id': ObjectId(session['user_id'])},
+                    {'$set': {'cart': cart_items}}
+                )
+        else:
+            cart_items = session.get('cart', [])
+            
+            if 0 <= item_index < len(cart_items):
+                cart_items.pop(item_index)
+                session['cart'] = cart_items
+        
+        flash('Item removed from cart', 'success')
+        return redirect(url_for('cart'))
+    except Exception as e:
+        print(f"Error in remove_from_cart: {e}")
+        flash('Error removing item from cart', 'danger')
         return redirect(url_for('cart'))
 
-    # Initialize discount to 0
-    discount = 0
-
-    if request.method == 'POST':
-        try:
-            # Calculate cart total and prepare items
-            cart_items = []
-            cart_total = 0
-            
-            for item in session['cart']:
-                if db_connected:
-                    product = mongo.db.products.find_one({'_id': ObjectId(item['product_id'])})
-                    if product:
-                        item_total = product['price'] * item['quantity']
-                        cart_items.append({
-                            'product_id': str(product['_id']),
-                            'name': product['name'],
-                            'price': product['price'],
-                            'quantity': item['quantity'],
-                            'size': item.get('size', ''),
-                            'color': item.get('color', ''),
-                            'item_total': item_total
-                        })
-                        cart_total += item_total
-                else:
-                    # Demo product
-                    demo_price = 29.99
-                    item_total = demo_price * item['quantity']
-                    cart_items.append({
-                        'product_id': item['product_id'],
-                        'name': f"Product {item['product_id']}",
-                        'price': demo_price,
-                        'quantity': item['quantity'],
-                        'size': item.get('size', ''),
-                        'color': item.get('color', ''),
-                        'item_total': item_total
-                    })
-                    cart_total += item_total
-            
-            # Calculate delivery fee
-            region = request.form.get('region', '').lower()
-            delivery_fee = 0
-            
-            if region == 'embu':
-                delivery_fee = 0
-            elif region in ['meru', 'kirinyaga', 'tharakanithi']:
-                delivery_fee = 150
-            elif region == 'nairobi':
-                delivery_fee = 200
-            elif region == 'other':
-                delivery_fee = 250
-            else:
-                delivery_fee = 150  # Default
-            
-            # Calculate total amount
-            total_amount = cart_total + delivery_fee - discount
-            
-            # Get payment method
-            payment_method = request.form.get('payment_method')
-            
-            # Validate required fields
-            required_fields = ['name', 'phone', 'address', 'city', 'region', 'payment_method']
-            for field in required_fields:
-                if not request.form.get(field):
-                    return render_template('checkout.html', 
-                                         error=f"Please fill in all required fields. Missing: {field}",
-                                         discount=discount)
-            
-            # Validate phone number
-            phone = request.form.get('phone')
-            if len(phone.replace(' ', '').replace('-', '')) < 10:
-                return render_template('checkout.html',
-                                     error="Please enter a valid phone number",
-                                     discount=discount)
-            
-            # Validate email if provided
-            email = request.form.get('email')
-            if email and '@' not in email:
-                return render_template('checkout.html',
-                                     error="Please enter a valid email address",
-                                     discount=discount)
-            
-            # Validate payment method specific fields
-            if payment_method == 'mpesa':
-                mpesa_number = request.form.get('mpesa_number')
-                if not mpesa_number:
-                    return render_template('checkout.html',
-                                         error="Please enter your M-Pesa number",
-                                         discount=discount)
-            
-            elif payment_method == 'airtel':
-                airtel_number = request.form.get('airtel_number')
-                if not airtel_number:
-                    return render_template('checkout.html',
-                                         error="Please enter your Airtel Money number",
-                                         discount=discount)
-            
-            elif payment_method == 'paystack' and not email:
-                return render_template('checkout.html',
-                                     error="Email is required for Paystack payments",
-                                     discount=discount)
-            
-            # Check terms agreement
-            if not request.form.get('terms'):
-                return render_template('checkout.html',
-                                     error="You must agree to the terms and conditions",
-                                     discount=discount)
-            
-            # Build order data
-            order_id = f"MUFRA{datetime.now().strftime('%Y%m%d%H%M%S')}"
-            order_data = {
-                '_id': order_id,
-                'order_id': order_id,
-                'name': request.form.get('name'),
-                'email': request.form.get('email', ''),
-                'phone': request.form.get('phone'),
-                'address': request.form.get('address'),
-                'city': request.form.get('city'),
-                'region': request.form.get('region'),
-                'payment_method': payment_method,
-                'payment_number': request.form.get('mpesa_number') or request.form.get('airtel_number') or '',
-                'delivery_fee': delivery_fee,
-                'cart_total': cart_total,
-                'discount': discount,
-                'total_amount': total_amount,
-                'items': cart_items,
-                'status': 'pending',
-                'payment_status': 'pending',
-                'created_at': datetime.now(),
-                'session_id': session.sid,
-                'user_id': session.get('user_id')
-            }
-            
-            # Handle different payment methods
-            if payment_method == 'paystack':
-                # Handle Paystack card/bank payments
-                try:
-                    # Generate a unique reference
-                    paystack_ref = f"MUFRA{datetime.now().strftime('%Y%m%d%H%M%S')}{uuid.uuid4().hex[:8].upper()}"
-                    
-                    # Create callback URL
-                    callback_url = url_for('paystack_callback', _external=True)
-                    
-                    # For Paystack, we need an email
-                    customer_email = email or f"customer_{order_data['phone']}@mufrafashions.com"
-                    
-                    # Use requests instead of paystack_client
-                    response = requests.post(
-                        "https://api.paystack.co/transaction/initialize",
-                        headers={
-                            "Authorization": f"Bearer {PAYSTACK_SECRET_KEY}",
-                            "Content-Type": "application/json"
-                        },
-                        json={
-                            "amount": int(total_amount * 100),
-                            "email": customer_email,
-                            "reference": paystack_ref,
-                            "callback_url": callback_url,
-                            "metadata": {
-                                'order_id': order_data['order_id'],
-                                'customer_name': order_data['name'],
-                                'phone': order_data['phone']
-                            }
-                        }
-                    )
-                    
-                    if response.status_code == 200:
-                        result = response.json()
-                        if result.get('status'):
-                            # Save order with Paystack reference
-                            order_data['paystack_ref'] = paystack_ref
-                            order_data['paystack_access_code'] = result['data']['access_code']
-                            order_data['paystack_authorization_url'] = result['data']['authorization_url']
-                            
-                            # Save order to database or session
-                            if db_connected:
-                                mongo.db.orders.insert_one(order_data)
-                            else:
-                                if 'orders' not in session:
-                                    session['orders'] = []
-                                session['orders'].append(order_data)
-                                session.modified = True
-                            
-                            # Store order ID in session for verification
-                            session['pending_order_id'] = order_data['order_id']
-                            
-                            # Redirect to Paystack payment page
-                            return redirect(result['data']['authorization_url'])
-                        else:
-                            error_message = result.get('message', 'Payment initialization failed')
-                            return render_template('checkout.html', 
-                                                 error=f"Payment initialization failed: {error_message}",
-                                                 discount=discount)
-                    else:
-                        error_message = f"HTTP {response.status_code}: {response.text}"
-                        return render_template('checkout.html', 
-                                             error=f"Payment processing error: {error_message}",
-                                             discount=discount)
-                        
-                except Exception as e:
-                    print(f"❌ Paystack error: {e}")
-                    return render_template('checkout.html', 
-                                         error=f"Payment processing error: {str(e)}",
-                                         discount=discount)
-            
-            elif payment_method == 'mpesa':
-                # Handle M-Pesa through Paystack STK Push
-                mpesa_number = request.form.get('mpesa_number')
-                if not mpesa_number:
-                    return render_template('checkout.html',
-                                         error="Please enter your M-Pesa number",
-                                         discount=discount)
-                
-                # Format phone number for Paystack
-                phone = mpesa_number.replace('+254', '').replace(' ', '').replace('-', '')
-                if phone.startswith('0'):
-                    phone = phone[1:]  # Remove leading 0
-                phone = '254' + phone  # Add 254 prefix
-                
-                try:
-                    # Generate a unique reference
-                    paystack_ref = f"MUFRA-MPESA-{datetime.now().strftime('%Y%m%d%H%M%S')}{uuid.uuid4().hex[:8].upper()}"
-                    
-                    # Paystack mobile money API endpoint
-                    url = "https://api.paystack.co/charge"
-                    
-                    headers = {
-                        "Authorization": f"Bearer {PAYSTACK_SECRET_KEY}",
-                        "Content-Type": "application/json"
-                    }
-                    
-                    payload = {
-                        "email": email or f"customer_{order_data['phone']}@mufrafashions.com",
-                        "amount": int(total_amount * 100),  # Convert to kobo
-                        "mobile_money": {
-                            "phone": phone,
-                            "provider": "mpesa"
-                        },
-                        "reference": paystack_ref,
-                        "callback_url": url_for('paystack_webhook', _external=True),
-                        "metadata": {
-                            "order_id": order_data['order_id'],
-                            "customer_name": order_data['name'],
-                            "payment_method": "mpesa",
-                            "phone": phone
-                        }
-                    }
-                    
-                    print(f"📱 Initiating M-Pesa payment for order {order_id}")
-                    print(f"📞 Phone: {phone}, Amount: {total_amount}")
-                    
-                    response = requests.post(url, json=payload, headers=headers)
-                    result = response.json()
-                    
-                    print(f"📨 Paystack M-Pesa response: {result}")
-                    
-                    if response.status_code == 200 and result.get('status'):
-                        data = result.get('data', {})
-                        
-                        if data.get('status') == 'success':
-                            # Payment already completed (rare for mobile money)
-                            order_data['payment_status'] = 'completed'
-                            order_data['status'] = 'confirmed'
-                            order_data['transaction_id'] = data.get('id')
-                            order_data['reference'] = paystack_ref
-                            order_data['paid_at'] = datetime.now()
-                            order_data['paystack_response'] = data.get('message', 'Payment successful')
-                            
-                        elif data.get('status') in ['pending', 'send_pending']:
-                            # STK Push sent, waiting for user to complete
-                            order_data['payment_status'] = 'processing'
-                            order_data['status'] = 'pending'
-                            order_data['reference'] = paystack_ref
-                            order_data['stk_push_sent'] = True
-                            order_data['paystack_mobile_ref'] = paystack_ref
-                            order_data['paystack_response'] = data.get('message', 'STK Push sent')
-                            order_data['display_text'] = data.get('display_text', 'Enter your M-Pesa PIN to complete payment')
-                            
-                        else:
-                            error_msg = result.get('message', data.get('gateway_response', 'M-Pesa payment failed'))
-                            print(f"❌ M-Pesa payment error: {error_msg}")
-                            return render_template('checkout.html',
-                                                 error=f"M-Pesa payment failed: {error_msg}",
-                                                 discount=discount)
-                    else:
-                        error_msg = result.get('message', 'Payment initialization failed')
-                        print(f"❌ M-Pesa API error: {error_msg}")
-                        return render_template('checkout.html',
-                                             error=f"M-Pesa payment failed: {error_msg}",
-                                             discount=discount)
-                    
-                    # Save order
-                    if db_connected:
-                        mongo.db.orders.insert_one(order_data)
-                    else:
-                        if 'orders' not in session:
-                            session['orders'] = []
-                        session['orders'].append(order_data)
-                        session.modified = True
-                    
-                    # Clear cart
-                    session.pop('cart', None)
-                    
-                    return redirect(url_for('order_confirmation', order_id=order_data['order_id']))
-                    
-                except Exception as e:
-                    print(f"❌ M-Pesa Paystack error: {e}")
-                    # Still save order but mark as pending
-                    order_data['payment_status'] = 'pending'
-                    order_data['payment_error'] = str(e)
-                    
-                    # Save order anyway
-                    if db_connected:
-                        mongo.db.orders.insert_one(order_data)
-                    else:
-                        if 'orders' not in session:
-                            session['orders'] = []
-                        session['orders'].append(order_data)
-                        session.modified = True
-                    
-                    # Clear cart
-                    session.pop('cart', None)
-                    
-                    return redirect(url_for('order_confirmation', order_id=order_data['order_id']))
-            
-            elif payment_method == 'airtel':
-                # Handle Airtel Money through Paystack STK Push
-                airtel_number = request.form.get('airtel_number')
-                if not airtel_number:
-                    return render_template('checkout.html',
-                                         error="Please enter your Airtel Money number",
-                                         discount=discount)
-                
-                # Format phone number for Paystack
-                phone = airtel_number.replace('+254', '').replace(' ', '').replace('-', '')
-                if phone.startswith('0'):
-                    phone = phone[1:]  # Remove leading 0
-                phone = '254' + phone  # Add 254 prefix
-                
-                try:
-                    # Generate a unique reference
-                    paystack_ref = f"MUFRA-AIRTEL-{datetime.now().strftime('%Y%m%d%H%M%S')}{uuid.uuid4().hex[:8].upper()}"
-                    
-                    # Paystack mobile money API endpoint
-                    url = "https://api.paystack.co/charge"
-                    
-                    headers = {
-                        "Authorization": f"Bearer {PAYSTACK_SECRET_KEY}",
-                        "Content-Type": "application/json"
-                    }
-                    
-                    payload = {
-                        "email": email or f"customer_{order_data['phone']}@mufrafashions.com",
-                        "amount": int(total_amount * 100),  # Convert to kobo
-                        "mobile_money": {
-                            "phone": phone,
-                            "provider": "airtel"
-                        },
-                        "reference": paystack_ref,
-                        "callback_url": url_for('paystack_webhook', _external=True),
-                        "metadata": {
-                            "order_id": order_data['order_id'],
-                            "customer_name": order_data['name'],
-                            "payment_method": "airtel",
-                            "phone": phone
-                        }
-                    }
-                    
-                    print(f"📱 Initiating Airtel Money payment for order {order_id}")
-                    print(f"📞 Phone: {phone}, Amount: {total_amount}")
-                    
-                    response = requests.post(url, json=payload, headers=headers)
-                    result = response.json()
-                    
-                    print(f"📨 Paystack Airtel response: {result}")
-                    
-                    if response.status_code == 200 and result.get('status'):
-                        data = result.get('data', {})
-                        
-                        if data.get('status') == 'success':
-                            # Payment already completed
-                            order_data['payment_status'] = 'completed'
-                            order_data['status'] = 'confirmed'
-                            order_data['transaction_id'] = data.get('id')
-                            order_data['reference'] = paystack_ref
-                            order_data['paid_at'] = datetime.now()
-                            order_data['paystack_response'] = data.get('message', 'Payment successful')
-                            
-                        elif data.get('status') in ['pending', 'send_pending']:
-                            # Payment request sent, waiting for user
-                            order_data['payment_status'] = 'processing'
-                            order_data['status'] = 'pending'
-                            order_data['reference'] = paystack_ref
-                            order_data['stk_push_sent'] = True
-                            order_data['paystack_mobile_ref'] = paystack_ref
-                            order_data['paystack_response'] = data.get('message', 'Payment request sent')
-                            order_data['display_text'] = data.get('display_text', 'Enter your Airtel Money PIN to complete payment')
-                            
-                        else:
-                            error_msg = result.get('message', data.get('gateway_response', 'Airtel payment failed'))
-                            print(f"❌ Airtel payment error: {error_msg}")
-                            return render_template('checkout.html',
-                                                 error=f"Airtel Money payment failed: {error_msg}",
-                                                 discount=discount)
-                    else:
-                        error_msg = result.get('message', 'Payment initialization failed')
-                        print(f"❌ Airtel API error: {error_msg}")
-                        return render_template('checkout.html',
-                                             error=f"Airtel Money payment failed: {error_msg}",
-                                             discount=discount)
-                    
-                    # Save order
-                    if db_connected:
-                        mongo.db.orders.insert_one(order_data)
-                    else:
-                        if 'orders' not in session:
-                            session['orders'] = []
-                        session['orders'].append(order_data)
-                        session.modified = True
-                    
-                    # Clear cart
-                    session.pop('cart', None)
-                    
-                    return redirect(url_for('order_confirmation', order_id=order_data['order_id']))
-                    
-                except Exception as e:
-                    print(f"❌ Airtel Paystack error: {e}")
-                    # Still save order but mark as pending
-                    order_data['payment_status'] = 'pending'
-                    order_data['payment_error'] = str(e)
-                    
-                    # Save order anyway
-                    if db_connected:
-                        mongo.db.orders.insert_one(order_data)
-                    else:
-                        if 'orders' not in session:
-                            session['orders'] = []
-                        session['orders'].append(order_data)
-                        session.modified = True
-                    
-                    # Clear cart
-                    session.pop('cart', None)
-                    
-                    return redirect(url_for('order_confirmation', order_id=order_data['order_id']))
-            
-            else:
-                # For Cash on Delivery and other methods
-                if payment_method == 'cod':
-                    order_data['payment_status'] = 'pending_cod'
-                elif payment_method in ['mpesa', 'airtel']:
-                    order_data['payment_status'] = 'processing'
-                
-                # Save order
-                if db_connected:
-                    mongo.db.orders.insert_one(order_data)
-                else:
-                    if 'orders' not in session:
-                        session['orders'] = []
-                    session['orders'].append(order_data)
-                    session.modified = True
-                
-                # Clear cart
-                session.pop('cart', None)
-                
-                return redirect(url_for('order_confirmation', order_id=order_data['order_id']))
-
-        except Exception as e:
-            print(f"❌ Checkout error: {e}")
-            import traceback
-            traceback.print_exc()
-            return render_template('checkout.html', error=str(e), discount=discount)
-
-    # GET request → show checkout form with cart data
-    cart_items = []
-    cart_total = 0
-    
-    for item in session.get('cart', []):
-        if db_connected:
-            try:
-                product = mongo.db.products.find_one({'_id': ObjectId(item['product_id'])})
-                if product:
-                    item_total = product['price'] * item['quantity']
-                    cart_items.append({
-                        'product': product,
-                        'quantity': item['quantity'],
-                        'size': item.get('size', ''),
-                        'color': item.get('color', ''),
-                        'item_total': item_total
-                    })
-                    cart_total += item_total
-            except:
-                continue
-        else:
-            # Demo product
-            product = get_demo_product(item['product_id'])
-            item_total = product['price'] * item['quantity']
-            cart_items.append({
-                'product': product,
-                'quantity': item['quantity'],
-                'size': item.get('size', ''),
-                'color': item.get('color', ''),
-                'item_total': item_total
-            })
-            cart_total += item_total
-    
-    return render_template('checkout.html', 
-                         cart_items=cart_items,
-                         cart_total=cart_total,
-                         discount=discount)
-@app.route('/paystack/callback')
-def paystack_callback():
-    """Handle Paystack payment callback"""
+@app.route('/checkout')
+@login_required
+def checkout():
+    """Checkout page"""
     try:
-        reference = request.args.get('reference')
-        trxref = request.args.get('trxref')
+        users_collection = get_collection('users')
+        products_collection = get_collection('products')
         
-        if not reference:
-            return render_template('payment_error.html', 
-                                 error="No payment reference provided")
+        user = users_collection.find_one({'_id': ObjectId(session['user_id'])})
+        cart_items = user.get('cart', [])
         
-        # Verify the transaction using requests
-        response = requests.get(
-            f"https://api.paystack.co/transaction/verify/{reference}",
-            headers={"Authorization": f"Bearer {PAYSTACK_SECRET_KEY}"}
+        if not cart_items:
+            flash('Your cart is empty', 'warning')
+            return redirect(url_for('cart'))
+        
+        # Check stock availability
+        for item in cart_items:
+            product = products_collection.find_one({'_id': item['product_id']})
+            if not product or product.get('stock', 0) < item.get('quantity', 1):
+                flash(f'{item["name"]} is out of stock', 'danger')
+                return redirect(url_for('cart'))
+        
+        # Calculate subtotal
+        subtotal = sum(item.get('price', 0) * item.get('quantity', 1) for item in cart_items)
+        
+        return render_template('checkout.html', 
+                             cart_items=cart_items, 
+                             subtotal=subtotal,
+                             user=user)
+    except Exception as e:
+        print(f"Error in checkout: {e}")
+        flash('Error loading checkout page', 'danger')
+        return redirect(url_for('cart'))
+
+@app.route('/process-checkout', methods=['POST'])
+@login_required
+def process_checkout():
+    """Process checkout and create order"""
+    try:
+        users_collection = get_collection('users')
+        products_collection = get_collection('products')
+        orders_collection = get_collection('orders')
+        
+        user = users_collection.find_one({'_id': ObjectId(session['user_id'])})
+        cart_items = user.get('cart', [])
+        
+        if not cart_items:
+            return jsonify({'success': False, 'message': 'Cart is empty'})
+        
+        # Get shipping address
+        shipping_address = {
+            'street': request.form.get('street', ''),
+            'city': request.form.get('city', ''),
+            'county': request.form.get('county', ''),
+            'postal_code': request.form.get('postal_code', ''),
+            'phone': request.form.get('phone', '')
+        }
+        
+        # Validate required fields
+        required_fields = ['street', 'city', 'county', 'phone']
+        for field in required_fields:
+            if not shipping_address[field]:
+                return jsonify({'success': False, 'message': f'Please enter your {field}'})
+        
+        payment_method = request.form.get('payment_method', 'mpesa')
+        
+        # Calculate totals
+        subtotal = sum(item.get('price', 0) * item.get('quantity', 1) for item in cart_items)
+        county = shipping_address.get('county', '').lower()
+        delivery_fee = 100 if 'embu' in county else 200
+        total = subtotal + delivery_fee
+        
+        # Create order
+        order_id = generate_order_id()
+        order = {
+            'order_id': order_id,
+            'user_id': ObjectId(session['user_id']),
+            'items': cart_items,
+            'shipping_address': shipping_address,
+            'payment_method': payment_method,
+            'subtotal': subtotal,
+            'delivery_fee': delivery_fee,
+            'total': total,
+            'status': 'pending',
+            'payment_status': 'pending',
+            'created_at': datetime.utcnow(),
+            'updated_at': datetime.utcnow()
+        }
+        
+        # Save order to database
+        orders_collection.insert_one(order)
+        
+        # Update product stock
+        for item in cart_items:
+            products_collection.update_one(
+                {'_id': item['product_id']},
+                {'$inc': {'stock': -item.get('quantity', 1)}}
+            )
+        
+        # Clear user's cart
+        users_collection.update_one(
+            {'_id': ObjectId(session['user_id'])},
+            {'$set': {'cart': []}}
         )
         
-        if response.status_code == 200:
-            result = response.json()
-            if result.get('status') and result['data']['status'] == 'success':
-                # Payment successful
-                transaction_data = result['data']
-                
-                # Find the order using the reference
-                if db_connected:
-                    order = mongo.db.orders.find_one({'paystack_ref': reference})
-                else:
-                    order = None
-                    if 'orders' in session:
-                        for o in session['orders']:
-                            if o.get('paystack_ref') == reference:
-                                order = o
-                                break
-                
-                if order:
-                    # Update order status
-                    update_data = {
-                        'status': 'paid',
-                        'payment_status': 'completed',
-                        'transaction_id': transaction_data['id'],
-                        'paid_at': datetime.now(),
-                        'payment_details': {
-                            'channel': transaction_data.get('channel', ''),
-                            'ip_address': transaction_data.get('ip_address', ''),
-                            'paid_at': transaction_data.get('paid_at', ''),
-                            'authorization': transaction_data.get('authorization', {})
-                        }
-                    }
-                    
-                    if db_connected:
-                        mongo.db.orders.update_one(
-                            {'paystack_ref': reference},
-                            {'$set': update_data}
-                        )
-                    else:
-                        # Update in session
-                        if 'orders' in session:
-                            for i, o in enumerate(session['orders']):
-                                if o.get('paystack_ref') == reference:
-                                    session['orders'][i].update(update_data)
-                                    session.modified = True
-                                    break
-                    
-                    # Clear cart and pending order session
-                    session.pop('cart', None)
-                    session.pop('pending_order_id', None)
-                    
-                    return redirect(url_for('order_confirmation', 
-                                          order_id=order['order_id']))
-                else:
-                    return render_template('payment_error.html', 
-                                         error="Order not found")
-            else:
-                # Payment failed
-                error_message = result.get('message', 'Payment verification failed')
-                return render_template('payment_error.html', 
-                                     error=error_message)
-        else:
-            return render_template('payment_error.html', 
-                                 error=f"Payment verification failed: HTTP {response.status_code}")
-            
-    except Exception as e:
-        print(f"❌ Paystack callback error: {e}")
-        return render_template('payment_error.html', 
-                             error=f"Payment processing error: {str(e)}")
-@app.route('/paystack/webhook', methods=['POST'])
-def paystack_webhook():
-    """Handle Paystack webhook for server-to-server notifications (including mobile money)"""
-    try:
-        # Verify it's from Paystack (in production, verify signature)
-        # For now, we'll trust the payload for testing
-        
-        data = request.get_json()
-        event = data.get('event')
-        
-        print(f"📨 Paystack webhook received: {event}")
-        
-        if event == 'charge.success':
-            charge_data = data.get('data', {})
-            reference = charge_data.get('reference')
-            
-            if not reference:
-                print("❌ No reference in webhook")
-                return jsonify({'status': 'error', 'message': 'No reference'}), 400
-            
-            print(f"✅ Payment successful for reference: {reference}")
-            
-            # Find the order using the reference
-            if db_connected:
-                # Check all possible reference fields
-                order = mongo.db.orders.find_one({'$or': [
-                    {'paystack_ref': reference},
-                    {'reference': reference},
-                    {'paystack_mobile_ref': reference}
-                ]})
-            else:
-                order = None
-                if 'orders' in session:
-                    for o in session['orders']:
-                        if (o.get('paystack_ref') == reference or 
-                            o.get('reference') == reference or
-                            o.get('paystack_mobile_ref') == reference):
-                            order = o
-                            break
-            
-            if order:
-                # Update order status
-                update_data = {
-                    'status': 'confirmed',
-                    'payment_status': 'completed',
-                    'transaction_id': charge_data.get('id'),
-                    'paid_at': datetime.now(),
-                    'webhook_processed': True,
-                    'payment_details': {
-                        'channel': charge_data.get('channel', ''),
-                        'gateway_response': charge_data.get('gateway_response', ''),
-                        'paid_at': charge_data.get('paid_at', ''),
-                        'authorization': charge_data.get('authorization', {})
-                    }
-                }
-                
-                # Check if it's mobile money
-                if charge_data.get('authorization', {}).get('channel') == 'mobile_money':
-                    update_data['payment_details']['mobile_money_provider'] = charge_data.get('authorization', {}).get('mobile_money_provider', '')
-                    update_data['payment_details']['mobile_money_number'] = charge_data.get('authorization', {}).get('mobile_money_number', '')
-                
-                if db_connected:
-                    mongo.db.orders.update_one(
-                        {'_id': order['_id']},
-                        {'$set': update_data}
-                    )
-                else:
-                    # Update in session
-                    if 'orders' in session:
-                        for i, o in enumerate(session['orders']):
-                            if str(o.get('_id')) == str(order.get('_id')):
-                                session['orders'][i].update(update_data)
-                                session.modified = True
-                                break
-                
-                print(f"✅ Webhook: Order {order.get('order_id')} marked as paid")
-                
-                # Clear cart if it exists in session
-                if 'cart' in session:
-                    session.pop('cart', None)
-                    print("✅ Cart cleared after successful payment")
-            
-            else:
-                print(f"⚠️ Order not found for reference: {reference}")
-            
-            return jsonify({'status': 'success'}), 200
-        
-        elif event == 'charge.failed':
-            charge_data = data.get('data', {})
-            reference = charge_data.get('reference')
-            
-            print(f"❌ Payment failed for reference: {reference}")
-            
-            if reference:
-                if db_connected:
-                    mongo.db.orders.update_one(
-                        {'$or': [
-                            {'paystack_ref': reference},
-                            {'reference': reference},
-                            {'paystack_mobile_ref': reference}
-                        ]},
-                        {'$set': {
-                            'payment_status': 'failed',
-                            'payment_error': charge_data.get('gateway_response', 'Payment failed'),
-                            'updated_at': datetime.now()
-                        }}
-                    )
-                    print(f"✅ Marked order as failed: {reference}")
-            
-            return jsonify({'status': 'received'}), 200
-        
-        return jsonify({'status': 'ignored'}), 200
-        
-    except Exception as e:
-        print(f"❌ Webhook error: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'status': 'error', 'message': str(e)}), 400
-
-@app.route('/order_confirmation/<order_id>')
-def order_confirmation(order_id):
-    order = None
-    
-    # Try to find order in database
-    if db_connected:
-        try:
-            # Try by ObjectId first
-            try:
-                order = mongo.db.orders.find_one({'_id': ObjectId(order_id)})
-            except:
-                order = None
-            
-            # If not found, try by demo order ID format
-            if not order:
-                order = mongo.db.orders.find_one({'_id': order_id})
-        except Exception as e:
-            print(f"Error finding order in DB: {e}")
-            order = None
-    
-    # If not in database, check session (for demo mode)
-    if not order and 'orders' in session:
-        for o in session['orders']:
-            if str(o.get('_id')) == order_id:
-                order = o
-                break
-    
-    # If still no order, create demo order
-    if not order:
-        order = {
-            '_id': order_id,
-            'name': 'John Doe',
-            'phone': '0712345678',
-            'address': '123 Main Street',
-            'city': 'Embu',
-            'region': 'Embu',
-            'payment_method': 'mpesa',
-            'payment_number': '0712345678',
-            'delivery_fee': 100,
-            'cart_total': 59.98,
-            'total_amount': 159.98,
-            'items': [
-                {
-                    'name': 'Demo Product', 
-                    'quantity': 2, 
-                    'price': 29.99, 
-                    'item_total': 59.98,
-                    'size': 'M',
-                    'color': 'Black'
-                }
-            ],
-            'status': 'pending',
-            'created_at': datetime.now()
-        }
-        print(f"⚠️ Using demo order data for: {order_id}")
-    else:
-        print(f"✅ Found order: {order_id}")
-    
-    # Convert ObjectId to string for template
-    if '_id' in order and isinstance(order['_id'], ObjectId):
-        order['_id'] = str(order['_id'])
-    
-    return render_template('order_confirmation.html', order=order)
-
-@app.route('/my_orders')
-def my_orders():
-    orders = []
-    
-    if db_connected:
-        try:
-            # For logged-in users, get their orders
-            if current_user.is_authenticated:
-                orders = list(mongo.db.orders.find({
-                    'user_id': current_user.id
-                }).sort('created_at', -1))
-                print(f"✅ Found {len(orders)} orders for user {current_user.id}")
-            else:
-                # For guest users, get by session ID
-                orders = list(mongo.db.orders.find({
-                    'session_id': session.sid
-                }).sort('created_at', -1))
-                print(f"✅ Found {len(orders)} orders for session {session.sid}")
-        except Exception as e:
-            print(f"❌ Error loading orders from DB: {e}")
-    
-    # Fallback to session orders for demo
-    if not orders and 'orders' in session:
-        orders = session['orders']
-        print(f"✅ Found {len(orders)} orders in session")
-    
-    # Convert ObjectIds to strings for template
-    for order in orders:
-        if '_id' in order and isinstance(order['_id'], ObjectId):
-            order['_id'] = str(order['_id'])
-    
-    return render_template('my_orders.html', orders=orders)
-
-# ========== ADMIN ROUTES ==========
-@app.route('/admin/login', methods=['GET', 'POST'])
-def admin_login():
-    print(f"\n=== ADMIN LOGIN ATTEMPT ===")
-    print(f"Current user authenticated: {current_user.is_authenticated}")
-    print(f"Current user admin: {getattr(current_user, 'is_admin', False)}")
-    
-    if current_user.is_authenticated and getattr(current_user, 'is_admin', False):
-        print("Already logged in as admin, redirecting to dashboard")
-        return redirect(url_for('admin_dashboard'))
-    
-    if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        
-        print(f"Login attempt - Username: {username}, Password: {password}")
-        
-        if db_connected:
-            try:
-                print("Checking MongoDB for admin user...")
-                admin = mongo.db.users.find_one({'username': username, 'is_admin': True})
-                
-                if admin:
-                    print(f"Admin found: {admin['username']}")
-                    
-                    # Check password
-                    if bcrypt.checkpw(password.encode('utf-8'), admin['password']):
-                        print("Password correct!")
-                        user_obj = User(admin)
-                        login_user(user_obj)
-                        print(f"User logged in. ID: {user_obj.id}, Admin: {user_obj.is_admin}")
-                        
-                        # Set session to remember login
-                        session['user_id'] = str(admin['_id'])
-                        session['is_admin'] = True
-                        
-                        next_page = request.args.get('next')
-                        if next_page:
-                            return redirect(next_page)
-                        return redirect(url_for('admin_dashboard'))
-                    else:
-                        print("Password incorrect")
-                else:
-                    print("Admin user not found")
-            except Exception as e:
-                print(f"Database error: {e}")
-        
-        # Fallback: Demo mode admin login
-        if username == 'admin' and password == 'admin123':
-            print("Using demo admin login")
-            user_obj = User({
-                '_id': 'demo_admin_id',
-                'username': 'admin',
-                'email': 'admin@mufrafashions.com',
-                'is_admin': True
-            })
-            login_user(user_obj)
-            
-            # Set session
-            session['user_id'] = 'demo_admin_id'
-            session['is_admin'] = True
-            
-            next_page = request.args.get('next')
-            if next_page:
-                return redirect(next_page)
-            return redirect(url_for('admin_dashboard'))
-        
-        print("Login failed - invalid credentials")
-        return render_template('admin/login.html', error='Invalid credentials')
-    
-    return render_template('admin/login.html')
-
-@app.route('/admin/logout')
-@login_required
-def admin_logout():
-    logout_user()
-    session.pop('user_id', None)
-    session.pop('is_admin', None)
-    return redirect(url_for('admin_login'))
-
-@app.route('/admin/dashboard')
-@login_required
-def admin_dashboard():
-    if db_connected:
-        try:
-            total_orders = mongo.db.orders.count_documents({})
-            total_products = mongo.db.products.count_documents({})
-            pending_orders = mongo.db.orders.count_documents({'status': 'pending'})
-            
-            # Calculate revenue
-            pipeline = [
-                {'$match': {'status': {'$in': ['completed', 'delivered']}}},
-                {'$group': {'_id': None, 'total': {'$sum': '$total_amount'}}}
-            ]
-            result = list(mongo.db.orders.aggregate(pipeline))
-            total_revenue = result[0]['total'] if result else 0
-            
-            recent_orders = list(mongo.db.orders.find().sort('created_at', -1).limit(10))
-            low_stock_products = list(mongo.db.products.find({'stock': {'$lt': 10}}).limit(5))
-            
-        except Exception as e:
-            print(f"Database error in admin dashboard: {e}")
-            total_orders = total_products = pending_orders = total_revenue = 0
-            recent_orders = []
-            low_stock_products = []
-    else:
-        total_orders = len(session.get('orders', []))
-        total_products = 4
-        pending_orders = total_orders
-        total_revenue = total_orders * 100
-        recent_orders = session.get('orders', [])[:10] if 'orders' in session else []
-        low_stock_products = []
-    
-    # Convert ObjectIds to strings for template
-    for order in recent_orders:
-        if '_id' in order and isinstance(order['_id'], ObjectId):
-            order['_id'] = str(order['_id'])
-    
-    for product in low_stock_products:
-        if '_id' in product and isinstance(product['_id'], ObjectId):
-            product['_id'] = str(product['_id'])
-    
-    return render_template('admin/dashboard.html',
-                         total_orders=total_orders,
-                         total_products=total_products,
-                         pending_orders=pending_orders,
-                         total_revenue=total_revenue,
-                         recent_orders=recent_orders,
-                         low_stock_products=low_stock_products)
-
-@app.route('/admin/orders')
-@login_required
-def admin_orders():
-    if db_connected:
-        try:
-            orders = list(mongo.db.orders.find().sort('created_at', -1))
-            # Convert ObjectIds to strings
-            for order in orders:
-                if '_id' in order and isinstance(order['_id'], ObjectId):
-                    order['_id'] = str(order['_id'])
-        except Exception as e:
-            print(f"Error loading orders: {e}")
-            orders = []
-    else:
-        orders = session.get('orders', []) if 'orders' in session else []
-    
-    return render_template('admin/orders.html', orders=orders)
-
-@app.route('/admin/products')
-@login_required
-def admin_products():
-    if db_connected:
-        try:
-            products = list(mongo.db.products.find().sort('created_at', -1))
-            # Convert ObjectIds to strings
-            for product in products:
-                if '_id' in product and isinstance(product['_id'], ObjectId):
-                    product['_id'] = str(product['_id'])
-        except Exception as e:
-            print(f"Error loading products: {e}")
-            products = get_demo_products()
-    else:
-        products = get_demo_products()
-    
-    return render_template('admin/products.html', products=products)
-
-# ========== API ROUTES ==========
-@app.route('/api/cart_count')
-def api_cart_count():
-    return jsonify({'count': len(session.get('cart', []))})
-
-@app.route('/api/update_order_status', methods=['POST'])
-@login_required
-def update_order_status():
-    try:
-        order_id = request.form.get('order_id')
-        status = request.form.get('status')
-        
-        if db_connected:
-            mongo.db.orders.update_one(
-                {'_id': ObjectId(order_id)},
-                {'$set': {'status': status, 'updated_at': datetime.utcnow()}}
-            )
-            print(f"✅ Updated order {order_id} to status: {status}")
-            return jsonify({'success': True})
-        else:
-            # Update in session for demo
-            if 'orders' in session:
-                for order in session['orders']:
-                    if str(order.get('_id')) == order_id:
-                        order['status'] = status
-                        order['updated_at'] = datetime.now().isoformat()
-                        session.modified = True
-                        break
-            return jsonify({'success': True})
-    except Exception as e:
-        print(f"❌ Error updating order status: {e}")
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/update_product', methods=['POST'])
-@login_required
-def update_product():
-    try:
-        product_id = request.form.get('product_id')
-        stock = int(request.form.get('stock', 0))
-        
-        if db_connected:
-            mongo.db.products.update_one(
-                {'_id': ObjectId(product_id)},
-                {'$set': {'stock': stock, 'updated_at': datetime.utcnow()}}
-            )
-            print(f"✅ Updated product {product_id} stock to: {stock}")
-            return jsonify({'success': True})
-        else:
-            return jsonify({'success': True})  # Demo mode
-    except Exception as e:
-        print(f"❌ Error updating product: {e}")
-        return jsonify({'success': False, 'error': str(e)})
-
-
-    
-@app.route('/api/upload_images', methods=['POST'])
-@login_required
-def upload_images():
-    try:
-        if 'images' not in request.files:
-            return jsonify({'success': False, 'error': 'No images uploaded'})
-        
-        files = request.files.getlist('images')
-        image_urls = []
-        
-        # In a real app, you would upload to cloud storage (AWS S3, Cloudinary, etc.)
-        # For now, we'll return placeholder URLs
-        for file in files:
-            if file.filename:
-                # Save to server (for demo - in production use cloud storage)
-                filename = f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{file.filename}"
-                upload_folder = os.path.join(app.root_path, 'static', 'uploads', 'products')
-                os.makedirs(upload_folder, exist_ok=True)
-                file_path = os.path.join(upload_folder, filename)
-                file.save(file_path)
-                
-                # Store relative path
-                image_urls.append(f"/static/uploads/products/{filename}")
+        # Send order confirmation email
+        send_order_confirmation(
+            email=user['email'],
+            order_id=order_id,
+            total=total,
+            items=cart_items,
+            shipping_address=shipping_address
+        )
         
         return jsonify({
-            'success': True, 
-            'image_urls': image_urls,
-            'message': f'Uploaded {len(image_urls)} images'
+            'success': True,
+            'message': 'Order placed successfully!',
+            'order_id': order_id
         })
         
     except Exception as e:
-        print(f"❌ Error uploading images: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        print(f"Error in process_checkout: {e}")
+        return jsonify({'success': False, 'message': str(e)})
 
-@app.route('/api/cancel_order', methods=['POST'])
-def cancel_order():
+@app.route('/order-confirmation/<order_id>')
+@login_required
+def order_confirmation(order_id):
+    """Order confirmation page"""
     try:
-        order_id = request.form.get('order_id')
+        print(f"\n🔍 DEBUG: Loading order confirmation for {order_id}")
+        print(f"🔍 DEBUG: User ID in session: {session.get('user_id')}")
         
-        if db_connected:
-            result = mongo.db.orders.update_one(
-                {'_id': ObjectId(order_id)},
-                {'$set': {'status': 'cancelled', 'cancelled_at': datetime.utcnow()}}
+        orders_collection = get_collection('orders')
+        order = orders_collection.find_one({'order_id': order_id})
+        
+        print(f"🔍 DEBUG: Order found: {order is not None}")
+        
+        if not order:
+            print(f"🔍 DEBUG: Order not found in database")
+            flash('Order not found', 'danger')
+            return redirect(url_for('home'))
+        
+        if str(order['user_id']) != session['user_id']:
+            print(f"🔍 DEBUG: User mismatch. Order user: {order['user_id']}, Session user: {session['user_id']}")
+            flash('Order not found', 'danger')
+            return redirect(url_for('home'))
+        
+        # Convert ObjectId to string for template safety
+        order['_id'] = str(order['_id'])
+        order['user_id'] = str(order['user_id'])
+        
+        # Ensure items is properly formatted
+        if 'items' in order:
+            print(f"🔍 DEBUG: Items found in order, type: {type(order['items'])}")
+            
+            if not isinstance(order['items'], list):
+                print(f"🔍 DEBUG: Items is not a list, converting...")
+                # Try to convert to list
+                try:
+                    if hasattr(order['items'], '__iter__') and not isinstance(order['items'], (str, dict)):
+                        order['items'] = list(order['items'])
+                    else:
+                        order['items'] = [order['items']] if order['items'] else []
+                except Exception as e:
+                    print(f"🔍 DEBUG: Error converting items to list: {e}")
+                    order['items'] = []
+            
+            # Convert product_ids in items
+            for item in order['items']:
+                if 'product_id' in item:
+                    item['product_id'] = str(item['product_id'])
+        
+        print(f"🔍 DEBUG: Order prepared for template. Items count: {len(order.get('items', []))}")
+        
+        return render_template('order_confirmation.html', order=order)
+        
+    except Exception as e:
+        print(f"\n❌ ERROR in order_confirmation: {e}")
+        print(f"❌ ERROR Type: {type(e).__name__}")
+        import traceback
+        print(f"❌ ERROR Traceback: {traceback.format_exc()}")
+        
+        flash('Error loading order confirmation', 'danger')
+        return redirect(url_for('home'))
+    
+@app.route('/debug-order/<order_id>')
+@login_required
+def debug_order(order_id):
+    """Debug order data"""
+    try:
+        orders_collection = get_collection('orders')
+        order = orders_collection.find_one({'order_id': order_id})
+        
+        if not order or str(order['user_id']) != session['user_id']:
+            return jsonify({'error': 'Order not found or not authorized'})
+        
+        # Convert ObjectId to string for JSON serialization
+        order['_id'] = str(order['_id'])
+        order['user_id'] = str(order['user_id'])
+        
+        if 'items' in order:
+            # Convert items list
+            for item in order['items']:
+                if 'product_id' in item:
+                    item['product_id'] = str(item['product_id'])
+        
+        # Debug info
+        debug_info = {
+            'order_exists': order is not None,
+            'order_id': order.get('order_id'),
+            'has_items': 'items' in order,
+            'items_count': len(order.get('items', [])),
+            'items_type': type(order.get('items')).__name__,
+            'is_items_list': isinstance(order.get('items'), list),
+            'order_keys': list(order.keys()),
+            'items_sample': str(order.get('items'))[:200] if order.get('items') else None
+        }
+        
+        return jsonify(debug_info)
+    
+    except Exception as e:
+        return jsonify({'error': str(e)})
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    """User registration"""
+    try:
+        if request.method == 'POST':
+            # Get form data
+            name = request.form.get('name', '').strip()
+            email = request.form.get('email', '').strip().lower()
+            phone = request.form.get('phone', '').strip()
+            password = request.form.get('password', '')
+            confirm_password = request.form.get('confirm_password', '')
+            
+            # Validation
+            if not all([name, email, phone, password]):
+                flash('All fields are required', 'danger')
+                return redirect(url_for('register'))
+            
+            if password != confirm_password:
+                flash('Passwords do not match', 'danger')
+                return redirect(url_for('register'))
+            
+            if len(password) < 6:
+                flash('Password must be at least 6 characters', 'danger')
+                return redirect(url_for('register'))
+            
+            # Check if user already exists
+            users_collection = get_collection('users')
+            existing_user = users_collection.find_one({'$or': [{'email': email}, {'phone': phone}]})
+            if existing_user:
+                flash('User with this email or phone already exists', 'danger')
+                return redirect(url_for('register'))
+            
+            # Create user
+            user = {
+                'name': name,
+                'email': email,
+                'phone': phone,
+                'password': generate_password_hash(password),
+                'role': 'customer',
+                'verified': False,
+                'cart': [],
+                'wishlist': [],
+                'created_at': datetime.utcnow()
+            }
+            
+            # Generate OTP
+            otp = generate_otp()
+            user['verification_otp'] = otp
+            user['otp_expires'] = datetime.utcnow() + timedelta(minutes=10)
+            
+            # Save user
+            result = users_collection.insert_one(user)
+            
+            # Send verification email
+            email_sent = send_verification_email(email, name, otp)
+            
+            if email_sent:
+                flash('Registration successful! Check your email for verification code.', 'success')
+            else:
+                flash(f'Registration successful! Your verification code: {otp}', 'info')
+            
+            session['temp_user_id'] = str(result.inserted_id)
+            return redirect(url_for('verify_email'))
+        
+        return render_template('register.html')
+    except Exception as e:
+        print(f"Error in register: {e}")
+        flash('Error during registration', 'danger')
+        return render_template('register.html')
+
+@app.route('/verify-email', methods=['GET', 'POST'])
+def verify_email():
+    """Email verification"""
+    try:
+        if 'temp_user_id' not in session:
+            flash('Session expired. Please register again.', 'warning')
+            return redirect(url_for('register'))
+        
+        if request.method == 'POST':
+            otp = request.form.get('otp', '')
+            users_collection = get_collection('users')
+            user = users_collection.find_one({'_id': ObjectId(session['temp_user_id'])})
+            
+            if not user:
+                flash('User not found', 'danger')
+                return redirect(url_for('register'))
+            
+            # Verify OTP
+            if (user.get('verification_otp') == otp and 
+                user.get('otp_expires') > datetime.utcnow()):
+                
+                # Mark as verified
+                users_collection.update_one(
+                    {'_id': ObjectId(session['temp_user_id'])},
+                    {'$set': {'verified': True}, 
+                     '$unset': {'verification_otp': '', 'otp_expires': ''}}
+                )
+                
+                # Create session and send welcome email
+                session['user_id'] = str(user['_id'])
+                session['user_name'] = user['name']
+                session['user_role'] = user.get('role', 'customer')
+                session.pop('temp_user_id', None)
+                
+                # Send welcome email
+                send_welcome_email(user['email'], user['name'])
+                
+                flash('Email verified successfully! Welcome to MUFRA FASHIONS.', 'success')
+                return redirect(url_for('home'))
+            else:
+                flash('Invalid or expired OTP', 'danger')
+        
+        return render_template('verify_email.html')
+    except Exception as e:
+        print(f"Error in verify_email: {e}")
+        flash('Error during verification', 'danger')
+        return redirect(url_for('register'))
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """User login"""
+    try:
+        if request.method == 'POST':
+            email = request.form.get('email', '').strip().lower()
+            password = request.form.get('password', '')
+            
+            users_collection = get_collection('users')
+            user = users_collection.find_one({'email': email})
+            
+            if user:
+                try:
+                    # Try to check the password
+                    if check_password_hash(user['password'], password):
+                        if not user.get('verified', False):
+                            flash('Please verify your email first', 'warning')
+                            # Resend verification
+                            session['temp_user_id'] = str(user['_id'])
+                            return redirect(url_for('verify_email'))
+                        
+                        # Create session
+                        session['user_id'] = str(user['_id'])
+                        session['user_name'] = user['name']
+                        session['user_role'] = user.get('role', 'customer')
+                        
+                        # Migrate session cart to user cart
+                        if 'cart' in session and user.get('role') == 'customer':
+                            session_cart = session.get('cart', [])
+                            user_cart = user.get('cart', [])
+                            
+                            for session_item in session_cart:
+                                found = False
+                                for user_item in user_cart:
+                                    if (str(session_item['product_id']) == str(user_item['product_id']) and
+                                        session_item.get('size') == user_item.get('size') and
+                                        session_item.get('color') == user_item.get('color')):
+                                        user_item['quantity'] += session_item['quantity']
+                                        found = True
+                                        break
+                                
+                                if not found:
+                                    session_item['product_id'] = ObjectId(session_item['product_id'])
+                                    user_cart.append(session_item)
+                            
+                            users_collection.update_one(
+                                {'_id': user['_id']},
+                                {'$set': {'cart': user_cart}}
+                            )
+                            
+                            session.pop('cart', None)
+                        
+                        flash('Login successful!', 'success')
+                        return redirect(url_for('home'))
+                    else:
+                        flash('Invalid email or password', 'danger')
+                except Exception as hash_error:
+                    # Password is not properly hashed
+                    print(f"Password hash error: {hash_error}")
+                    if user.get('password') == password:  # Plain text password
+                        # Fix the password by hashing it
+                        users_collection.update_one(
+                            {'_id': user['_id']},
+                            {'$set': {'password': generate_password_hash(password)}}
+                        )
+                        
+                        # Create session
+                        session['user_id'] = str(user['_id'])
+                        session['user_name'] = user['name']
+                        session['user_role'] = user.get('role', 'customer')
+                        
+                        flash('Login successful! Password has been secured.', 'success')
+                        return redirect(url_for('home'))
+                    else:
+                        flash('Invalid email or password', 'danger')
+            else:
+                flash('Invalid email or password', 'danger')
+        
+        return render_template('login.html')
+    except Exception as e:
+        print(f"Error in login: {e}")
+        flash('Error during login', 'danger')
+        return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    """User logout"""
+    session.clear()
+    flash('Logged out successfully', 'success')
+    return redirect(url_for('home'))
+
+@app.route('/account')
+@login_required
+def account():
+    """User account dashboard"""
+    try:
+        users_collection = get_collection('users')
+        orders_collection = get_collection('orders')
+        
+        user = users_collection.find_one({'_id': ObjectId(session['user_id'])})
+        orders = list(orders_collection.find({'user_id': ObjectId(session['user_id'])})
+                     .sort('created_at', -1).limit(10))
+        
+        return render_template('account.html', user=user, orders=orders)
+    except Exception as e:
+        print(f"Error in account: {e}")
+        flash('Error loading account page', 'danger')
+        return redirect(url_for('home'))
+
+@app.route('/add-review/<product_id>', methods=['POST'])
+@login_required
+def add_review(product_id):
+    """Add product review"""
+    try:
+        rating = int(request.form.get('rating', 5))
+        comment = request.form.get('comment', '').strip()
+        
+        if not comment or rating < 1 or rating > 5:
+            flash('Please provide a valid rating and comment', 'warning')
+            return redirect(url_for('product_details', product_id=product_id))
+        
+        reviews_collection = get_collection('reviews')
+        products_collection = get_collection('products')
+        
+        # Create review
+        review = {
+            'product_id': ObjectId(product_id),
+            'user_id': ObjectId(session['user_id']),
+            'user_name': session['user_name'],
+            'rating': rating,
+            'comment': comment,
+            'created_at': datetime.utcnow()
+        }
+        
+        reviews_collection.insert_one(review)
+        
+        # Update product rating
+        product_reviews = list(reviews_collection.find({'product_id': ObjectId(product_id)}))
+        if product_reviews:
+            avg_rating = sum(r['rating'] for r in product_reviews) / len(product_reviews)
+            products_collection.update_one(
+                {'_id': ObjectId(product_id)},
+                {'$set': {
+                    'rating': round(avg_rating, 1),
+                    'reviews_count': len(product_reviews)
+                }}
+            )
+        
+        flash('Review added successfully', 'success')
+        return redirect(url_for('product_details', product_id=product_id))
+    except Exception as e:
+        print(f"Error in add_review: {e}")
+        flash('Error adding review', 'danger')
+        return redirect(url_for('product_details', product_id=product_id))
+
+# ========== PASSWORD RESET ROUTES ==========
+
+@app.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    """Forgot password"""
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip().lower()
+        
+        if not email:
+            flash('Please enter your email address', 'warning')
+            return redirect(url_for('forgot_password'))
+        
+        users_collection = get_collection('users')
+        user = users_collection.find_one({'email': email})
+        
+        if user:
+            # Generate reset token
+            reset_token = str(uuid.uuid4())
+            reset_expires = datetime.utcnow() + timedelta(hours=1)
+            
+            # Save token to user
+            users_collection.update_one(
+                {'_id': user['_id']},
+                {'$set': {
+                    'reset_token': reset_token,
+                    'reset_expires': reset_expires
+                }}
             )
             
-            if result.modified_count > 0:
-                print(f"✅ Cancelled order: {order_id}")
-                return jsonify({'success': True})
-            else:
-                return jsonify({'success': False, 'error': 'Order not found'})
+            # Send password reset email
+            send_password_reset_email(
+                email=user['email'],
+                name=user['name'],
+                reset_token=reset_token
+            )
+            
+            flash('Password reset instructions sent to your email', 'success')
         else:
-            # Update in session for demo
-            if 'orders' in session:
-                for order in session['orders']:
-                    if str(order.get('_id')) == order_id:
-                        order['status'] = 'cancelled'
-                        order['cancelled_at'] = datetime.now().isoformat()
-                        session.modified = True
-                        print(f"✅ Cancelled demo order: {order_id}")
-                        return jsonify({'success': True})
-            
-            return jsonify({'success': False, 'error': 'Order not found'})
-            
+            flash('Email not found in our system', 'danger')
+        
+        return redirect(url_for('forgot_password'))
+    
+    return render_template('forgot_password.html')
+
+@app.route('/reset-password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    """Reset password with token"""
+    users_collection = get_collection('users')
+    user = users_collection.find_one({
+        'reset_token': token,
+        'reset_expires': {'$gt': datetime.utcnow()}
+    })
+    
+    if not user:
+        flash('Invalid or expired reset token', 'danger')
+        return redirect(url_for('forgot_password'))
+    
+    if request.method == 'POST':
+        password = request.form.get('password', '')
+        confirm_password = request.form.get('confirm_password', '')
+        
+        if not password or not confirm_password:
+            flash('Please enter and confirm your new password', 'warning')
+            return render_template('reset_password.html', token=token)
+        
+        if password != confirm_password:
+            flash('Passwords do not match', 'danger')
+            return render_template('reset_password.html', token=token)
+        
+        if len(password) < 6:
+            flash('Password must be at least 6 characters', 'warning')
+            return render_template('reset_password.html', token=token)
+        
+        # Update password and clear reset token
+        users_collection.update_one(
+            {'_id': user['_id']},
+            {'$set': {'password': generate_password_hash(password)},
+             '$unset': {'reset_token': '', 'reset_expires': ''}}
+        )
+        
+        flash('Password reset successfully! You can now login with your new password.', 'success')
+        return redirect(url_for('login'))
+    
+    return render_template('reset_password.html', token=token)
+
+# ========== ADMIN ROUTES ==========
+
+@app.route('/admin')
+@admin_required
+def admin_dashboard():
+    """Admin dashboard"""
+    try:
+        orders_collection = get_collection('orders')
+        products_collection = get_collection('products')
+        users_collection = get_collection('users')
+        
+        # Statistics
+        total_orders = orders_collection.count_documents({})
+        total_products = products_collection.count_documents({})
+        total_users = users_collection.count_documents({'role': 'customer'})
+        recent_orders = list(orders_collection.find().sort('created_at', -1).limit(10))
+        
+        # Calculate revenue
+        revenue_cursor = orders_collection.aggregate([
+            {'$match': {'status': 'delivered'}},
+            {'$group': {'_id': None, 'total': {'$sum': '$total'}}}
+        ])
+        revenue_result = list(revenue_cursor)
+        total_revenue = revenue_result[0]['total'] if revenue_result else 0
+        
+        return render_template('admin/dashboard.html',
+                             total_orders=total_orders,
+                             total_products=total_products,
+                             total_users=total_users,
+                             total_revenue=total_revenue,
+                             recent_orders=recent_orders)
     except Exception as e:
-        print(f"❌ Error cancelling order: {e}")
-        return jsonify({'success': False, 'error': str(e)})
+        print(f"Error in admin_dashboard: {e}")
+        flash('Error loading admin dashboard', 'danger')
+        return redirect(url_for('home'))
+
+@app.route('/admin/products')
+@admin_required
+def admin_products():
+    """Admin product management"""
+    try:
+        products_collection = get_collection('products')
+        products = list(products_collection.find().sort('_id', -1))
+        return render_template('admin/products.html', products=products)
+    except Exception as e:
+        print(f"Error in admin_products: {e}")
+        flash('Error loading products', 'danger')
+        return render_template('admin/products.html', products=[])
+
+@app.route('/admin/add-product', methods=['GET', 'POST'])
+@admin_required
+def add_product():
+    """Add new product"""
+    try:
+        if request.method == 'POST':
+            # Get form data
+            name = request.form.get('name', '').strip()
+            description = request.form.get('description', '').strip()
+            price = float(request.form.get('price', 0))
+            category = request.form.get('category', '')
+            subcategory = request.form.get('subcategory', '').strip()
+            condition = request.form.get('condition', 'New')
+            stock = int(request.form.get('stock', 0))
+            
+            # Get sizes and colors
+            sizes = request.form.getlist('sizes[]')
+            colors = request.form.getlist('colors[]')
+            
+            # Handle image upload
+            image = ''
+            if 'image' in request.files:
+                file = request.files['image']
+                if file and allowed_file(file.filename):
+                    filename = secure_filename(file.filename)
+                    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                    image = filename
+            
+            # Create product
+            products_collection = get_collection('products')
+            product = {
+                'name': name,
+                'description': description,
+                'price': price,
+                'category': category,
+                'subcategory': subcategory,
+                'condition': condition,
+                'stock': stock,
+                'sizes': sizes,
+                'colors': colors,
+                'image': image,
+                'featured': bool(request.form.get('featured')),
+                'rating': 0,
+                'reviews_count': 0,
+                'created_at': datetime.utcnow()
+            }
+            
+            products_collection.insert_one(product)
+            flash('Product added successfully', 'success')
+            return redirect(url_for('admin_products'))
+        
+        categories_collection = get_collection('categories')
+        categories = list(categories_collection.find({}))
+        return render_template('admin/add_product.html', categories=categories)
+    except Exception as e:
+        print(f"Error in add_product: {e}")
+        flash('Error adding product', 'danger')
+        return redirect(url_for('admin_products'))
+
+@app.route('/admin/edit-product/<product_id>', methods=['GET', 'POST'])
+@admin_required
+def edit_product(product_id):
+    """Edit product"""
+    try:
+        products_collection = get_collection('products')
+        product = products_collection.find_one({'_id': ObjectId(product_id)})
+        
+        if not product:
+            flash('Product not found', 'danger')
+            return redirect(url_for('admin_products'))
+        
+        if request.method == 'POST':
+            # Get updated data
+            update_data = {
+                'name': request.form.get('name', '').strip(),
+                'description': request.form.get('description', '').strip(),
+                'price': float(request.form.get('price', 0)),
+                'category': request.form.get('category', ''),
+                'subcategory': request.form.get('subcategory', '').strip(),
+                'condition': request.form.get('condition', 'New'),
+                'stock': int(request.form.get('stock', 0)),
+                'sizes': request.form.getlist('sizes[]'),
+                'colors': request.form.getlist('colors[]'),
+                'featured': bool(request.form.get('featured')),
+                'updated_at': datetime.utcnow()
+            }
+            
+            # Handle image upload
+            if 'image' in request.files:
+                file = request.files['image']
+                if file and allowed_file(file.filename):
+                    filename = secure_filename(file.filename)
+                    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                    update_data['image'] = filename
+            
+            products_collection.update_one(
+                {'_id': ObjectId(product_id)},
+                {'$set': update_data}
+            )
+            
+            flash('Product updated successfully', 'success')
+            return redirect(url_for('admin_products'))
+        
+        categories_collection = get_collection('categories')
+        categories = list(categories_collection.find({}))
+        return render_template('admin/edit_product.html', 
+                             product=product, 
+                             categories=categories)
+    except Exception as e:
+        print(f"Error in edit_product: {e}")
+        flash('Error updating product', 'danger')
+        return redirect(url_for('admin_products'))
+
+@app.route('/admin/delete-product/<product_id>')
+@admin_required
+def delete_product(product_id):
+    """Delete product"""
+    try:
+        products_collection = get_collection('products')
+        products_collection.delete_one({'_id': ObjectId(product_id)})
+        flash('Product deleted successfully', 'success')
+        return redirect(url_for('admin_products'))
+    except Exception as e:
+        print(f"Error in delete_product: {e}")
+        flash('Error deleting product', 'danger')
+        return redirect(url_for('admin_products'))
+
+@app.route('/admin/orders')
+@admin_required
+def admin_orders():
+    """Admin order management"""
+    try:
+        orders_collection = get_collection('orders')
+        orders = list(orders_collection.find().sort('created_at', -1))
+        return render_template('admin/orders.html', orders=orders)
+    except Exception as e:
+        print(f"Error in admin_orders: {e}")
+        flash('Error loading orders', 'danger')
+        return render_template('admin/orders.html', orders=[])
+
+@app.route('/admin/update-order-status/<order_id>', methods=['POST'])
+@admin_required
+def update_order_status(order_id):
+    """Update order status"""
+    try:
+        status = request.form.get('status', '')
+        orders_collection = get_collection('orders')
+        
+        orders_collection.update_one(
+            {'order_id': order_id},
+            {'$set': {'status': status, 'updated_at': datetime.utcnow()}}
+        )
+        
+        flash('Order status updated', 'success')
+        return redirect(url_for('admin_orders'))
+    except Exception as e:
+        print(f"Error in update_order_status: {e}")
+        flash('Error updating order status', 'danger')
+        return redirect(url_for('admin_orders'))
+
+@app.route('/admin/users')
+@admin_required
+def admin_users():
+    """Admin user management"""
+    try:
+        users_collection = get_collection('users')
+        users = list(users_collection.find({'role': 'customer'}).sort('created_at', -1))
+        return render_template('admin/users.html', users=users)
+    except Exception as e:
+        print(f"Error in admin_users: {e}")
+        flash('Error loading users', 'danger')
+        return render_template('admin/users.html', users=[])
+
+# ========== OTHER ROUTES ==========
+
+@app.route('/search')
+def search():
+    """Search products"""
+    try:
+        query = request.args.get('q', '').strip()
+        
+        products_collection = get_collection('products')
+        if query:
+            products = list(products_collection.find({
+                '$or': [
+                    {'name': {'$regex': query, '$options': 'i'}},
+                    {'description': {'$regex': query, '$options': 'i'}},
+                    {'category': {'$regex': query, '$options': 'i'}}
+                ]
+            }))
+        else:
+            products = []
+        
+        return render_template('search_results.html', products=products, query=query)
+    except Exception as e:
+        print(f"Error in search: {e}")
+        return render_template('search_results.html', products=[], query=query)
+
+@app.route('/contact')
+def contact():
+    """Contact page"""
+    return render_template('contact.html')
+
+@app.route('/resend-otp', methods=['POST'])
+def resend_otp():
+    """Resend OTP"""
+    try:
+        if 'temp_user_id' not in session:
+            return jsonify({'success': False, 'message': 'Session expired'})
+        
+        users_collection = get_collection('users')
+        user = users_collection.find_one({'_id': ObjectId(session['temp_user_id'])})
+        
+        if not user:
+            return jsonify({'success': False, 'message': 'User not found'})
+        
+        # Generate new OTP
+        otp = generate_otp()
+        users_collection.update_one(
+            {'_id': ObjectId(session['temp_user_id'])},
+            {'$set': {
+                'verification_otp': otp,
+                'otp_expires': datetime.utcnow() + timedelta(minutes=10)
+            }}
+        )
+        
+        # Send new OTP
+        send_verification_email(user['email'], user['name'], otp)
+        
+        return jsonify({'success': True, 'message': 'New OTP sent'})
+    except Exception as e:
+        print(f"Error in resend_otp: {e}")
+        return jsonify({'success': False, 'message': 'Error resending OTP'})
 
 # ========== ERROR HANDLERS ==========
+
 @app.errorhandler(404)
-def not_found(e):
+def not_found_error(error):
     return render_template('404.html'), 404
 
 @app.errorhandler(500)
-def server_error(e):
+def internal_error(error):
     return render_template('500.html'), 500
 
-@app.route('/404')
-def not_found_page():
-    return render_template('404.html')
+# ========== CONTEXT PROCESSORS ==========
 
-@app.route('/500')
-def server_error_page():
-    return render_template('500.html')
-@app.route('/api/save_product', methods=['POST'])
-@login_required
-def save_product():
-    try:
-        # Get form data
-        data = request.get_json() if request.is_json else request.form.to_dict()
-        
-        print(f"📦 Saving product data: {data}")
-        
-        # Convert data types
-        data['price'] = float(data.get('price', 0))
-        data['stock'] = int(data.get('stock', 0))
-        
-        if data.get('compare_price'):
-            data['compare_price'] = float(data['compare_price'])
-        else:
-            data.pop('compare_price', None)
-        
-        # Generate SKU if not provided
-        if not data.get('sku'):
-            category = data.get('category', 'PROD')[:3].upper()
-            timestamp = datetime.now().strftime('%y%m%d%H%M')
-            data['sku'] = f"{category}-{timestamp}"
-        
-        # Add default images if none provided
-        if not data.get('images'):
-            data['images'] = ['https://via.placeholder.com/500x300?text=Product+Image']
-        
-        # Add default arrays
-        data['sizes'] = data.get('sizes', ['S', 'M', 'L', 'XL'])
-        data['colors'] = data.get('colors', ['Red', 'Blue', 'Black', 'White'])
-        
-        # Add timestamps
-        data['created_at'] = datetime.utcnow()
-        data['updated_at'] = datetime.utcnow()
-        
-        # Handle is_active - it could be boolean or string
-        is_active = data.get('is_active', True)
-        if isinstance(is_active, str):
-            data['is_active'] = is_active.lower() == 'true'
-        else:
-            data['is_active'] = bool(is_active)
-        
-        if db_connected:
-            result = mongo.db.products.insert_one(data)
-            product_id = str(result.inserted_id)
-            
-            print(f"✅ Product saved to database. ID: {product_id}")
-            return jsonify({
-                'success': True, 
-                'message': 'Product saved successfully!',
-                'product_id': product_id
-            })
-        else:
-            # Demo mode
-            demo_id = f"DEMO-{datetime.now().strftime('%Y%m%d%H%M%S')}"
-            data['_id'] = demo_id
-            print(f"✅ Product saved in demo mode. ID: {demo_id}")
-            return jsonify({
-                'success': True, 
-                'message': 'Product saved successfully (demo mode)!',
-                'product_id': demo_id
-            })
-            
-    except Exception as e:
-        print(f"❌ Error saving product: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+@app.context_processor
+def utility_processor():
+    """Make utility functions available in templates"""
+    def safe_get(obj, key, default=None):
+        """Safely get a value from a dictionary or object"""
+        if isinstance(obj, dict):
+            return obj.get(key, default)
+        elif hasattr(obj, key):
+            return getattr(obj, key, default)
+        return default
+    
+    return dict(
+        enumerate=enumerate,
+        len=len,
+        str=str,
+        int=int,
+        float=float,
+        safe_get=safe_get,
+        datetime=datetime,
+        get_collection=get_collection
+    )
 
-@app.route('/api/get_product/<product_id>')
-@login_required
-def get_product(product_id):
-    try:
-        if db_connected:
-            try:
-                product = mongo.db.products.find_one({'_id': ObjectId(product_id)})
-            except:
-                product = mongo.db.products.find_one({'_id': product_id})
-            
-            if product:
-                # Convert ObjectId to string for JSON serialization
-                product['_id'] = str(product['_id'])
-                return jsonify(product)
-        
-        # Return demo product if not found or demo mode
-        return jsonify({
-            '_id': product_id,
-            'name': 'Sample Product',
-            'price': 29.99,
-            'stock': 10,
-            'is_active': True
-        })
-        
-    except Exception as e:
-        print(f"❌ Error getting product: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+# ========== APPLICATION STARTUP ==========
 
-@app.route('/api/update_product_details', methods=['POST'])
-@login_required
-def update_product_details():
-    try:
-        data = request.get_json() if request.is_json else request.form.to_dict()
-        product_id = data.get('product_id')
-        
-        if not product_id:
-            return jsonify({'success': False, 'error': 'Product ID is required'}), 400
-        
-        # Remove product_id from update data
-        data.pop('product_id', None)
-        
-        # Convert data types
-        if 'price' in data:
-            data['price'] = float(data['price'])
-        if 'stock' in data:
-            data['stock'] = int(data['stock'])
-        if 'compare_price' in data:
-            if data['compare_price']:
-                data['compare_price'] = float(data['compare_price'])
-            else:
-                data['compare_price'] = None
-        
-        # Update timestamp
-        data['updated_at'] = datetime.utcnow()
-        
-        print(f"📝 Updating product {product_id} with data: {data}")
-        
-        if db_connected:
-            try:
-                result = mongo.db.products.update_one(
-                    {'_id': ObjectId(product_id)},
-                    {'$set': data}
-                )
-            except:
-                result = mongo.db.products.update_one(
-                    {'_id': product_id},
-                    {'$set': data}
-                )
-            
-            if result.modified_count > 0:
-                print(f"✅ Product updated: {product_id}")
-                return jsonify({'success': True, 'message': 'Product updated successfully!'})
-            else:
-                return jsonify({'success': False, 'error': 'Product not found'}), 404
-        else:
-            print(f"✅ Product updated in demo mode: {product_id}")
-            return jsonify({'success': True, 'message': 'Product updated (demo mode)!'})
-            
-    except Exception as e:
-        print(f"❌ Error updating product: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/update_product_status', methods=['POST'])
-@login_required
-def update_product_status():
-    try:
-        data = request.get_json()
-        product_id = data.get('product_id')
-        is_active = data.get('is_active')
-        
-        if not product_id:
-            return jsonify({'success': False, 'error': 'Product ID is required'}), 400
-        
-        update_data = {'updated_at': datetime.utcnow()}
-        if is_active is not None:
-            update_data['is_active'] = bool(is_active)
-        
-        if db_connected:
-            try:
-                result = mongo.db.products.update_one(
-                    {'_id': ObjectId(product_id)},
-                    {'$set': update_data}
-                )
-            except:
-                result = mongo.db.products.update_one(
-                    {'_id': product_id},
-                    {'$set': update_data}
-                )
-            
-            if result.modified_count > 0:
-                print(f"✅ Product status updated: {product_id}")
-                return jsonify({'success': True, 'message': 'Product status updated!'})
-            else:
-                return jsonify({'success': False, 'error': 'Product not found'}), 404
-        else:
-            print(f"✅ Product status updated in demo mode: {product_id}")
-            return jsonify({'success': True, 'message': 'Product status updated (demo mode)!'})
-            
-    except Exception as e:
-        print(f"❌ Error updating product status: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/duplicate_product', methods=['POST'])
-@login_required
-def duplicate_product():
-    try:
-        data = request.get_json()
-        product_id = data.get('product_id')
-        
-        if not product_id:
-            return jsonify({'success': False, 'error': 'Product ID is required'}), 400
-        
-        if db_connected:
-            try:
-                product = mongo.db.products.find_one({'_id': ObjectId(product_id)})
-            except:
-                product = mongo.db.products.find_one({'_id': product_id})
-            
-            if product:
-                # Remove _id and add "Copy" to name
-                product.pop('_id', None)
-                product['name'] = f"{product.get('name', 'Product')} (Copy)"
-                product['sku'] = f"{product.get('sku', 'PROD')}-COPY"
-                product['created_at'] = datetime.utcnow()
-                product['updated_at'] = datetime.utcnow()
-                
-                result = mongo.db.products.insert_one(product)
-                print(f"✅ Product duplicated: {product_id} -> {result.inserted_id}")
-                return jsonify({'success': True, 'message': 'Product duplicated successfully!'})
-            else:
-                return jsonify({'success': False, 'error': 'Product not found'}), 404
-        else:
-            print(f"✅ Product duplicated in demo mode: {product_id}")
-            return jsonify({'success': True, 'message': 'Product duplicated (demo mode)!'})
-            
-    except Exception as e:
-        print(f"❌ Error duplicating product: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/delete_product', methods=['POST'])
-@login_required
-def delete_product():
-    try:
-        data = request.get_json()
-        product_id = data.get('product_id')
-        
-        if not product_id:
-            return jsonify({'success': False, 'error': 'Product ID is required'}), 400
-        
-        if db_connected:
-            try:
-                result = mongo.db.products.delete_one({'_id': ObjectId(product_id)})
-            except:
-                result = mongo.db.products.delete_one({'_id': product_id})
-            
-            if result.deleted_count > 0:
-                print(f"✅ Product deleted: {product_id}")
-                return jsonify({'success': True, 'message': 'Product deleted successfully!'})
-            else:
-                return jsonify({'success': False, 'error': 'Product not found'}), 404
-        else:
-            print(f"✅ Product deleted in demo mode: {product_id}")
-            return jsonify({'success': True, 'message': 'Product deleted (demo mode)!'})
-            
-    except Exception as e:
-        print(f"❌ Error deleting product: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-# ========== MAIN EXECUTION ==========
 if __name__ == '__main__':
+    print("\n" + "="*50)
+    print("Starting MUFRA FASHIONS Application")
+    print("="*50)
+    
+    # Initialize database
     with app.app_context():
-        initialize_database()
+        try:
+            initialize_sample_data()
+        except Exception as e:
+            print(f"⚠ Database initialization warning: {e}")
     
-    print("\n" + "="*60)
-    print("🚀 MUFRA FASHIONS E-commerce Website")
-    print("="*60)
-    print("\n🌐 Access Points:")
-    print("  Store:      http://localhost:5000")
-    print("  My Orders:  http://localhost:5000/my_orders")
-    print("  Admin:      http://localhost:5000/admin/login")
-    print("\n🔐 Admin Credentials:")
-    print("  Username: admin")
-    print("  Password: admin123")
-    print("\n🔧 Database Status:", "✅ Connected" if db_connected else "⚠️ Demo Mode")
-    print("="*60 + "\n")
+    print(f"\n📦 MongoDB: {MONGODB_CONNECTION_STRING[:60]}...")
+    print(f"📧 Email: {'Configured' if app.config['MAIL_USERNAME'] else 'Console mode'}")
+    print(f"💳 Paystack: {'Test mode' if 'test' in PAYSTACK_PUBLIC_KEY else 'Live mode'}")
+    print("\n🚀 Server running on http://localhost:5000")
+    print("="*50 + "\n")
     
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, port=5000, host='0.0.0.0')

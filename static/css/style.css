@@ -1,168 +1,294 @@
-/* Custom CSS for MUFRA FASHIONS */
 :root {
-    --primary-color: #6c63ff;
-    --secondary-color: #ff6584;
-    --dark-color: #2a2d3e;
-    --light-color: #f8f9fa;
-    --success-color: #28a745;
-    --warning-color: #ffc107;
+    --primary-blue: #0d6efd;
+    --light-blue: #e3f2fd;
+    --dark-blue: #0b5ed7;
+    --white: #ffffff;
 }
 
 body {
-    font-family: 'Poppins', sans-serif;
-    padding-top: 0;
+    background-color: #f8f9fa;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-/* Header Styles */
-.sticky-top {
-    top: 0;
-    z-index: 1020;
+.navbar-brand {
+    font-size: 1.5rem;
+    font-weight: bold;
 }
 
-/* Logo Styles */
-.logo-text {
-    font-family: 'Playfair Display', serif;
-    font-weight: 600;
-}
-
-/* Navigation */
-.navbar-nav .nav-link {
-    font-weight: 500;
-    padding: 0.5rem 1rem;
-    transition: all 0.3s ease;
-}
-
-.navbar-nav .nav-link:hover {
-    color: var(--primary-color);
-    transform: translateY(-2px);
-}
-
-.navbar-nav .nav-link.active {
-    color: var(--primary-color) !important;
-    background-color: rgba(108, 99, 255, 0.1);
-    border-radius: 8px;
-}
-
-/* Dropdown Menu */
-.dropdown-menu {
+.card {
+    transition: transform 0.3s, box-shadow 0.3s;
     border: none;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-    border-radius: 12px;
-    padding: 0.5rem;
-    min-width: 200px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.dropdown-item {
-    padding: 0.75rem 1rem;
-    border-radius: 8px;
-    transition: all 0.3s ease;
-    font-weight: 400;
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
 }
 
-.dropdown-item:hover {
-    background-color: var(--primary-color);
-    color: white;
-    transform: translateX(5px);
+.product-image {
+    height: 200px;
+    object-fit: cover;
+    width: 100%;
 }
 
-/* Search Bar */
-.input-group .form-control:focus {
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 0.25rem rgba(108, 99, 255, 0.25);
+.category-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
 }
 
-/* Cart Badge */
-.badge {
-    font-size: 0.65rem;
-    padding: 0.35em 0.65em;
+.price {
+    color: var(--primary-blue);
+    font-weight: bold;
+    font-size: 1.2rem;
 }
 
-/* Floating Action Buttons */
-.position-fixed .btn {
-    width: 60px;
-    height: 60px;
+.rating {
+    color: #ffc107;
+}
+
+.btn-primary {
+    background-color: var(--primary-blue);
+    border-color: var(--primary-blue);
+}
+
+.btn-primary:hover {
+    background-color: var(--dark-blue);
+    border-color: var(--dark-blue);
+}
+
+.btn-outline-primary {
+    color: var(--primary-blue);
+    border-color: var(--primary-blue);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--primary-blue);
+    border-color: var(--primary-blue);
+}
+
+.featured-section {
+    background: linear-gradient(135deg, var(--light-blue) 0%, var(--white) 100%);
+    padding: 2rem 0;
+    border-radius: 10px;
+    margin-bottom: 2rem;
+}
+
+.cart-item-image {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 5px;
+}
+
+.order-summary {
+    background-color: var(--light-blue);
+    padding: 1.5rem;
+    border-radius: 10px;
+}
+
+.step-indicator {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+}
+
+.step {
+    text-align: center;
+    flex: 1;
+    position: relative;
+}
+
+.step-number {
+    width: 40px;
+    height: 40px;
+    background-color: #dee2e6;
+    color: #6c757d;
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
+    margin: 0 auto 10px;
+    font-weight: bold;
 }
 
-.btn-success {
-    background-color: #25D366;
-    border-color: #25D366;
+.step.active .step-number {
+    background-color: var(--primary-blue);
+    color: white;
 }
 
-.btn-success:hover {
-    background-color: #1da851;
-    border-color: #1da851;
+.step.completed .step-number {
+    background-color: #198754;
+    color: white;
 }
 
-/* Newsletter Section */
-.bg-primary {
-    background: linear-gradient(135deg, #6c63ff 0%, #3a34a0 100%);
+.step-line {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    width: 100%;
+    height: 2px;
+    background-color: #dee2e6;
+    z-index: -1;
 }
 
-/* Footer Links */
-.text-decoration-none:hover {
-    color: white !important;
-    opacity: 1 !important;
+.step:last-child .step-line {
+    display: none;
 }
 
-/* Social Icons */
-.social-links a {
-    transition: all 0.3s ease;
+.admin-sidebar {
+    min-height: calc(100vh - 56px);
+    background-color: var(--light-blue);
 }
 
-.social-links a:hover {
-    transform: translateY(-3px);
-    opacity: 0.8;
+.admin-nav-link {
+    color: #495057;
+    padding: 0.75rem 1rem;
+    border-radius: 5px;
+    margin-bottom: 0.25rem;
 }
 
-/* Payment Badges */
-.badge.bg-light {
-    transition: all 0.3s ease;
+.admin-nav-link:hover,
+.admin-nav-link.active {
+    background-color: var(--primary-blue);
+    color: white;
 }
 
-.badge.bg-light:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+.stat-card {
+    border-radius: 10px;
+    padding: 1.5rem;
+    color: white;
+    margin-bottom: 1rem;
 }
 
-/* Responsive Adjustments */
+.stat-card.orders {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.stat-card.revenue {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.stat-card.users {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.stat-card.products {
+    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+}
+
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1.5rem;
+}
+
 @media (max-width: 768px) {
-    .navbar-nav {
-        padding: 1rem 0;
-    }
-    
-    .nav-link {
-        border-radius: 8px;
-        margin: 2px 0;
-    }
-    
-    .position-fixed {
-        bottom: 80px;
-        right: 20px;
-    }
-    
-    .position-fixed .btn {
-        width: 50px;
-        height: 50px;
+    .product-grid {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     }
 }
 
-/* Animation for Back to Top button */
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+.loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid var(--primary-blue);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
 }
 
-@keyframes fadeOut {
-    from { opacity: 1; }
-    to { opacity: 0; }
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+/* Admin Dashboard */
+.admin-sidebar {
+    min-height: calc(100vh - 56px);
+    background-color: var(--light-blue);
+    border-right: 1px solid #dee2e6;
+}
+
+.admin-nav-link {
+    color: #495057;
+    padding: 0.75rem 1rem;
+    border-radius: 5px;
+    margin-bottom: 0.25rem;
+    text-decoration: none;
+    display: block;
+    transition: all 0.3s;
+}
+
+.admin-nav-link:hover,
+.admin-nav-link.active {
+    background-color: var(--primary-blue);
+    color: white;
+}
+
+/* Error Pages */
+.error-content {
+    padding: 3rem;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+.display-1 {
+    font-size: 8rem;
+    font-weight: bold;
+    opacity: 0.1;
+}
+
+/* Table Improvements */
+.table-responsive {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(13, 110, 253, 0.05);
+}
+
+/* Modal Improvements */
+.modal-content {
+    border-radius: 10px;
+    border: none;
+}
+
+.modal-header {
+    background-color: var(--primary-blue);
+    color: white;
+    border-radius: 10px 10px 0 0;
+}
+
+/* Responsive Improvements */
+@media (max-width: 768px) {
+    .admin-sidebar {
+        min-height: auto;
+        border-right: none;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .display-1 {
+        font-size: 5rem;
+    }
+    
+    .step-indicator .step-number {
+        width: 30px;
+        height: 30px;
+        font-size: 0.875rem;
+    }
+    
+    .step-label {
+        font-size: 0.75rem;
+    }
 }
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-    width: 10px;
+    width: 8px;
 }
 
 ::-webkit-scrollbar-track {
@@ -170,109 +296,10 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: var(--primary-color);
-    border-radius: 5px;
+    background: var(--primary-blue);
+    border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #5a52d5;
-}
-
-/* Focus Styles */
-:focus {
-    outline: 2px solid var(--primary-color);
-    outline-offset: 2px;
-}
-
-/* Loading Animation */
-.spinner-border {
-    color: var(--primary-color);
-}
-
-/* Custom Container for Larger Screens */
-@media (min-width: 1400px) {
-    .container {
-        max-width: 1320px;
-    }
-}
-
-/* Card Hover Effects */
-.card {
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    border: none;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-}
-
-.card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
-}
-
-/* Product Image Container */
-.product-img-container {
-    overflow: hidden;
-    border-radius: 12px 12px 0 0;
-}
-
-.product-img-container img {
-    transition: transform 0.5s ease;
-}
-
-.card:hover .product-img-container img {
-    transform: scale(1.05);
-}
-
-/* Form Controls */
-.form-control:focus {
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 0.25rem rgba(108, 99, 255, 0.25);
-}
-
-/* Button Styles */
-.btn-primary {
-    background-color: var(--primary-color);
-    border-color: var(--primary-color);
-    padding: 0.5rem 1.5rem;
-    font-weight: 500;
-}
-
-.btn-primary:hover {
-    background-color: #5a52d5;
-    border-color: #5a52d5;
-    transform: translateY(-2px);
-}
-
-.btn-outline-primary {
-    color: var(--primary-color);
-    border-color: var(--primary-color);
-}
-
-.btn-outline-primary:hover {
-    background-color: var(--primary-color);
-    border-color: var(--primary-color);
-}
-
-/* Alert Customization */
-.alert {
-    border: none;
-    border-radius: 12px;
-    padding: 1rem 1.5rem;
-}
-
-/* Badge Styles */
-.badge.bg-primary {
-    background-color: var(--primary-color) !important;
-}
-
-/* Utility Classes */
-.rounded-lg {
-    border-radius: 12px;
-}
-
-.shadow-sm {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
-}
-
-.shadow-lg {
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1) !important;
+    background: var(--dark-blue);
 }

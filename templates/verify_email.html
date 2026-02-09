@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block title %}Verify Email - MUFRA FASHIONS{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0"><i class="fas fa-envelope me-2"></i>Verify Your Email</h3>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-envelope fa-4x text-primary mb-3"></i>
+                        <h4>Verification Code Sent</h4>
+                        <p class="text-muted">
+                            We've sent a 6-digit verification code to your email address.
+                            Please enter it below to complete your registration.
+                        </p>
+                    </div>
+                    
+                    <form method="POST" action="{{ url_for('verify_email') }}">
+                        <div class="mb-4">
+                            <label class="form-label">Enter Verification Code *</label>
+                            <div class="d-flex justify-content-center">
+                                {% for i in range(6) %}
+                                <input type="text" class="form-control text-center mx-1 otp-input" 
+                                       style="width: 50px; height: 60px; font-size: 1.5rem;" 
+                                       name="otp{{ i }}" maxlength="1" 
+                                       data-index="{{ i }}" required>
+                                {% endfor %}
+                            </div>
+                            <input type="hidden" name="otp" id="otp">
+                        </div>
+                        
+                        <div class="d-grid gap-2 mb-3">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-check-circle me-2"></i> Verify Email
+                            </button>
+                        </div>
+                        
+                        <div class="text-center">
+                            <p class="text-muted small mb-2">
+                                Didn't receive the code? 
+                                <a href="#" id="resend-code" class="text-decoration-none">
+                                    Resend Code
+                                </a>
+                            </p>
+                            <p class="text-muted small" id="timer">
+                                You can request a new code in <span id="countdown">60</span> seconds
+                            </p>
+                        </div>
+                        
+                        <hr class="my-4">
+                        
+                        <div class="text-center">
+                            <p class="mb-0">
+                                Need help? 
+                                <a href="{{ url_for('contact') }}" class="text-decoration-none">
+                                    Contact Support
+                                </a>
+                            </p>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_css %}
+<style>
+.otp-input {
+    border: 2px solid #dee2e6;
+    transition: all 0.3s;
+}
+
+.otp-input:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.otp-input.filled {
+    border-color: #198754;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    let timer = 60;
+    let canResend = false;
+    
+    // OTP input handling
+    $('.otp-input').on('input', function() {
+        const index = $(this).data('index');
+        const value = $(this).val();
+        
+        if (value.length === 1) {
+            $(this).addClass('filled');
+            
+            // Auto-focus next input
+            if (index < 5) {
+                $('.otp-input[data-index="' + (index + 1) + '"]').focus();
+            }
+            
+            // Combine OTP
+            combineOTP();
+        } else {
+            $(this).removeClass('filled');
+        }
+    });
+    
+    // Backspace handling
+    $('.otp-input').on('keydown', function(e) {
+        if (e.key === 'Backspace' && $(this).val() === '' && $(this).data('index') > 0) {
+            $('.otp-input[data-index="' + ($(this).data('index') - 1) + '"]').focus();
+        }
+    });
+    
+    function combineOTP() {
+        let otp = '';
+        $('.otp-input').each(function() {
+            otp += $(this).val();
+        });
+        $('#otp').val(otp);
+    }
+    
+    // Countdown timer
+    function updateCountdown() {
+        $('#countdown').text(timer);
+        
+        if (timer > 0) {
+            timer--;
+            setTimeout(updateCountdown, 1000);
+        } else {
+            canResend = true;
+            $('#resend-code').removeClass('text-muted').addClass('text-primary');
+            $('#timer').hide();
+        }
+    }
+    
+    updateCountdown();
+    
+    // Resend code
+    $('#resend-code').click(function(e) {
+        e.preventDefault();
+        
+        if (!canResend) return;
+        
+        // Disable for 60 seconds
+        canResend = false;
+        timer = 60;
+        $('#timer').show();
+        $('#resend-code').removeClass('text-primary').addClass('text-muted');
+        
+        // Simulate resend request
+        $.ajax({
+            url: '/resend-otp', // You'll need to create this route
+            method: 'POST',
+            success: function() {
+                showToast('Success', 'New verification code sent', 'success');
+                updateCountdown();
+            }
+        });
+    });
+    
+    // Form submission
+    $('form').submit(function(e) {
+        const otp = $('#otp').val();
+        if (otp.length !== 6) {
+            e.preventDefault();
+            showToast('Error', 'Please enter the complete 6-digit code', 'error');
+        }
+    });
+});
+</script>
+{% endblock %}
+{% endblock %}

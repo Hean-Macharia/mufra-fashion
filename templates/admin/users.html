@@ -1,0 +1,328 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Users - Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <!-- Sidebar (same as dashboard) -->
+        <div class="col-md-3 col-lg-2 px-0">
+            <div class="admin-sidebar">
+                <div class="d-flex flex-column p-3">
+                    <h4 class="mb-4">Admin Panel</h4>
+                    <ul class="nav flex-column mb-auto">
+                        <li class="nav-item">
+                            <a class="admin-nav-link" href="{{ url_for('admin_dashboard') }}">
+                                <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="admin-nav-link" href="{{ url_for('admin_products') }}">
+                                <i class="fas fa-box me-2"></i> Products
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="admin-nav-link" href="{{ url_for('admin_orders') }}">
+                                <i class="fas fa-shopping-bag me-2"></i> Orders
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="admin-nav-link active" href="{{ url_for('admin_users') }}">
+                                <i class="fas fa-users me-2"></i> Users
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="col-md-9 col-lg-10">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>Manage Users</h1>
+                <div class="input-group" style="width: 300px;">
+                    <input type="text" class="form-control" placeholder="Search users..." id="userSearch">
+                    <button class="btn btn-outline-primary" type="button">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Users Table -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Contact</th>
+                                    <th>Registration</th>
+                                    <th>Orders</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in users %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-circle-sm me-3">
+                                                <i class="fas fa-user"></i>
+                                            </div>
+                                            <div>
+                                                <strong>{{ user.name }}</strong><br>
+                                                <small class="text-muted">ID: {{ user._id }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <small class="d-block">{{ user.email }}</small>
+                                        <small class="text-muted">{{ user.phone }}</small>
+                                    </td>
+                                    <td>
+                                        {{ user.created_at.strftime('%Y-%m-%d') }}<br>
+                                        <small class="text-muted">{{ user.created_at|timesince }}</small>
+                                    </td>
+                                    <td>
+                                        {% set user_orders = mongo.db.orders.find({'user_id': user._id}) %}
+                                        <span class="badge bg-primary">{{ user_orders.count() }} orders</span><br>
+                                        {% set total_spent = user_orders.sum('total') %}
+                                        <small>KES {{ total_spent if total_spent else 0 }}</small>
+                                    </td>
+                                    <td>
+                                        {% if user.verified %}
+                                        <span class="badge bg-success">Verified</span>
+                                        {% else %}
+                                        <span class="badge bg-warning">Unverified</span>
+                                        {% endif %}
+                                        {% if user.role == 'admin' %}
+                                        <span class="badge bg-danger mt-1">Admin</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <button type="button" class="btn btn-outline-primary" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#userModal{{ user._id }}">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-outline-info">
+                                                <i class="fas fa-envelope"></i>
+                                            </button>
+                                            {% if user.role != 'admin' %}
+                                            <div class="dropdown">
+                                                <button class="btn btn-outline-secondary dropdown-toggle" 
+                                                        type="button" data-bs-toggle="dropdown">
+                                                    <i class="fas fa-cog"></i>
+                                                </button>
+                                                <ul class="dropdown-menu">
+                                                    <li>
+                                                        <a class="dropdown-item" href="#" 
+                                                           onclick="updateUserRole('{{ user._id }}', 'admin')">
+                                                            Make Admin
+                                                        </a>
+                                                    </li>
+                                                    <li>
+                                                        <a class="dropdown-item" href="#" 
+                                                           onclick="verifyUser('{{ user._id }}')">
+                                                            Verify User
+                                                        </a>
+                                                    </li>
+                                                    <li>
+                                                        <a class="dropdown-item text-danger" href="#" 
+                                                           onclick="deleteUser('{{ user._id }}', '{{ user.name }}')">
+                                                            Delete User
+                                                        </a>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                
+                                <!-- User Details Modal -->
+                                <div class="modal fade" id="userModal{{ user._id }}" tabindex="-1">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">User Details</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="text-center mb-4">
+                                                    <div class="avatar-circle-lg mb-3">
+                                                        <i class="fas fa-user fa-2x"></i>
+                                                    </div>
+                                                    <h5>{{ user.name }}</h5>
+                                                    <p class="text-muted">{{ user.email }}</p>
+                                                </div>
+                                                
+                                                <div class="row mb-3">
+                                                    <div class="col-md-6">
+                                                        <p><strong>Phone:</strong><br>{{ user.phone }}</p>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <p><strong>Role:</strong><br>
+                                                            <span class="badge bg-{{ 'danger' if user.role == 'admin' else 'primary' }}">
+                                                                {{ user.role|title }}
+                                                            </span>
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="row mb-3">
+                                                    <div class="col-md-6">
+                                                        <p><strong>Joined:</strong><br>{{ user.created_at.strftime('%B %d, %Y') }}</p>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <p><strong>Status:</strong><br>
+                                                            {% if user.verified %}
+                                                            <span class="badge bg-success">Verified</span>
+                                                            {% else %}
+                                                            <span class="badge bg-warning">Unverified</span>
+                                                            {% endif %}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                
+                                                <h6>Recent Orders</h6>
+                                                {% set recent_orders = mongo.db.orders.find({'user_id': user._id}).sort('created_at', -1).limit(3) %}
+                                                {% if recent_orders.count() > 0 %}
+                                                <div class="list-group">
+                                                    {% for order in recent_orders %}
+                                                    <a href="#" class="list-group-item list-group-item-action">
+                                                        <div class="d-flex w-100 justify-content-between">
+                                                            <h6 class="mb-1">{{ order.order_id }}</h6>
+                                                            <small>KES {{ order.total }}</small>
+                                                        </div>
+                                                        <small class="text-muted">{{ order.created_at.strftime('%Y-%m-%d') }} • {{ order.status|title }}</small>
+                                                    </a>
+                                                    {% endfor %}
+                                                </div>
+                                                {% else %}
+                                                <p class="text-muted">No orders yet</p>
+                                                {% endif %}
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    {% if users|length == 0 %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No users found</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_css %}
+<style>
+.avatar-circle-sm {
+    width: 40px;
+    height: 40px;
+    background-color: #e3f2fd;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.avatar-circle-lg {
+    width: 80px;
+    height: 80px;
+    background-color: #e3f2fd;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function updateUserRole(userId, role) {
+    if (!confirm(`Are you sure you want to make this user an ${role}?`)) {
+        return;
+    }
+    
+    fetch(`/admin/users/${userId}/role`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ role: role })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Success', 'User role updated successfully', 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast('Error', data.message, 'error');
+        }
+    });
+}
+
+function verifyUser(userId) {
+    fetch(`/admin/users/${userId}/verify`, {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Success', 'User verified successfully', 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast('Error', data.message, 'error');
+        }
+    });
+}
+
+function deleteUser(userId, userName) {
+    if (!confirm(`Are you sure you want to delete user ${userName}? This action cannot be undone.`)) {
+        return;
+    }
+    
+    fetch(`/admin/users/${userId}`, {
+        method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Success', 'User deleted successfully', 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast('Error', data.message, 'error');
+        }
+    });
+}
+
+// Search functionality
+document.getElementById('userSearch').addEventListener('input', function(e) {
+    const searchTerm = e.target.value.toLowerCase();
+    const rows = document.querySelectorAll('tbody tr');
+    
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(searchTerm) ? '' : 'none';
+    });
+});
+</script>
+{% endblock %}
+{% endblock %}

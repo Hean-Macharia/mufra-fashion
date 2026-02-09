@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Your Email</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f4f4; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header { background-color: #0d6efd; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { padding: 30px; }
+        .otp-code { background-color: #e3f2fd; border: 2px dashed #0d6efd; padding: 20px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 5px; margin: 20px 0; border-radius: 5px; }
+        .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; border-top: 1px solid #eee; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>MUFRA FASHIONS</h1>
+            <p>Verify Your Email Address</p>
+        </div>
+        
+        <div class="content">
+            <h2>Hello {{ name }},</h2>
+            <p>Thank you for registering with MUFRA FASHIONS. To complete your registration, please verify your email address by entering the following verification code:</p>
+            
+            <div class="otp-code">
+                {{ otp }}
+            </div>
+            
+            <p>This code will expire in 10 minutes.</p>
+            
+            <p>If you didn't create an account with MUFRA FASHIONS, please ignore this email.</p>
+            
+            <p>Best regards,<br>
+            The MUFRA FASHIONS Team</p>
+        </div>
+        
+        <div class="footer">
+            <p>&copy; {{ year }} MUFRA FASHIONS. All rights reserved.</p>
+            <p>123 Fashion Street, Embu, Kenya</p>
+            <p>Email: support@mufrafashions.com | Phone: +254 712 345 678</p>
+        </div>
+    </div>
+</body>
+</html>

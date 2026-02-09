@@ -1,0 +1,25 @@
+Welcome to MUFRA FASHIONS!
+
+Hello {{ name }}!
+
+Thank you for joining MUFRA FASHIONS. We're excited to have you as part of our fashion community!
+
+Your Member Benefits:
+✓ Free shipping on orders over KES 5000
+✓ Exclusive member discounts
+✓ Early access to new collections
+✓ Earn rewards points on every purchase
+✓ Easy 30-day returns
+
+To get started, browse our latest collections:
+http://localhost:5000/categories
+
+If you have any questions or need assistance, our customer support team is here to help.
+
+Happy shopping!
+The MUFRA FASHIONS Team
+
+---
+© {{ year }} MUFRA FASHIONS. All rights reserved.
+123 Fashion Street, Embu, Kenya
+Email: support@mufrafashions.com | Phone: +254 712 345 678

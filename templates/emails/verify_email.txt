@@ -1,0 +1,19 @@
+Verify Your Email - MUFRA FASHIONS
+
+Hello {{ name }},
+
+Thank you for registering with MUFRA FASHIONS. To complete your registration, please verify your email address by entering the following verification code:
+
+Verification Code: {{ otp }}
+
+This code will expire in 10 minutes.
+
+If you didn't create an account with MUFRA FASHIONS, please ignore this email.
+
+Best regards,
+The MUFRA FASHIONS Team
+
+---
+© {{ year }} MUFRA FASHIONS. All rights reserved.
+123 Fashion Street, Embu, Kenya
+Email: support@mufrafashions.com | Phone: +254 712 345 678

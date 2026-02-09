@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Confirmation</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f4f4; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header { background-color: #28a745; color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { padding: 30px; }
+        .order-details { background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 20px; border-radius: 5px; margin: 20px 0; }
+        .total { font-size: 20px; font-weight: bold; color: #28a745; margin-top: 20px; }
+        .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; border-top: 1px solid #eee; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #f8f9fa; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>MUFRA FASHIONS</h1>
+            <h2>Order Confirmation #{{ order_id }}</h2>
+            <p>Thank you for your order!</p>
+        </div>
+        
+        <div class="content">
+            <p>Dear Customer,</p>
+            <p>Your order has been received and is being processed. Here are your order details:</p>
+            
+            <div class="order-details">
+                <h3>Order Summary</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Quantity</th>
+                            <th>Price</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in items %}
+                        <tr>
+                            <td>{{ item.name }}</td>
+                            <td>{{ item.quantity }}</td>
+                            <td>KES {{ item.price }}</td>
+                            <td>KES {{ item.price * item.quantity }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                
+                <div class="total">
+                    Total Amount: KES {{ total }}
+                </div>
+            </div>
+            
+            <h3>Shipping Address</h3>
+            <p>
+                {{ shipping_address.street }}<br>
+                {{ shipping_address.city }}<br>
+                {{ shipping_address.county }}<br>
+                {% if shipping_address.postal_code %}{{ shipping_address.postal_code }}<br>{% endif %}
+                Phone: {{ shipping_address.phone }}
+            </p>
+            
+            <p><strong>Order Date:</strong> {{ date }}</p>
+            <p><strong>Order Status:</strong> Processing</p>
+            
+            <p>You will receive another email when your order ships. You can also track your order status by logging into your account.</p>
+            
+            <p>If you have any questions about your order, please contact our customer support team.</p>
+            
+            <p>Best regards,<br>
+            The MUFRA FASHIONS Team</p>
+        </div>
+        
+        <div class="footer">
+            <p>&copy; {{ year }} MUFRA FASHIONS. All rights reserved.</p>
+            <p>123 Fashion Street, Embu, Kenya</p>
+            <p>Email: support@mufrafashions.com | Phone: +254 712 345 678</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}Search Results - MUFRA FASHIONS{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Search Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1>Search Results</h1>
+            <p class="text-muted">
+                {% if query %}
+                    Found {{ products|length }} result(s) for "<strong>{{ query }}</strong>"
+                {% else %}
+                    Showing all products
+                {% endif %}
+            </p>
+        </div>
+    </div>
+    
+    <!-- Products Grid -->
+    {% if products %}
+    <div class="row">
+        {% for product in products %}
+        <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="position-relative">
+                    <a href="{{ url_for('product_details', product_id=product._id) }}">
+                        <img src="{{ url_for('static', filename='uploads/' + product.image) if product.image else 'https://via.placeholder.com/300x200?text=Product' }}" 
+                             class="card-img-top product-image" alt="{{ product.name }}">
+                    </a>
+                    <span class="badge bg-primary category-badge">{{ product.category }}</span>
+                    {% if product.stock == 0 %}
+                    <div class="position-absolute top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 d-flex align-items-center justify-content-center">
+                        <span class="badge bg-danger">Out of Stock</span>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <a href="{{ url_for('product_details', product_id=product._id) }}" 
+                           class="text-decoration-none text-dark">
+                            {{ product.name }}
+                        </a>
+                    </h5>
+                    <p class="card-text text-muted small">{{ product.description[:60] }}...</p>
+                    <div class="rating mb-2">
+                        {% for i in range(5) %}
+                            {% if i < product.rating|int %}
+                                <i class="fas fa-star text-warning"></i>
+                            {% else %}
+                                <i class="far fa-star text-warning"></i>
+                            {% endif %}
+                        {% endfor %}
+                        <small class="text-muted">({{ product.reviews_count }})</small>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="price">KES {{ product.price }}</span>
+                        {% if product.stock > 0 %}
+                        <form action="{{ url_for('add_to_cart', product_id=product._id) }}" 
+                              method="POST" class="add-to-cart-form">
+                            <input type="hidden" name="size" value="{{ product.sizes[0] if product.sizes else 'M' }}">
+                            <input type="hidden" name="color" value="{{ product.colors[0] if product.colors else 'Blue' }}">
+                            <input type="hidden" name="quantity" value="1">
+                            <button type="submit" class="btn btn-primary btn-sm">
+                                <i class="fas fa-cart-plus"></i>
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-footer bg-white border-top-0">
+                    <small class="text-muted">
+                        <i class="fas fa-tag me-1"></i>{{ product.condition }}
+                        {% if product.featured %}
+                        <i class="fas fa-star text-warning ms-2 me-1"></i>Featured
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <!-- No Results -->
+    <div class="row justify-content-center">
+        <div class="col-md-6 text-center py-5">
+            <i class="fas fa-search fa-3x text-muted mb-4"></i>
+            <h3>No products found</h3>
+            <p class="text-muted mb-4">
+                {% if query %}
+                    Sorry, we couldn't find any products matching "{{ query }}".
+                {% else %}
+                    No products available at the moment.
+                {% endif %}
+            </p>
+            <div class="d-grid gap-2 d-md-flex justify-content-center">
+                <a href="{{ url_for('categories') }}" class="btn btn-primary">
+                    <i class="fas fa-th-large me-2"></i> Browse Categories
+                </a>
+                <a href="{{ url_for('home') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-home me-2"></i> Go Home
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Search Tips -->
+    {% if products|length == 0 and query %}
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Search Tips</h5>
+                    <ul class="text-muted">
+                        <li>Check your spelling</li>
+                        <li>Try more general keywords</li>
+                        <li>Try different keywords</li>
+                        <li>Browse by category instead</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Highlight search terms
+    const query = "{{ query }}";
+    if (query) {
+        $('.card-title, .card-text').each(function() {
+            const text = $(this).text();
+            const regex = new RegExp(query, 'gi');
+            const highlighted = text.replace(regex, '<span class="bg-warning">$&</span>');
+            $(this).html(highlighted);
+        });
+    }
+});
+</script>
+{% endblock %}
+{% endblock %}
