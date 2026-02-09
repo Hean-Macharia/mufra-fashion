@@ -4,43 +4,450 @@
 
 {% block content %}
 <div class="container py-5">
+    <!-- Order Confirmation Header -->
+    <div class="text-center mb-5">
+        <div class="success-icon mb-4">
+            <i class="fas fa-check-circle fa-4x text-success"></i>
+        </div>
+        <h1 class="mb-3">Order Confirmed!</h1>
+        <p class="lead text-muted">Thank you for your purchase. Your order is being processed.</p>
+    </div>
+
     <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="card border-success">
+        <div class="col-lg-10">
+            {% if order %}
+            <!-- Order Summary Card -->
+            <div class="card shadow-sm mb-4">
                 <div class="card-header bg-success text-white">
-                    <h3 class="mb-0"><i class="fas fa-check-circle me-2"></i>Order Confirmed!</h3>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0"><i class="fas fa-receipt me-2"></i>Order Summary</h4>
+                        <span class="badge bg-light text-dark fs-6">#{{ order.order_id }}</span>
+                    </div>
                 </div>
                 <div class="card-body">
-                    {% if order %}
-                        <div class="alert alert-success">
-                            <h4 class="alert-heading">Thank You!</h4>
-                            <p>Your order <strong>#{{ order.order_id }}</strong> has been placed successfully.</p>
-                        </div>
-                        
-                        <h5>Debug Info:</h5>
-                        <div class="card mb-3">
-                            <div class="card-body">
-                                <p><strong>Order ID:</strong> {{ order.order_id }}</p>
-                                <p><strong>Total:</strong> KES {{ order.total }}</p>
-                                <p><strong>Items exists:</strong> {{ 'items' in order }}</p>
-                                <p><strong>Items type:</strong> {{ order.items.__class__.__name__ if 'items' in order else 'N/A' }}</p>
+                    <!-- Order Status & Timeline -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="status-icon me-3">
+                                    <i class="fas fa-clock fa-2x text-primary"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">Order Status</h6>
+                                    <span class="badge bg-{{ get_order_status_badge(order.status) }} fs-6">
+                                        {{ order.status|title }}
+                                    </span>
+                                </div>
                             </div>
                         </div>
-                        
-                        <div class="text-center">
-                            <a href="{{ url_for('home') }}" class="btn btn-primary">
-                                <i class="fas fa-shopping-bag me-2"></i> Continue Shopping
-                            </a>
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="status-icon me-3">
+                                    <i class="fas fa-calendar-alt fa-2x text-primary"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">Order Date</h6>
+                                    <p class="mb-0">{{ format_date(order.created_at, '%B %d, %Y at %I:%M %p') }}</p>
+                                </div>
+                            </div>
                         </div>
+                    </div>
+
+                    <!-- Order Items -->
+                    <h5 class="mb-4 border-bottom pb-2">Order Items</h5>
+                    {% if order.items and order.items|length > 0 %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Size</th>
+                                    <th>Color</th>
+                                    <th class="text-end">Quantity</th>
+                                    <th class="text-end">Price</th>
+                                    <th class="text-end">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in order.items %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="me-3">
+                                                <!-- Using get_product_image helper -->
+                                                {% if item.image %}
+                                                    {% if item.image.startswith('http') or item.image.startswith('/static') %}
+                                                        <img src="{{ item.image }}" 
+                                                             class="order-item-image" 
+                                                             alt="{{ item.name }}"
+                                                             onerror="this.src='https://via.placeholder.com/60x60?text=Product'">
+                                                    {% else %}
+                                                        <img src="{{ url_for('static', filename='uploads/' + item.image) }}" 
+                                                             class="order-item-image" 
+                                                             alt="{{ item.name }}"
+                                                             onerror="this.src='https://via.placeholder.com/60x60?text=Product'">
+                                                    {% endif %}
+                                                {% else %}
+                                                    <img src="https://via.placeholder.com/60x60?text=Product" 
+                                                         class="order-item-image" 
+                                                         alt="{{ item.name }}">
+                                                {% endif %}
+                                            </div>
+                                            <div>
+                                                <h6 class="mb-1">{{ item.name }}</h6>
+                                                <small class="text-muted">Product ID: {{ item.product_id[:8] if item.product_id else 'N/A' }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>{{ item.size if item.size else 'N/A' }}</td>
+                                    <td>{{ item.color if item.color else 'N/A' }}</td>
+                                    <td class="text-end">{{ item.quantity }}</td>
+                                    <td class="text-end">{{ format_price(item.price) }}</td>
+                                    <td class="text-end fw-bold">{{ format_price(item.price * item.quantity) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                     {% else %}
-                        <div class="alert alert-danger">
-                            <h4 class="alert-heading">Error!</h4>
-                            <p>Order not found or not authorized.</p>
-                        </div>
+                    <div class="text-center py-4">
+                        <i class="fas fa-exclamation-triangle fa-2x text-warning mb-3"></i>
+                        <p class="text-muted">No items found in this order.</p>
+                    </div>
                     {% endif %}
                 </div>
             </div>
+
+            <!-- Order Details & Shipping -->
+            <div class="row">
+                <!-- Order Totals -->
+                <div class="col-md-6 mb-4">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0"><i class="fas fa-money-bill-wave me-2"></i>Payment Details</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="order-totals">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted">Subtotal:</span>
+                                    <span>{{ format_price(order.subtotal) }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted">Delivery Fee:</span>
+                                    <span>{{ format_price(order.delivery_fee) }}</span>
+                                </div>
+                                {% if order.subtotal >= 5000 and 'embu' in order.shipping_address.county|lower %}
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted">Shipping Discount:</span>
+                                    <span class="text-success">- {{ format_price(100) }}</span>
+                                </div>
+                                {% endif %}
+                                <hr>
+                                <div class="d-flex justify-content-between mb-3">
+                                    <strong>Total Amount:</strong>
+                                    <strong class="fs-5 text-primary">{{ format_price(order.total) }}</strong>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span class="text-muted">Payment Method:</span>
+                                    <span class="badge bg-{{ get_payment_method_badge(order.payment_method) }}">
+                                        {{ order.payment_method|title if order.payment_method else 'N/A' }}
+                                    </span>
+                                </div>
+                                <div class="d-flex justify-content-between mt-2">
+                                    <span class="text-muted">Payment Status:</span>
+                                    <span class="badge bg-{{ 'success' if order.payment_status == 'paid' else 'warning' }}">
+                                        {{ order.payment_status|title if order.payment_status else 'Pending' }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Shipping Address -->
+                <div class="col-md-6 mb-4">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0"><i class="fas fa-truck me-2"></i>Shipping Information</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if order.shipping_address %}
+                            <div class="shipping-address">
+                                <h6 class="mb-3">Delivery Address</h6>
+                                <div class="address-card bg-light p-3 rounded">
+                                    <p class="mb-2">
+                                        <i class="fas fa-user me-2"></i>
+                                        <strong>{{ order.shipping_address.get('name', 'Customer') }}</strong>
+                                    </p>
+                                    <p class="mb-2">
+                                        <i class="fas fa-map-marker-alt me-2"></i>
+                                        {{ order.shipping_address.street }}
+                                        {% if order.shipping_address.additional_info %}
+                                        <br>{{ order.shipping_address.additional_info }}
+                                        {% endif %}
+                                    </p>
+                                    <p class="mb-2">
+                                        <i class="fas fa-city me-2"></i>
+                                        {{ order.shipping_address.city }},
+                                        {{ order.shipping_address.county }}
+                                        {% if order.shipping_address.postal_code %}
+                                        - {{ order.shipping_address.postal_code }}
+                                        {% endif %}
+                                    </p>
+                                    <p class="mb-0">
+                                        <i class="fas fa-phone me-2"></i>
+                                        {{ order.shipping_address.phone if order.shipping_address.phone else 'N/A' }}
+                                    </p>
+                                </div>
+                                
+                                <div class="mt-4">
+                                    <h6 class="mb-3">Delivery Estimate</h6>
+                                    <div class="alert alert-info">
+                                        <div class="d-flex">
+                                            <i class="fas fa-info-circle fa-lg me-3"></i>
+                                            <div>
+                                                <p class="mb-1">
+                                                    {% set county = order.shipping_address.county|lower if order.shipping_address.county else '' %}
+                                                    {% if 'embu' in county %}
+                                                        <strong>Estimated Delivery:</strong> 1-2 business days
+                                                        {% if order.subtotal >= 5000 %}
+                                                            <span class="badge bg-success ms-2">Free Shipping</span>
+                                                        {% endif %}
+                                                    {% else %}
+                                                        <strong>Estimated Delivery:</strong> 3-5 business days
+                                                    {% endif %}
+                                                </p>
+                                                <p class="small mb-0">
+                                                    You will receive tracking information once your order is shipped.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-exclamation-triangle fa-2x text-warning mb-3"></i>
+                                <p class="text-muted">No shipping information available.</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order Actions -->
+            <div class="card shadow-sm mt-4">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h5 class="mb-2">What's Next?</h5>
+                            <p class="text-muted mb-0">
+                                You'll receive an order confirmation email shortly. We'll notify you when your order ships.
+                            </p>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="d-grid gap-2">
+                                <a href="{{ url_for('account') }}" class="btn btn-outline-primary">
+                                    <i class="fas fa-user-circle me-2"></i> View in Account
+                                </a>
+                                <button class="btn btn-outline-secondary" onclick="window.print()">
+                                    <i class="fas fa-print me-2"></i> Print Receipt
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Help Information -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card bg-light border-0">
+                        <div class="card-body">
+                            <h5 class="mb-3"><i class="fas fa-question-circle me-2"></i>Need Help?</h5>
+                            <div class="row text-center">
+                                <div class="col-md-4 mb-3 mb-md-0">
+                                    <i class="fas fa-headset fa-2x text-primary mb-2"></i>
+                                    <h6>Customer Support</h6>
+                                    <p class="small text-muted mb-0">
+                                        Call: +254 712 345 678<br>
+                                        Email: support@mufrafashions.com
+                                    </p>
+                                </div>
+                                <div class="col-md-4 mb-3 mb-md-0">
+                                    <i class="fas fa-shipping-fast fa-2x text-primary mb-2"></i>
+                                    <h6>Track Your Order</h6>
+                                    <p class="small text-muted mb-0">
+                                        Tracking information will be sent to your email once your order ships.
+                                    </p>
+                                </div>
+                                <div class="col-md-4">
+                                    <i class="fas fa-undo fa-2x text-primary mb-2"></i>
+                                    <h6>Returns & Refunds</h6>
+                                    <p class="small text-muted mb-0">
+                                        30-day return policy. Items must be in original condition with tags.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Continue Shopping -->
+            <div class="text-center mt-5">
+                <a href="{{ url_for('categories') }}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-shopping-bag me-2"></i> Continue Shopping
+                </a>
+            </div>
+
+            {% else %}
+            <!-- Order Not Found -->
+            <div class="card shadow-sm">
+                <div class="card-body text-center py-5">
+                    <div class="error-icon mb-4">
+                        <i class="fas fa-exclamation-triangle fa-4x text-warning"></i>
+                    </div>
+                    <h3 class="mb-3">Order Not Found</h3>
+                    <p class="text-muted mb-4">
+                        We couldn't find the order you're looking for. It may have been canceled or the order ID is incorrect.
+                    </p>
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                        <a href="{{ url_for('account') }}" class="btn btn-primary">
+                            <i class="fas fa-user-circle me-2"></i> View My Orders
+                        </a>
+                        <a href="{{ url_for('home') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-home me-2"></i> Back to Home
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>
+
+{% block extra_css %}
+<style>
+.success-icon {
+    width: 100px;
+    height: 100px;
+    background-color: rgba(25, 135, 84, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+}
+
+.error-icon {
+    width: 100px;
+    height: 100px;
+    background-color: rgba(255, 193, 7, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+}
+
+.status-icon {
+    width: 50px;
+    height: 50px;
+    background-color: #e3f2fd;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #0d6efd;
+}
+
+.order-item-image {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 5px;
+}
+
+.address-card {
+    border-left: 4px solid #0d6efd;
+}
+
+.card {
+    border: none;
+    transition: transform 0.3s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+@media print {
+    .btn, .text-center.mt-5, .bg-light.border-0 {
+        display: none !important;
+    }
+    
+    .container {
+        max-width: 100% !important;
+    }
+    
+    .card {
+        border: 1px solid #dee2e6 !important;
+        box-shadow: none !important;
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Print receipt functionality
+    $('.btn-outline-secondary').click(function() {
+        window.print();
+    });
+    
+    // Copy order ID to clipboard
+    $('.badge.bg-light').click(function() {
+        const orderId = $(this).text().replace('#', '');
+        navigator.clipboard.writeText(orderId).then(() => {
+            showToast('Success', 'Order ID copied to clipboard!', 'success');
+        });
+    });
+    
+    // Toast notification
+    function showToast(title, message, type) {
+        // Remove existing toasts
+        $('.toast-container').remove();
+        
+        const toastHtml = `
+            <div class="toast-container position-fixed top-0 end-0 p-3">
+                <div class="toast show" role="alert">
+                    <div class="toast-header bg-${type} text-white">
+                        <strong class="me-auto">${title}</strong>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+                    </div>
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        $('body').append(toastHtml);
+        
+        // Auto remove after 3 seconds
+        setTimeout(() => {
+            $('.toast-container').remove();
+        }, 3000);
+    }
+    
+    // Auto-hide success alert after 5 seconds
+    setTimeout(() => {
+        $('.alert-success').fadeOut('slow');
+    }, 5000);
+});
+</script>
+{% endblock %}
 {% endblock %}

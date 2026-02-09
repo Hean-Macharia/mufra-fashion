@@ -1,51 +1,99 @@
 {% extends "base.html" %}
 
-{% block title %}{{ product.name }} - MUFRA FASHIONS{% endblock %}
+{% block title %}{{ category_name if category_name else 'All Categories' }} - MUFRA FASHIONS{% endblock %}
 
 {% block content %}
 <div class="container py-4">
-    <!-- Breadcrumb -->
-    <nav aria-label="breadcrumb">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ url_for('home') }}">Home</a></li>
-            <li class="breadcrumb-item"><a href="{{ url_for('categories') }}">Categories</a></li>
-            <li class="breadcrumb-item"><a href="{{ url_for('categories') }}?category={{ product.category }}">{{ product.category }}</a></li>
-            <li class="breadcrumb-item active">{{ product.name }}</li>
-        </ol>
-    </nav>
-
-    <div class="row">
-        <!-- Product Images -->
-        <div class="col-lg-6 mb-4">
-            <div class="card">
-                <div class="card-body">
-                    <img src="{{ url_for('static', filename='uploads/' + product.image) if product.image else 'https://via.placeholder.com/500x500?text=Product+Image' }}" 
-                         class="img-fluid rounded" alt="{{ product.name }}">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="h2">{{ category_name if category_name else 'All Products' }}</h1>
+            <p class="text-muted">{{ products|length }} products found</p>
+        </div>
+        <div class="col-md-4">
+            <div class="d-flex align-items-center justify-content-end h-100">
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" 
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                        Sort by: {{ sort_option.replace('_', ' ').title() }}
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="?category={{ category_name }}&sort=price_asc">Price: Low to High</a></li>
+                        <li><a class="dropdown-item" href="?category={{ category_name }}&sort=price_desc">Price: High to Low</a></li>
+                        <li><a class="dropdown-item" href="?category={{ category_name }}&sort=rating_desc">Highest Rated</a></li>
+                        <li><a class="dropdown-item" href="?category={{ category_name }}&sort=name_asc">Name: A-Z</a></li>
+                        <li><a class="dropdown-item" href="?category={{ category_name }}&sort=name_desc">Name: Z-A</a></li>
+                        <li><a class="dropdown-item" href="?category={{ category_name }}&sort=date_desc">Newest First</a></li>
+                    </ul>
                 </div>
             </div>
-            
-            {% if product.condition %}
-            <div class="mt-3">
-                <span class="badge bg-{{ 'success' if product.condition == 'New' else 'warning' }}">
-                    {{ product.condition }}
-                </span>
-                {% if product.stock <= 5 and product.stock > 0 %}
-                <span class="badge bg-danger">Only {{ product.stock }} left!</span>
-                {% endif %}
-                {% if product.featured %}
-                <span class="badge bg-primary">Featured</span>
-                {% endif %}
-            </div>
-            {% endif %}
         </div>
+    </div>
 
-        <!-- Product Details -->
-        <div class="col-lg-6">
-            <div class="card">
+    <!-- Categories Navigation -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="categories-scroll">
+                <a href="{{ url_for('categories') }}" class="btn btn-outline-primary mb-2 {% if not category_name %}active{% endif %}">
+                    All Products
+                </a>
+                {% for cat in categories %}
+                <a href="?category={{ cat }}" class="btn btn-outline-primary mb-2 {% if category_name == cat %}active{% endif %}">
+                    {{ cat }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Products Grid -->
+    {% if products %}
+    <div class="row">
+        {% for product in products %}
+        <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+            <div class="card h-100 product-card">
+                <!-- Product Image -->
+                <a href="{{ url_for('product_details', product_id=product._id) }}">
+                    {% if product.image %}
+                        {% if product.image.startswith('http') %}
+                            <img src="{{ product.image }}" class="card-img-top product-image" alt="{{ product.name }}">
+                        {% elif product.image.startswith('uploads/') %}
+                            <img src="{{ url_for('static', filename=product.image) }}" class="card-img-top product-image" alt="{{ product.name }}">
+                        {% else %}
+                            <img src="{{ url_for('static', filename='uploads/' + product.image) }}" class="card-img-top product-image" alt="{{ product.name }}">
+                        {% endif %}
+                    {% else %}
+                        <img src="https://via.placeholder.com/300x200?text=Product" class="card-img-top product-image" alt="{{ product.name }}">
+                    {% endif %}
+                </a>
+                
+                <!-- Product Status Badges -->
+                <div class="position-absolute top-0 start-0 p-2">
+                    {% if product.featured %}
+                    <span class="badge bg-primary">Featured</span>
+                    {% endif %}
+                    {% if product.condition == 'New' %}
+                    <span class="badge bg-success">New</span>
+                    {% elif product.condition == 'Used' %}
+                    <span class="badge bg-warning">Used</span>
+                    {% endif %}
+                    {% set stock_status = get_product_stock_status(product.stock) %}
+                    {% if stock_status == 'low' %}
+                    <span class="badge bg-danger">Low Stock</span>
+                    {% elif stock_status == 'out' %}
+                    <span class="badge bg-secondary">Out of Stock</span>
+                    {% endif %}
+                </div>
+                
                 <div class="card-body">
-                    <h1 class="h2">{{ product.name }}</h1>
+                    <h5 class="card-title">
+                        <a href="{{ url_for('product_details', product_id=product._id) }}" 
+                           class="text-decoration-none text-dark">
+                            {{ product.name }}
+                        </a>
+                    </h5>
                     
-                    <div class="rating mb-3">
+                    <!-- Rating -->
+                    <div class="rating mb-2">
                         {% for i in range(5) %}
                             {% if i < product.rating|int %}
                                 <i class="fas fa-star text-warning"></i>
@@ -55,286 +103,119 @@
                                 <i class="far fa-star text-warning"></i>
                             {% endif %}
                         {% endfor %}
-                        <span class="text-muted ms-2">({{ product.reviews_count }} reviews)</span>
+                        <small class="text-muted">({{ product.reviews_count }})</small>
                     </div>
                     
-                    <h2 class="price mb-4">KES {{ product.price }}</h2>
-                    
-                    <p class="mb-4">{{ product.description }}</p>
-                    
-                    <form action="{{ url_for('add_to_cart', product_id=product._id) }}" method="POST" class="add-to-cart-form">
-                        
-                        <!-- Size Selection -->
-                        {% if product.sizes %}
-                        <div class="mb-4">
-                            <label class="form-label fw-bold">Size:</label>
-                            <div class="d-flex flex-wrap gap-2">
-                                {% for size in product.sizes %}
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="size" 
-                                           id="size{{ size }}" value="{{ size }}" 
-                                           {% if loop.first %}checked{% endif %}>
-                                    <label class="form-check-label btn btn-outline-secondary" 
-                                           for="size{{ size }}">
-                                        {{ size }}
-                                    </label>
-                                </div>
-                                {% endfor %}
-                            </div>
-                        </div>
+                    <p class="card-text text-muted small mb-2">
+                        {{ product.category }}
+                        {% if product.subcategory %}
+                         • {{ product.subcategory }}
                         {% endif %}
-                        
-                        <!-- Color Selection -->
-                        {% if product.colors %}
-                        <div class="mb-4">
-                            <label class="form-label fw-bold">Color:</label>
-                            <div class="d-flex flex-wrap gap-2">
-                                {% for color in product.colors %}
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="color" 
-                                           id="color{{ color }}" value="{{ color }}" 
-                                           {% if loop.first %}checked{% endif %}>
-                                    <label class="form-check-label btn btn-outline-secondary" 
-                                           for="color{{ color }}">
-                                        {{ color }}
-                                    </label>
-                                </div>
-                                {% endfor %}
-                            </div>
-                        </div>
+                    </p>
+                    
+                    <p class="price fw-bold mb-3">{{ format_price(product.price) }}</p>
+                    
+                    <!-- Stock Status -->
+                    <p class="small mb-3">
+                        {% if product.stock > 10 %}
+                            <span class="text-success">In Stock</span>
+                        {% elif product.stock > 0 %}
+                            <span class="text-warning">Only {{ product.stock }} left</span>
+                        {% else %}
+                            <span class="text-danger">Out of Stock</span>
                         {% endif %}
-                        
-                        <!-- Quantity -->
-                        <div class="mb-4">
-                            <label class="form-label fw-bold">Quantity:</label>
-                            <div class="input-group" style="width: 150px;">
-                                <button class="btn btn-outline-secondary quantity-minus" type="button">-</button>
-                                <input type="number" name="quantity" class="form-control text-center quantity-input" 
-                                       value="1" min="1" max="{{ product.stock }}">
-                                <button class="btn btn-outline-secondary quantity-plus" type="button">+</button>
-                            </div>
-                            <small class="text-muted">Available: {{ product.stock }} items</small>
-                        </div>
-                        
-                        <!-- Buttons -->
-                        <div class="d-grid gap-2 d-md-flex mb-4">
-                            <button type="submit" class="btn btn-primary btn-lg flex-grow-1" 
-                                    {% if product.stock == 0 %}disabled{% endif %}>
-                                <i class="fas fa-cart-plus"></i> 
-                                {% if product.stock > 0 %}
-                                    Add to Cart
-                                {% else %}
-                                    Out of Stock
-                                {% endif %}
-                            </button>
-                            <a href="{{ url_for('checkout') }}" class="btn btn-success btn-lg" 
-                               {% if product.stock == 0 %}disabled{% endif %}>
-                                <i class="fas fa-bolt"></i> Buy Now
-                            </a>
-                        </div>
-                    </form>
-                    
-                    <!-- Product Info -->
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h5 class="mb-3">Product Information</h5>
-                            <ul class="list-unstyled">
-                                <li class="mb-2"><strong>Category:</strong> {{ product.category }}</li>
-                                {% if product.subcategory %}
-                                <li class="mb-2"><strong>Subcategory:</strong> {{ product.subcategory }}</li>
-                                {% endif %}
-                                <li class="mb-2"><strong>Condition:</strong> {{ product.condition }}</li>
-                                <li class="mb-2"><strong>Stock:</strong> {{ product.stock }} items</li>
-                            </ul>
-                        </div>
-                        <div class="col-md-6">
-                            <h5 class="mb-3">Shipping Info</h5>
-                            <ul class="list-unstyled">
-                                <li class="mb-2"><i class="fas fa-shipping-fast text-primary"></i> Free shipping over KES 5000</li>
-                                <li class="mb-2"><i class="fas fa-undo text-primary"></i> 30-day return policy</li>
-                                <li class="mb-2"><i class="fas fa-shield-alt text-primary"></i> Secure payment</li>
-                                <li class="mb-2"><i class="fas fa-headset text-primary"></i> 24/7 support</li>
-                            </ul>
-                        </div>
-                    </div>
+                    </p>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Reviews Section -->
-    <div class="row mt-5">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <h3 class="card-title mb-4">Customer Reviews</h3>
-                    
-                    <!-- Add Review Form -->
-                    {% if session.user_id %}
-                    <div class="mb-5">
-                        <h5>Write a Review</h5>
-                        <form action="{{ url_for('add_review', product_id=product._id) }}" method="POST">
-                            <div class="mb-3">
-                                <label class="form-label">Rating</label>
-                                <div class="rating-input">
-                                    {% for i in range(5, 0, -1) %}
-                                    <input type="radio" id="star{{ i }}" name="rating" value="{{ i }}" 
-                                           {% if i == 5 %}checked{% endif %}>
-                                    <label for="star{{ i }}"><i class="fas fa-star"></i></label>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Your Review</label>
-                                <textarea class="form-control" name="comment" rows="3" 
-                                          placeholder="Share your experience with this product..." 
-                                          required></textarea>
-                            </div>
-                            <button type="submit" class="btn btn-primary">Submit Review</button>
-                        </form>
-                    </div>
-                    {% endif %}
-                    
-                    <!-- Reviews List -->
-                    {% if reviews %}
-                    <div class="reviews-list">
-                        {% for review in reviews %}
-                        <div class="review-item border-bottom pb-3 mb-3">
-                            <div class="d-flex justify-content-between mb-2">
-                                <div>
-                                    <strong>{{ review.user_name }}</strong>
-                                    <div class="rating small">
-                                        {% for i in range(5) %}
-                                            {% if i < review.rating %}
-                                                <i class="fas fa-star text-warning"></i>
-                                            {% else %}
-                                                <i class="far fa-star text-warning"></i>
-                                            {% endif %}
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                                <small class="text-muted">{{ review.created_at.strftime('%B %d, %Y') }}</small>
-                            </div>
-                            <p class="mb-0">{{ review.comment }}</p>
-                        </div>
-                        {% endfor %}
-                    </div>
-                    {% else %}
-                    <div class="text-center py-4">
-                        <i class="fas fa-comments fa-3x text-muted mb-3"></i>
-                        <p class="text-muted">No reviews yet. Be the first to review this product!</p>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Related Products -->
-    {% if related_products %}
-    <div class="row mt-5">
-        <div class="col-12">
-            <h3 class="mb-4">Related Products</h3>
-            <div class="row">
-                {% for product in related_products %}
-                <div class="col-md-3 col-sm-6 mb-4">
-                    <div class="card h-100">
-                        <a href="{{ url_for('product_details', product_id=product._id) }}">
-                            <img src="{{ url_for('static', filename='uploads/' + product.image) if product.image else 'https://via.placeholder.com/300x200?text=Product' }}" 
-                                 class="card-img-top product-image" alt="{{ product.name }}">
+                
+                <div class="card-footer bg-white border-top-0">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('product_details', product_id=product._id) }}" 
+                           class="btn btn-outline-primary">
+                            <i class="fas fa-eye"></i> View Details
                         </a>
-                        <div class="card-body">
-                            <h5 class="card-title">
-                                <a href="{{ url_for('product_details', product_id=product._id) }}" 
-                                   class="text-decoration-none text-dark">
-                                    {{ product.name }}
-                                </a>
-                            </h5>
-                            <div class="rating mb-2">
-                                {% for i in range(5) %}
-                                    {% if i < product.rating|int %}
-                                        <i class="fas fa-star text-warning"></i>
-                                    {% else %}
-                                        <i class="far fa-star text-warning"></i>
-                                    {% endif %}
-                                {% endfor %}
-                            </div>
-                            <p class="price">KES {{ product.price }}</p>
-                        </div>
+                        {% if product.stock > 0 %}
+                        <form action="{{ url_for('add_to_cart', product_id=product._id) }}" method="POST" class="add-to-cart-form">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-cart-plus"></i> Add to Cart
+                            </button>
+                        </form>
+                        {% else %}
+                        <button class="btn btn-secondary w-100" disabled>
+                            <i class="fas fa-ban"></i> Out of Stock
+                        </button>
+                        {% endif %}
                     </div>
                 </div>
-                {% endfor %}
             </div>
         </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Pagination -->
+    {% if total_pages > 1 %}
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page > 1 %}
+            <li class="page-item">
+                <a class="page-link" href="?category={{ category_name }}&sort={{ sort_option }}&page={{ page - 1 }}">Previous</a>
+            </li>
+            {% endif %}
+            
+            {% for p in range(1, total_pages + 1) %}
+            <li class="page-item {% if p == page %}active{% endif %}">
+                <a class="page-link" href="?category={{ category_name }}&sort={{ sort_option }}&page={{ p }}">{{ p }}</a>
+            </li>
+            {% endfor %}
+            
+            {% if page < total_pages %}
+            <li class="page-item">
+                <a class="page-link" href="?category={{ category_name }}&sort={{ sort_option }}&page={{ page + 1 }}">Next</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+    
+    {% else %}
+    <div class="text-center py-5">
+        <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+        <h3>No products found</h3>
+        <p class="text-muted">Try selecting a different category or check back later for new arrivals.</p>
+        <a href="{{ url_for('categories') }}" class="btn btn-primary">Browse All Products</a>
     </div>
     {% endif %}
 </div>
 
 {% block extra_css %}
 <style>
-.rating-input {
-    direction: rtl;
-    unicode-bidi: bidi-override;
+.categories-scroll {
+    display: flex;
+    overflow-x: auto;
+    gap: 10px;
+    padding-bottom: 10px;
 }
 
-.rating-input input {
-    display: none;
+.categories-scroll .btn {
+    white-space: nowrap;
 }
 
-.rating-input label {
-    color: #ddd;
-    font-size: 1.5rem;
-    cursor: pointer;
+.product-card {
+    transition: transform 0.2s;
 }
 
-.rating-input input:checked ~ label,
-.rating-input label:hover,
-.rating-input label:hover ~ label {
-    color: #ffc107;
+.product-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
 }
 
-.rating-input input:checked + label {
-    color: #ffc107;
+.product-image {
+    height: 200px;
+    object-fit: cover;
+}
+
+.rating {
+    font-size: 0.9rem;
 }
 </style>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-$(document).ready(function() {
-    // Quantity controls
-    $('.quantity-minus').click(function() {
-        const input = $(this).siblings('.quantity-input');
-        let value = parseInt(input.val()) || 1;
-        if (value > 1) input.val(value - 1);
-    });
-    
-    $('.quantity-plus').click(function() {
-        const input = $(this).siblings('.quantity-input');
-        let value = parseInt(input.val()) || 1;
-        const max = parseInt(input.attr('max')) || 99;
-        if (value < max) input.val(value + 1);
-    });
-    
-    // Size and color selection
-    $('input[name="size"]').change(function() {
-        $('label[for="' + $(this).attr('id') + '"]').addClass('btn-primary').removeClass('btn-outline-secondary');
-        $('input[name="size"]').not(this).each(function() {
-            $('label[for="' + $(this).attr('id') + '"]').addClass('btn-outline-secondary').removeClass('btn-primary');
-        });
-    });
-    
-    $('input[name="color"]').change(function() {
-        $('label[for="' + $(this).attr('id') + '"]').addClass('btn-primary').removeClass('btn-outline-secondary');
-        $('input[name="color"]').not(this).each(function() {
-            $('label[for="' + $(this).attr('id') + '"]').addClass('btn-outline-secondary').removeClass('btn-primary');
-        });
-    });
-    
-    // Initialize active states
-    $('input[name="size"]:checked').trigger('change');
-    $('input[name="color"]:checked').trigger('change');
-});
-</script>
 {% endblock %}
 {% endblock %}

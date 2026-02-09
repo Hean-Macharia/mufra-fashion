@@ -20,7 +20,7 @@
                     <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filters</h5>
                 </div>
                 <div class="card-body">
-                    <form method="GET" action="{{ url_for('categories') }}">
+                    <form method="GET" action="{{ url_for('categories') }}" id="filterForm">
                         <!-- Category Filter -->
                         <div class="mb-4">
                             <h6 class="mb-3">Category</h6>
@@ -32,7 +32,6 @@
                                 </label>
                             </div>
                             {% for cat in categories %}
-                            {% if cat.name in ['Shoes', 'Clothes'] %}
                             <div class="form-check mb-2">
                                 <input class="form-check-input" type="radio" name="category" 
                                        id="category{{ cat.name }}" value="{{ cat.name }}"
@@ -41,7 +40,6 @@
                                     {{ cat.name }}
                                 </label>
                             </div>
-                            {% endif %}
                             {% endfor %}
                         </div>
 
@@ -75,29 +73,31 @@
 
                         <!-- Price Range -->
                         <div class="mb-4">
-                            <h6 class="mb-3">Price Range</h6>
+                            <h6 class="mb-3">Price Range (KES)</h6>
                             <div class="row mb-3">
                                 <div class="col-6">
-                                    <label class="form-label small">Min Price</label>
                                     <input type="number" class="form-control form-control-sm" 
-                                           name="min_price" placeholder="0" min="0">
+                                           name="min_price" placeholder="Min" min="0" 
+                                           value="{{ request.args.get('min_price', '') }}">
                                 </div>
                                 <div class="col-6">
-                                    <label class="form-label small">Max Price</label>
                                     <input type="number" class="form-control form-control-sm" 
-                                           name="max_price" placeholder="100000" max="100000">
+                                           name="max_price" placeholder="Max" min="0"
+                                           value="{{ request.args.get('max_price', '') }}">
                                 </div>
                             </div>
                         </div>
 
                         <!-- Action Buttons -->
                         <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="btn btn-primary" id="applyFilters">
                                 <i class="fas fa-search me-2"></i> Apply Filters
                             </button>
+                            {% if selected_category or selected_condition or request.args.get('min_price') or request.args.get('max_price') %}
                             <a href="{{ url_for('categories') }}" class="btn btn-outline-secondary">
                                 <i class="fas fa-redo me-2"></i> Clear Filters
                             </a>
+                            {% endif %}
                         </div>
                     </form>
                 </div>
@@ -113,11 +113,24 @@
                     </div>
                     <div class="d-flex justify-content-between mb-2">
                         <span>Shoes:</span>
-                        <span class="fw-bold">{{ products|selectattr('category', 'equalto', 'Shoes')|list|length }}</span>
+                        <span class="fw-bold">
+                            {% set shoes_count = products|selectattr('category', 'equalto', 'Shoes')|list|length %}
+                            {{ shoes_count }}
+                        </span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Clothes:</span>
+                        <span class="fw-bold">
+                            {% set clothes_count = products|selectattr('category', 'equalto', 'Clothes')|list|length %}
+                            {{ clothes_count }}
+                        </span>
                     </div>
                     <div class="d-flex justify-content-between">
-                        <span>Clothes:</span>
-                        <span class="fw-bold">{{ products|selectattr('category', 'equalto', 'Clothes')|list|length }}</span>
+                        <span>New Items:</span>
+                        <span class="fw-bold">
+                            {% set new_count = products|selectattr('condition', 'equalto', 'New')|list|length %}
+                            {{ new_count }}
+                        </span>
                     </div>
                 </div>
             </div>
@@ -135,7 +148,8 @@
                                 <h5 class="card-title">Shoes</h5>
                                 <p class="card-text text-muted">Sports, Casual, Formal footwear</p>
                                 <span class="badge bg-primary">
-                                    {{ products|selectattr('category', 'equalto', 'Shoes')|list|length }} items
+                                    {% set shoes_count = products|selectattr('category', 'equalto', 'Shoes')|list|length %}
+                                    {{ shoes_count }} items
                                 </span>
                             </div>
                         </div>
@@ -149,7 +163,8 @@
                                 <h5 class="card-title">Clothes</h5>
                                 <p class="card-text text-muted">Tops, Bottoms, and more</p>
                                 <span class="badge bg-primary">
-                                    {{ products|selectattr('category', 'equalto', 'Clothes')|list|length }} items
+                                    {% set clothes_count = products|selectattr('category', 'equalto', 'Clothes')|list|length %}
+                                    {{ clothes_count }} items
                                 </span>
                             </div>
                         </div>
@@ -175,33 +190,38 @@
                         <i class="fas fa-sort me-2"></i>Sort By
                     </button>
                     <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="?sort=latest">Latest</a></li>
-                        <li><a class="dropdown-item" href="?sort=price_low">Price: Low to High</a></li>
-                        <li><a class="dropdown-item" href="?sort=price_high">Price: High to Low</a></li>
-                        <li><a class="dropdown-item" href="?sort=rating">Highest Rated</a></li>
-                        <li><a class="dropdown-item" href="?sort=popular">Most Popular</a></li>
+                        <li><a class="dropdown-item" href="#" data-sort="latest">Latest</a></li>
+                        <li><a class="dropdown-item" href="#" data-sort="price_low">Price: Low to High</a></li>
+                        <li><a class="dropdown-item" href="#" data-sort="price_high">Price: High to Low</a></li>
+                        <li><a class="dropdown-item" href="#" data-sort="rating">Highest Rated</a></li>
+                        <li><a class="dropdown-item" href="#" data-sort="popular">Most Popular</a></li>
                     </ul>
                 </div>
             </div>
 
             {% if products %}
             <!-- Products Grid -->
-            <div class="row">
+            <div class="row" id="productsGrid">
                 {% for product in products %}
-                <div class="col-xl-4 col-lg-4 col-md-6 mb-4">
+                {% set product_id = safe_get(product, '_id', '')|string %}
+                <div class="col-xl-4 col-lg-4 col-md-6 mb-4 product-card">
                     <div class="card h-100">
                         <div class="position-relative">
-                            <a href="{{ url_for('product_details', product_id=product._id) }}">
-                                <img src="{{ product.image if product.image else 'https://via.placeholder.com/400x300?text=Product+Image' }}" 
-                                     class="card-img-top product-image" alt="{{ product.name }}">
+                            <a href="{{ url_for('product_details', product_id=product_id) if product_id else '#' }}">
+                                <!-- Updated image source using get_product_image -->
+                                <img src="{{ get_product_image(product) }}" 
+                                     class="card-img-top product-image" 
+                                     alt="{{ safe_get(product, 'name', 'Product') }}"
+                                     onerror="this.src='https://via.placeholder.com/400x300?text=Product'">
                             </a>
-                            <span class="badge bg-{{ 'success' if product.condition == 'New' else 'warning' }} category-badge">
-                                {{ product.condition }}
+                            <span class="badge bg-{{ 'success' if safe_get(product, 'condition', '') == 'New' else 'warning' }} category-badge">
+                                {{ safe_get(product, 'condition', 'N/A') }}
                             </span>
-                            {% if product.featured %}
+                            {% if safe_get(product, 'featured', False) %}
                             <span class="badge bg-primary position-absolute top-0 start-0 m-2">Featured</span>
                             {% endif %}
-                            {% if product.stock == 0 %}
+                            {% set stock = safe_get(product, 'stock', 0)|int %}
+                            {% if stock == 0 %}
                             <div class="position-absolute top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 d-flex align-items-center justify-content-center">
                                 <span class="badge bg-danger">Out of Stock</span>
                             </div>
@@ -210,76 +230,85 @@
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start mb-2">
                                 <h5 class="card-title mb-0">
-                                    <a href="{{ url_for('product_details', product_id=product._id) }}" 
+                                    <a href="{{ url_for('product_details', product_id=product_id) if product_id else '#' }}" 
                                        class="text-decoration-none text-dark">
-                                        {{ product.name }}
+                                        {{ safe_get(product, 'name', 'Unnamed Product') }}
                                     </a>
                                 </h5>
-                                <span class="badge bg-primary">{{ product.category }}</span>
+                                <span class="badge bg-primary">{{ safe_get(product, 'category', 'Uncategorized') }}</span>
                             </div>
-                            <p class="card-text text-muted small mb-2">{{ product.description[:80] }}...</p>
+                            <p class="card-text text-muted small mb-2">{{ truncate_text(safe_get(product, 'description', ''), 80) }}</p>
                             
                             <div class="rating mb-2">
-    {% set product_rating = safe_get(product, 'rating', 0) %}
-    {% set product_reviews = safe_get(product, 'reviews_count', 0) %}
-    
-    {% for i in range(5) %}
-        {% if i < product_rating|int %}
-            <i class="fas fa-star text-warning"></i>
-        {% else %}
-            <i class="far fa-star text-warning"></i>
-        {% endif %}
-    {% endfor %}
-    <small class="text-muted ms-2">({{ product_reviews }})</small>
-</div>
+                                {% set product_rating = safe_get(product, 'rating', 0) %}
+                                {% set product_reviews = safe_get(product, 'reviews_count', 0) %}
+                                
+                                {% for i in range(5) %}
+                                    {% if i < product_rating|int %}
+                                        <i class="fas fa-star text-warning"></i>
+                                    {% else %}
+                                        <i class="far fa-star text-warning"></i>
+                                    {% endif %}
+                                {% endfor %}
+                                <small class="text-muted ms-2">({{ product_reviews }})</small>
+                            </div>
                             
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h4 class="price mb-0">KES {{ safe_get(product, 'price', 0) }}</h4>
+                                    <h4 class="price mb-0">{{ format_price(safe_get(product, 'price', 0)) }}</h4>
                                     <small class="text-muted">
-                                      {% set product_stock = safe_get(product, 'stock', 0) %}
-{% if product_stock > 0 %}
-    <span class="text-success">
-        <i class="fas fa-check-circle me-1"></i>In Stock ({{ product_stock }})
-    </span>
-{% else %}
-    <span class="text-danger">
-        <i class="fas fa-times-circle me-1"></i>Out of Stock
-    </span>
-{% endif %}
+                                        {% set stock_status = get_product_stock_status(safe_get(product, 'stock', 0)) %}
+                                        <span class="text-{{ stock_status.color }}">
+                                            <i class="fas fa-{{ 'check-circle' if stock_status.color == 'success' else 'times-circle' }} me-1"></i>
+                                            {{ stock_status.text }}
+                                        </span>
                                     </small>
                                 </div>
-                                {% if product.stock > 0 %}
-                                <form action="{{ url_for('add_to_cart', product_id=product._id) }}" 
+                                {% if stock > 0 and product_id %}
+                                <form action="{{ url_for('add_to_cart', product_id=product_id) }}" 
                                       method="POST" class="add-to-cart-form">
-                                    <input type="hidden" name="size" value="{{ product.sizes[0] if product.sizes else 'M' }}">
-                                    <input type="hidden" name="color" value="{{ product.colors[0] if product.colors else 'Blue' }}">
+                                    <input type="hidden" name="size" value="{{ safe_get(product, 'sizes', ['M'])[0] }}">
+                                    <input type="hidden" name="color" value="{{ safe_get(product, 'colors', ['Blue'])[0] }}">
                                     <input type="hidden" name="quantity" value="1">
-                                    <button type="submit" class="btn btn-primary btn-sm">
+                                    <button type="submit" class="btn btn-primary btn-sm" title="Add to Cart">
                                         <i class="fas fa-cart-plus"></i>
                                     </button>
                                 </form>
+                                {% elif not product_id %}
+                                <button class="btn btn-secondary btn-sm" disabled title="Product unavailable">
+                                    <i class="fas fa-ban"></i>
+                                </button>
+                                {% else %}
+                                <button class="btn btn-danger btn-sm" disabled title="Out of Stock">
+                                    <i class="fas fa-times"></i>
+                                </button>
                                 {% endif %}
                             </div>
                         </div>
                         <div class="card-footer bg-white border-top-0 pt-0">
                             <div class="d-flex justify-content-between">
                                 <small class="text-muted">
-                                    {% if product.sizes %}
+                                    {% set sizes = safe_get(product, 'sizes', []) %}
+                                    {% if sizes %}
                                     <i class="fas fa-ruler me-1"></i>
-                                    {% for size in product.sizes[:3] %}
+                                    {% for size in sizes[:3] %}
                                         {{ size }}{% if not loop.last %}, {% endif %}
                                     {% endfor %}
-                                    {% if product.sizes|length > 3 %}...{% endif %}
+                                    {% if sizes|length > 3 %}...{% endif %}
+                                    {% else %}
+                                    <span class="text-muted">No sizes</span>
                                     {% endif %}
                                 </small>
                                 <small class="text-muted">
-                                    {% if product.colors %}
+                                    {% set colors = safe_get(product, 'colors', []) %}
+                                    {% if colors %}
                                     <i class="fas fa-palette me-1"></i>
-                                    {% for color in product.colors[:2] %}
+                                    {% for color in colors[:2] %}
                                         {{ color }}{% if not loop.last %}, {% endif %}
                                     {% endfor %}
-                                    {% if product.colors|length > 2 %}...{% endif %}
+                                    {% if colors|length > 2 %}...{% endif %}
+                                    {% else %}
+                                    <span class="text-muted">No colors</span>
                                     {% endif %}
                                 </small>
                             </div>
@@ -289,21 +318,13 @@
                 {% endfor %}
             </div>
 
-            <!-- Pagination (Optional) -->
             {% if products|length > 12 %}
-            <nav aria-label="Page navigation" class="mt-4">
-                <ul class="pagination justify-content-center">
-                    <li class="page-item disabled">
-                        <a class="page-link" href="#" tabindex="-1">Previous</a>
-                    </li>
-                    <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                    <li class="page-item"><a class="page-link" href="#">2</a></li>
-                    <li class="page-item"><a class="page-link" href="#">3</a></li>
-                    <li class="page-item">
-                        <a class="page-link" href="#">Next</a>
-                    </li>
-                </ul>
-            </nav>
+            <!-- Load More Button -->
+            <div class="text-center mt-4">
+                <button class="btn btn-outline-primary" id="loadMore">
+                    <i class="fas fa-plus me-2"></i> Load More Products
+                </button>
+            </div>
             {% endif %}
 
             {% else %}
@@ -328,71 +349,6 @@
                 </div>
             </div>
             {% endif %}
-        </div>
-    </div>
-
-    <!-- Featured Categories Section -->
-    <div class="row mt-5">
-        <div class="col-12">
-            <h3 class="mb-4">Shop By Category</h3>
-            <div class="row">
-                <div class="col-md-3 col-sm-6 mb-3">
-                    <div class="card text-center h-100 border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="category-icon mb-3">
-                                <i class="fas fa-running fa-2x text-primary"></i>
-                            </div>
-                            <h5 class="card-title">Sports Shoes</h5>
-                            <p class="card-text text-muted small">For athletic activities</p>
-                            <a href="{{ url_for('categories') }}?category=Shoes" class="btn btn-outline-primary btn-sm">
-                                Browse <i class="fas fa-arrow-right ms-1"></i>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3 col-sm-6 mb-3">
-                    <div class="card text-center h-100 border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="category-icon mb-3">
-                                <i class="fas fa-walking fa-2x text-primary"></i>
-                            </div>
-                            <h5 class="card-title">Casual Shoes</h5>
-                            <p class="card-text text-muted small">For everyday wear</p>
-                            <a href="{{ url_for('categories') }}?category=Shoes" class="btn btn-outline-primary btn-sm">
-                                Browse <i class="fas fa-arrow-right ms-1"></i>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3 col-sm-6 mb-3">
-                    <div class="card text-center h-100 border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="category-icon mb-3">
-                                <i class="fas fa-tshirt fa-2x text-primary"></i>
-                            </div>
-                            <h5 class="card-title">Tops</h5>
-                            <p class="card-text text-muted small">Shirts, T-shirts, Blouses</p>
-                            <a href="{{ url_for('categories') }}?category=Clothes" class="btn btn-outline-primary btn-sm">
-                                Browse <i class="fas fa-arrow-right ms-1"></i>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3 col-sm-6 mb-3">
-                    <div class="card text-center h-100 border-0 shadow-sm">
-                        <div class="card-body">
-                            <div class="category-icon mb-3">
-                                <i class="fas fa-vest fa-2x text-primary"></i>
-                            </div>
-                            <h5 class="card-title">Bottoms</h5>
-                            <p class="card-text text-muted small">Pants, Jeans, Shorts</p>
-                            <a href="{{ url_for('categories') }}?category=Clothes" class="btn btn-outline-primary btn-sm">
-                                Browse <i class="fas fa-arrow-right ms-1"></i>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -460,6 +416,7 @@
 
 .product-image {
     height: 200px;
+    width: 100%;
     object-fit: cover;
 }
 
@@ -471,36 +428,51 @@
 .rating {
     color: #ffc107;
 }
+
+/* Loading animation */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255,255,255,.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s ease-in-out infinite;
+}
+
+/* Toast notification */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+}
+
+.toast {
+    min-width: 300px;
+}
 </style>
 {% endblock %}
 
 {% block extra_js %}
 <script>
 $(document).ready(function() {
-    // Filter form submission with spinner
-    $('form').submit(function() {
-        const button = $(this).find('button[type="submit"]');
+    // Filter form submission with loading state
+    $('#filterForm').submit(function(e) {
+        const button = $('#applyFilters');
         const originalText = button.html();
-        button.prop('disabled', true).html('<span class="loading"></span> Applying...');
-        
-        // Remove empty filter values
-        $(this).find('input[type="number"]').each(function() {
-            if ($(this).val() === '') {
-                $(this).prop('disabled', true);
-            }
-        });
-    });
-
-    // Clear filters button
-    $('.btn-outline-secondary').click(function(e) {
-        e.preventDefault();
-        window.location.href = "{{ url_for('categories') }}";
+        button.prop('disabled', true).html('<span class="loading me-2"></span>Applying...');
     });
 
     // Sort functionality
-    $('.dropdown-item').click(function(e) {
+    $('.dropdown-item[data-sort]').click(function(e) {
         e.preventDefault();
-        const sortValue = $(this).attr('href').split('=')[1];
+        const sortValue = $(this).data('sort');
         const currentUrl = new URL(window.location.href);
         currentUrl.searchParams.set('sort', sortValue);
         window.location.href = currentUrl.toString();
@@ -513,11 +485,95 @@ $(document).ready(function() {
         
         if (minPrice && maxPrice && parseInt(minPrice) > parseInt(maxPrice)) {
             $(this).addClass('is-invalid');
-            showToast('Error', 'Minimum price cannot be greater than maximum price', 'error');
+            showToast('Error', 'Minimum price cannot be greater than maximum price', 'danger');
         } else {
             $(this).removeClass('is-invalid');
         }
     });
+
+    // Load more functionality
+    let currentPage = 1;
+    const itemsPerPage = 12;
+    const allProducts = $('#productsGrid .product-card');
+    
+    if (allProducts.length > itemsPerPage) {
+        // Hide products beyond first page
+        allProducts.slice(itemsPerPage).hide();
+    }
+    
+    $('#loadMore').click(function() {
+        currentPage++;
+        const nextProducts = allProducts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+        
+        if (nextProducts.length > 0) {
+            nextProducts.fadeIn(500);
+            
+            // Hide button if no more products
+            if (nextProducts.length < itemsPerPage) {
+                $(this).hide();
+            }
+        } else {
+            $(this).hide();
+        }
+    });
+
+    // Add to cart with AJAX
+    $('.add-to-cart-form').submit(function(e) {
+        e.preventDefault();
+        const form = $(this);
+        const button = form.find('button[type="submit"]');
+        const originalHtml = button.html();
+        
+        button.prop('disabled', true).html('<span class="loading me-2"></span>');
+        
+        $.ajax({
+            type: 'POST',
+            url: form.attr('action'),
+            data: form.serialize(),
+            success: function(response) {
+                if (response.success) {
+                    showToast('Success', response.message, 'success');
+                    // Update cart count in navbar
+                    $('.cart-count-badge').text(response.cart_count || 0);
+                } else {
+                    showToast('Error', response.message, 'danger');
+                }
+            },
+            error: function() {
+                showToast('Error', 'Network error. Please try again.', 'danger');
+            },
+            complete: function() {
+                button.prop('disabled', false).html(originalHtml);
+            }
+        });
+    });
+
+    // Toast notification function
+    function showToast(title, message, type) {
+        // Remove existing toasts
+        $('.toast-container').remove();
+        
+        const toastHtml = `
+            <div class="toast-container">
+                <div class="toast show" role="alert">
+                    <div class="toast-header bg-${type} text-white">
+                        <strong class="me-auto">${title}</strong>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+                    </div>
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        $('body').append(toastHtml);
+        
+        // Auto remove after 3 seconds
+        setTimeout(() => {
+            $('.toast-container').remove();
+        }, 3000);
+    }
 });
 </script>
 {% endblock %}

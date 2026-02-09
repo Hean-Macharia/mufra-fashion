@@ -4,203 +4,393 @@
 
 {% block content %}
 <div class="container py-4">
-    <h1 class="mb-4">Checkout</h1>
-    
-    <!-- Step Indicator -->
-    <div class="step-indicator">
-        <div class="step active">
-            <div class="step-number">1</div>
-            <div class="step-label">Cart</div>
-        </div>
-        <div class="step active">
-            <div class="step-number">2</div>
-            <div class="step-label">Details</div>
-        </div>
-        <div class="step">
-            <div class="step-number">3</div>
-            <div class="step-label">Payment</div>
-        </div>
-        <div class="step">
-            <div class="step-number">4</div>
-            <div class="step-label">Confirm</div>
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="mb-3"><i class="fas fa-shopping-bag me-2"></i>Checkout</h1>
+            <p class="text-muted">Complete your purchase securely</p>
         </div>
     </div>
-    
+
+    <!-- Progress Steps -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="progress-steps">
+                <div class="step completed">
+                    <div class="step-circle">1</div>
+                    <div class="step-label">Cart</div>
+                </div>
+                <div class="step active">
+                    <div class="step-circle">2</div>
+                    <div class="step-label">Details</div>
+                </div>
+                <div class="step">
+                    <div class="step-circle">3</div>
+                    <div class="step-label">Payment</div>
+                </div>
+                <div class="step">
+                    <div class="step-circle">4</div>
+                    <div class="step-label">Confirm</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row">
         <!-- Order Summary -->
         <div class="col-lg-4 mb-4">
-            <div class="card order-summary">
+            <div class="card shadow-sm sticky-top" style="top: 20px;">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-receipt me-2"></i>Order Summary</h5>
+                </div>
                 <div class="card-body">
-                    <h4 class="card-title mb-4">Order Summary</h4>
-                    
-                    {% for item in cart_items %}
-                    <div class="d-flex mb-3">
-                        <div class="flex-shrink-0">
-                            <img src="{{ url_for('static', filename='uploads/' + item.image) if item.image else 'https://via.placeholder.com/60x60?text=Product' }}" 
-                                 class="cart-item-image" alt="{{ item.name }}">
+                    <!-- Cart Items -->
+                    <div class="cart-items mb-3">
+                        {% for item in cart_items %}
+                        <div class="d-flex mb-3 pb-3 {% if not loop.last %}border-bottom{% endif %}">
+                            <div class="flex-shrink-0">
+                                <!-- Updated image source -->
+                                {% if item.image %}
+                                    {% if item.image.startswith('http') or item.image.startswith('/static') %}
+                                        <img src="{{ item.image }}" 
+                                             class="rounded checkout-item-image" 
+                                             alt="{{ item.name }}"
+                                             onerror="this.src='https://via.placeholder.com/60x60?text=Product'">
+                                    {% else %}
+                                        <img src="{{ url_for('static', filename='uploads/' + item.image) }}" 
+                                             class="rounded checkout-item-image" 
+                                             alt="{{ item.name }}"
+                                             onerror="this.src='https://via.placeholder.com/60x60?text=Product'">
+                                    {% endif %}
+                                {% else %}
+                                    <img src="https://via.placeholder.com/60x60?text=Product" 
+                                         class="rounded checkout-item-image" 
+                                         alt="{{ item.name }}">
+                                {% endif %}
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h6 class="mb-1">{{ item.name }}</h6>
+                                <div class="text-muted small mb-1">
+                                    <span class="me-2">Qty: {{ item.quantity }}</span>
+                                    {% if item.size %}<span class="me-2">Size: {{ item.size }}</span>{% endif %}
+                                    {% if item.color %}<span>Color: {{ item.color }}</span>{% endif %}
+                                </div>
+                                <p class="mb-0 fw-bold">{{ format_price(item.price * item.quantity) }}</p>
+                                <small class="text-muted">{{ format_price(item.price) }} each</small>
+                            </div>
                         </div>
-                        <div class="flex-grow-1 ms-3">
-                            <h6 class="mb-1">{{ item.name }}</h6>
-                            <small class="text-muted">
-                                Qty: {{ item.quantity }}
-                                {% if item.size %} | Size: {{ item.size }}{% endif %}
-                                {% if item.color %} | Color: {{ item.color }}{% endif %}
-                            </small>
-                            <p class="mb-0">KES {{ item.price * item.quantity }}</p>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Order Summary -->
+                    <div class="order-summary-details">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Subtotal:</span>
+                            <span class="fw-bold">{{ format_price(subtotal) }}</span>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Shipping:</span>
+                            <span class="fw-bold" id="deliveryFee">Calculating...</span>
+                        </div>
+                        
+                        {% if session.user_id %}
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Member Discount:</span>
+                            <span class="text-success">- {{ format_price(0) }}</span>
+                        </div>
+                        {% endif %}
+
+                        <hr class="my-3">
+                        
+                        <div class="d-flex justify-content-between mb-4">
+                            <span class="fw-bold fs-5">Total:</span>
+                            <span class="fw-bold fs-5 text-primary" id="totalAmount">{{ format_price(subtotal) }}</span>
                         </div>
                     </div>
-                    {% endfor %}
-                    
-                    <hr>
-                    
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Subtotal:</span>
-                        <span id="subtotal">KES {{ subtotal }}</span>
-                    </div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Shipping:</span>
-                        <span id="delivery-fee">Calculating...</span>
-                    </div>
-                    <hr>
-                    <div class="d-flex justify-content-between mb-4">
-                        <strong>Total:</strong>
-                        <strong id="total">KES {{ subtotal }}</strong>
-                    </div>
-                    
+
+                    <!-- Shipping Info -->
                     <div class="alert alert-info">
-                        <i class="fas fa-info-circle me-2"></i>
-                        Free shipping for orders over KES 5000 within Embu
+                        <div class="d-flex">
+                            <i class="fas fa-shipping-fast fa-lg me-3"></i>
+                            <div>
+                                <h6 class="mb-1">Delivery Information</h6>
+                                <p class="small mb-0">
+                                    • Free shipping within Embu for orders over KES 5,000<br>
+                                    • Delivery within 3-5 business days<br>
+                                    • Cash on delivery available
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Continue Shopping -->
+                    <div class="text-center">
+                        <a href="{{ url_for('categories') }}" class="text-decoration-none">
+                            <i class="fas fa-plus-circle me-1"></i> Add more items
+                        </a>
                     </div>
                 </div>
             </div>
         </div>
-        
+
         <!-- Checkout Form -->
         <div class="col-lg-8">
-            <div class="card">
+            <div class="card shadow-sm">
                 <div class="card-body">
-                    <form id="checkout-form" method="POST" action="{{ url_for('process_checkout') }}">
+                    <form id="checkoutForm" method="POST" action="{{ url_for('process_checkout') }}">
+                        <!-- Contact Information -->
+                        <div class="mb-5">
+                            <h4 class="mb-4 border-bottom pb-2">
+                                <i class="fas fa-user me-2"></i>Contact Information
+                            </h4>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Full Name *</label>
+                                    <input type="text" class="form-control" name="name" 
+                                           value="{{ user.name if user else '' }}" required
+                                           placeholder="John Doe">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Email Address *</label>
+                                    <input type="email" class="form-control" name="email" 
+                                           value="{{ user.email if user else '' }}" required
+                                           placeholder="john@example.com">
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Phone Number *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">+254</span>
+                                    <input type="tel" class="form-control" name="phone" 
+                                           value="{{ user.phone if user else '' }}" required
+                                           placeholder="712345678" maxlength="9" minlength="9"
+                                           pattern="[0-9]{9}">
+                                </div>
+                                <small class="text-muted">Enter 9 digits without the leading 0</small>
+                            </div>
+                        </div>
+
                         <!-- Shipping Address -->
-                        <h4 class="mb-4">Shipping Address</h4>
-                        
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Full Name *</label>
-                                <input type="text" class="form-control" name="full_name" 
-                                       value="{{ user.name if user else '' }}" required>
+                        <div class="mb-5">
+                            <h4 class="mb-4 border-bottom pb-2">
+                                <i class="fas fa-map-marker-alt me-2"></i>Shipping Address
+                            </h4>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">County *</label>
+                                    <select class="form-select" id="county" name="county" required>
+                                        <option value="">Select your county</option>
+                                        <option value="Embu">Embu</option>
+                                        <option value="Meru">Meru</option>
+                                        <option value="Kirinyaga">Kirinyaga</option>
+                                        <option value="Nairobi">Nairobi</option>
+                                        <option value="Mombasa">Mombasa</option>
+                                        <option value="Kisumu">Kisumu</option>
+                                        <option value="Nakuru">Nakuru</option>
+                                        <option value="Other">Other County</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">City/Town *</label>
+                                    <input type="text" class="form-control" name="city" required
+                                           placeholder="e.g., Embu Town, Nairobi CBD">
+                                </div>
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Email *</label>
-                                <input type="email" class="form-control" name="email" 
-                                       value="{{ user.email if user else '' }}" required>
+                            
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Street Address *</label>
+                                <input type="text" class="form-control" name="street" required
+                                       placeholder="House number, building, street">
                             </div>
-                        </div>
-                        
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Phone Number *</label>
-                                <input type="tel" class="form-control" name="phone" 
-                                       value="{{ user.phone if user else '' }}" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">County *</label>
-                                <select class="form-select" id="county" name="county" required>
-                                    <option value="">Select County</option>
-                                    <option value="Embu">Embu</option>
-                                    <option value="Nairobi">Nairobi</option>
-                                    <option value="Mombasa">Mombasa</option>
-                                    <option value="Kisumu">Kisumu</option>
-                                    <option value="Nakuru">Nakuru</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">City/Town *</label>
-                            <input type="text" class="form-control" name="city" required>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">Street Address *</label>
-                            <input type="text" class="form-control" name="street" 
-                                   placeholder="House number, street name" required>
-                        </div>
-                        
-                        <div class="row mb-4">
-                            <div class="col-md-6">
-                                <label class="form-label">Postal Code</label>
-                                <input type="text" class="form-control" name="postal_code">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Additional Info</label>
-                                <input type="text" class="form-control" name="additional_info" 
-                                       placeholder="Apartment, suite, etc.">
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Postal Code</label>
+                                    <input type="text" class="form-control" name="postal_code"
+                                           placeholder="Optional">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Additional Info</label>
+                                    <input type="text" class="form-control" name="additional_info"
+                                           placeholder="Apartment, suite, floor">
+                                </div>
                             </div>
                         </div>
-                        
+
                         <!-- Payment Method -->
-                        <h4 class="mb-4">Payment Method</h4>
-                        
-                        <div class="mb-4">
-                            <div class="form-check mb-2">
-                                <input class="form-check-input" type="radio" name="payment_method" 
-                                       id="mpesa" value="mpesa" checked>
-                                <label class="form-check-label" for="mpesa">
-                                    <i class="fas fa-mobile-alt me-2"></i> M-Pesa
-                                </label>
+                        <div class="mb-5">
+                            <h4 class="mb-4 border-bottom pb-2">
+                                <i class="fas fa-credit-card me-2"></i>Payment Method
+                            </h4>
+                            
+                            <div class="payment-methods">
+                                <div class="form-check payment-method-card mb-3" data-method="mpesa">
+                                    <input class="form-check-input" type="radio" name="payment_method" 
+                                           id="mpesa" value="mpesa" checked required>
+                                    <label class="form-check-label w-100" for="mpesa">
+                                        <div class="d-flex align-items-center">
+                                            <div class="payment-icon bg-success">
+                                                <i class="fas fa-mobile-alt"></i>
+                                            </div>
+                                            <div class="ms-3">
+                                                <h6 class="mb-1">M-Pesa</h6>
+                                                <p class="small text-muted mb-0">
+                                                    Pay via M-Pesa. You'll receive a payment request.
+                                                </p>
+                                            </div>
+                                            <div class="ms-auto">
+                                                <span class="badge bg-success">Recommended</span>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+                                
+                                <div class="form-check payment-method-card mb-3" data-method="paystack">
+                                    <input class="form-check-input" type="radio" name="payment_method" 
+                                           id="paystack" value="paystack">
+                                    <label class="form-check-label w-100" for="paystack">
+                                        <div class="d-flex align-items-center">
+                                            <div class="payment-icon bg-primary">
+                                                <i class="fas fa-credit-card"></i>
+                                            </div>
+                                            <div class="ms-3">
+                                                <h6 class="mb-1">Paystack (Card/Bank)</h6>
+                                                <p class="small text-muted mb-0">
+                                                    Pay with card or bank transfer securely.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+                                
+                                <div class="form-check payment-method-card" data-method="cod">
+                                    <input class="form-check-input" type="radio" name="payment_method" 
+                                           id="cod" value="cod">
+                                    <label class="form-check-label w-100" for="cod">
+                                        <div class="d-flex align-items-center">
+                                            <div class="payment-icon bg-warning">
+                                                <i class="fas fa-money-bill-wave"></i>
+                                            </div>
+                                            <div class="ms-3">
+                                                <h6 class="mb-1">Cash on Delivery</h6>
+                                                <p class="small text-muted mb-0">
+                                                    Pay when your order arrives (Cash only).
+                                                </p>
+                                            </div>
+                                            <div class="ms-auto">
+                                                <span class="badge bg-info">+KES 50 fee</span>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
                             </div>
                             
-                            <div class="form-check mb-2">
-                                <input class="form-check-input" type="radio" name="payment_method" 
-                                       id="airtel" value="airtel">
-                                <label class="form-check-label" for="airtel">
-                                    <i class="fas fa-sim-card me-2"></i> Airtel Money
-                                </label>
+                            <!-- Payment Method Details -->
+                            <div id="mpesaDetails" class="payment-details mt-4">
+                                <div class="alert alert-success">
+                                    <div class="d-flex">
+                                        <i class="fas fa-info-circle fa-lg me-3"></i>
+                                        <div>
+                                            <h6 class="mb-1">How M-Pesa payment works:</h6>
+                                            <ol class="mb-0 small">
+                                                <li>Enter your phone number above (must be M-Pesa registered)</li>
+                                                <li>Complete checkout</li>
+                                                <li>You'll receive an M-Pesa prompt on your phone</li>
+                                                <li>Enter your M-Pesa PIN to complete payment</li>
+                                            </ol>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="payment_method" 
-                                       id="card" value="card" disabled>
-                                <label class="form-check-label" for="card">
-                                    <i class="fas fa-credit-card me-2"></i> Credit/Debit Card (Coming Soon)
-                                </label>
+                            <div id="paystackDetails" class="payment-details mt-4" style="display: none;">
+                                <div class="alert alert-primary">
+                                    <div class="d-flex">
+                                        <i class="fas fa-shield-alt fa-lg me-3"></i>
+                                        <div>
+                                            <h6 class="mb-1">Secure Paystack Payment</h6>
+                                            <p class="mb-0 small">
+                                                You'll be redirected to Paystack's secure payment page to complete your transaction with card or bank transfer.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div id="codDetails" class="payment-details mt-4" style="display: none;">
+                                <div class="alert alert-warning">
+                                    <div class="d-flex">
+                                        <i class="fas fa-exclamation-triangle fa-lg me-3"></i>
+                                        <div>
+                                            <h6 class="mb-1">Cash on Delivery Information:</h6>
+                                            <ul class="mb-0 small">
+                                                <li>KES 50 cash handling fee applies</li>
+                                                <li>Exact change is appreciated</li>
+                                                <li>Available only in select areas</li>
+                                                <li>Order may be delayed by 1-2 business days</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        
-                        <!-- Payment Details -->
-                        <div id="mpesa-details" class="payment-details mb-4">
-                            <div class="alert alert-warning">
-                                <i class="fas fa-exclamation-triangle me-2"></i>
-                                You will receive a payment request on your M-Pesa number
-                            </div>
-                        </div>
-                        
-                        <div id="airtel-details" class="payment-details mb-4" style="display: none;">
-                            <div class="alert alert-warning">
-                                <i class="fas fa-exclamation-triangle me-2"></i>
-                                You will receive a payment request on your Airtel Money number
-                            </div>
-                        </div>
-                        
+
                         <!-- Terms and Conditions -->
-                        <div class="form-check mb-4">
-                            <input class="form-check-input" type="checkbox" id="terms" required>
-                            <label class="form-check-label" for="terms">
-                                I agree to the <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal">Terms and Conditions</a> *
-                            </label>
+                        <div class="mb-5">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="terms" required>
+                                <label class="form-check-label" for="terms">
+                                    I agree to the <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal">Terms and Conditions</a> 
+                                    and confirm that my shipping information is correct. *
+                                </label>
+                            </div>
+                            
+                            <div class="form-check mt-2">
+                                <input class="form-check-input" type="checkbox" id="newsletter">
+                                <label class="form-check-label" for="newsletter">
+                                    Sign up for our newsletter to receive updates and special offers
+                                </label>
+                            </div>
                         </div>
-                        
-                        <!-- Navigation -->
-                        <div class="d-flex justify-content-between">
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex justify-content-between pt-4 border-top">
                             <a href="{{ url_for('cart') }}" class="btn btn-outline-primary">
                                 <i class="fas fa-arrow-left me-2"></i> Back to Cart
                             </a>
-                            <button type="submit" class="btn btn-success btn-lg">
-                                <i class="fas fa-lock me-2"></i> Complete Order
+                            <button type="submit" class="btn btn-success btn-lg px-5" id="placeOrderBtn">
+                                <i class="fas fa-lock me-2"></i> Place Order
                             </button>
                         </div>
                     </form>
+                </div>
+            </div>
+            
+            <!-- Security Badges -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card bg-light border-0">
+                        <div class="card-body text-center py-3">
+                            <div class="row align-items-center">
+                                <div class="col-md-4 mb-3 mb-md-0">
+                                    <i class="fas fa-shield-alt fa-2x text-primary me-2"></i>
+                                    <span class="fw-bold">100% Secure</span>
+                                </div>
+                                <div class="col-md-4 mb-3 mb-md-0">
+                                    <i class="fas fa-lock fa-2x text-primary me-2"></i>
+                                    <span class="fw-bold">SSL Encrypted</span>
+                                </div>
+                                <div class="col-md-4">
+                                    <i class="fas fa-undo fa-2x text-primary me-2"></i>
+                                    <span class="fw-bold">30-Day Returns</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -211,25 +401,35 @@
 <div class="modal fade" id="termsModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Terms and Conditions</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-file-contract me-2"></i>Terms and Conditions</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <h6>1. Order Acceptance</h6>
-                <p>Your order is subject to acceptance by MUFRA FASHIONS. We reserve the right to refuse service to anyone for any reason at any time.</p>
+                <div class="mb-4">
+                    <h6 class="fw-bold mb-3">1. Order Acceptance</h6>
+                    <p class="text-muted">Your order is subject to acceptance by MUFRA FASHIONS. We reserve the right to refuse service to anyone for any reason at any time.</p>
+                </div>
                 
-                <h6>2. Pricing and Payment</h6>
-                <p>All prices are in Kenyan Shillings (KES). Payment must be made in full before order processing.</p>
+                <div class="mb-4">
+                    <h6 class="fw-bold mb-3">2. Pricing and Payment</h6>
+                    <p class="text-muted">All prices are in Kenyan Shillings (KES). Payment must be made in full before order processing. Delivery fees vary by location: KES 100 within Embu, KES 200 elsewhere. Free shipping for orders over KES 5,000 within Embu.</p>
+                </div>
                 
-                <h6>3. Shipping</h6>
-                <p>Delivery fees vary by location. Within Embu: KES 100, Outside Embu: KES 200. Free shipping for orders over KES 5000 within Embu.</p>
+                <div class="mb-4">
+                    <h6 class="fw-bold mb-3">3. Shipping and Delivery</h6>
+                    <p class="text-muted">Orders are typically processed within 24 hours and delivered within 3-5 business days. Delivery times may vary based on location and availability.</p>
+                </div>
                 
-                <h6>4. Returns & Refunds</h6>
-                <p>Returns accepted within 30 days of delivery. Items must be in original condition with tags attached.</p>
+                <div class="mb-4">
+                    <h6 class="fw-bold mb-3">4. Returns & Refunds</h6>
+                    <p class="text-muted">Returns accepted within 30 days of delivery. Items must be in original condition with tags attached. Refunds are processed within 7-14 business days.</p>
+                </div>
                 
-                <h6>5. Privacy</h6>
-                <p>Your personal information is protected according to our privacy policy.</p>
+                <div class="mb-4">
+                    <h6 class="fw-bold mb-3">5. Privacy Policy</h6>
+                    <p class="text-muted">We respect your privacy. Your personal information is used only for order processing and delivery. We never share your information with third parties.</p>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -240,11 +440,134 @@
 
 {% block extra_css %}
 <style>
-.payment-details {
-    padding: 1rem;
+.progress-steps {
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+}
+
+.progress-steps::before {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background-color: #dee2e6;
+    z-index: 1;
+}
+
+.step {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    flex: 1;
+}
+
+.step-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #dee2e6;
+    color: #6c757d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin: 0 auto 10px;
+    border: 3px solid white;
+}
+
+.step.active .step-circle {
+    background-color: #0d6efd;
+    color: white;
+}
+
+.step.completed .step-circle {
+    background-color: #198754;
+    color: white;
+}
+
+.step-label {
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.checkout-item-image {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+}
+
+.payment-method-card {
+    border: 2px solid #dee2e6;
+    border-radius: 10px;
+    padding: 15px;
+    transition: all 0.3s;
+    cursor: pointer;
+}
+
+.payment-method-card:hover {
+    border-color: #0d6efd;
     background-color: #f8f9fa;
-    border-radius: 5px;
-    border-left: 4px solid #0d6efd;
+}
+
+.payment-method-card .form-check-input:checked ~ .form-check-label {
+    color: #0d6efd;
+}
+
+.payment-method-card .form-check-input:checked {
+    border-color: #0d6efd;
+    background-color: #0d6efd;
+}
+
+.payment-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+}
+
+.payment-details {
+    animation: fadeIn 0.5s;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.sticky-top {
+    position: -webkit-sticky;
+    position: sticky;
+    top: 20px;
+}
+
+@media (max-width: 768px) {
+    .progress-steps {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .progress-steps::before {
+        display: none;
+    }
+    
+    .step {
+        display: flex;
+        align-items: center;
+        margin-bottom: 15px;
+        width: 100%;
+    }
+    
+    .step-circle {
+        margin: 0 15px 0 0;
+        flex-shrink: 0;
+    }
 }
 </style>
 {% endblock %}
@@ -252,23 +575,38 @@
 {% block extra_js %}
 <script>
 $(document).ready(function() {
-    // Calculate initial delivery fee
+    // Initialize delivery fee calculation
     calculateDeliveryFee();
     
     // Payment method selection
-    $('input[name="payment_method"]').change(function() {
-        $('.payment-details').hide();
-        $('#' + $(this).val() + '-details').show();
+    $('.payment-method-card').click(function() {
+        const method = $(this).data('method');
+        $('#' + method).prop('checked', true);
+        showPaymentDetails(method);
     });
+    
+    // Show payment method details
+    function showPaymentDetails(method) {
+        $('.payment-details').hide();
+        $('#' + method + 'Details').show();
+        
+        // Update COD fee if selected
+        if (method === 'cod') {
+            updateCODTotal();
+        } else {
+            calculateDeliveryFee();
+        }
+    }
     
     // County change for delivery fee
     $('#county').change(calculateDeliveryFee);
     
+    // Calculate delivery fee and total
     function calculateDeliveryFee() {
-        const county = $('#county').val().toLowerCase();
+        const county = $('#county').val();
         let deliveryFee = 200; // Default outside Embu
         
-        if (county.includes('embu')) {
+        if (county && county.toLowerCase().includes('embu')) {
             deliveryFee = 100;
             // Check for free shipping
             const subtotal = {{ subtotal }};
@@ -277,31 +615,115 @@ $(document).ready(function() {
             }
         }
         
-        $('#delivery-fee').text('KES ' + deliveryFee);
+        // Add COD fee if selected
+        if ($('#cod').is(':checked')) {
+            deliveryFee += 50;
+        }
+        
+        const formattedFee = 'KES ' + deliveryFee.toLocaleString();
+        $('#deliveryFee').text(formattedFee);
         
         // Calculate total
         const total = {{ subtotal }} + deliveryFee;
-        $('#total').text('KES ' + total);
+        const formattedTotal = 'KES ' + total.toLocaleString();
+        $('#totalAmount').text(formattedTotal);
+        
+        return deliveryFee;
     }
     
-    // Form validation
-    $('#checkout-form').submit(function(e) {
+    // Update total for COD
+    function updateCODTotal() {
+        calculateDeliveryFee();
+    }
+    
+    // Form validation and submission
+    $('#checkoutForm').submit(function(e) {
+        e.preventDefault();
+        
+        // Validate required fields
         const county = $('#county').val();
         if (!county) {
-            e.preventDefault();
-            showToast('Error', 'Please select your county', 'error');
+            showToast('Error', 'Please select your county', 'danger');
             $('#county').focus();
             return false;
         }
         
         if (!$('#terms').is(':checked')) {
-            e.preventDefault();
-            showToast('Error', 'Please accept the terms and conditions', 'error');
+            showToast('Error', 'Please accept the terms and conditions', 'danger');
             return false;
         }
         
         // Show processing
-        $(this).find('button[type="submit"]').html('<span class="loading"></span> Processing...');
+        const button = $('#placeOrderBtn');
+        const originalText = button.html();
+        button.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>Processing...');
+        
+        // Submit form via AJAX
+        $.ajax({
+            type: 'POST',
+            url: $(this).attr('action'),
+            data: $(this).serialize(),
+            success: function(response) {
+                if (response.success) {
+                    showToast('Success', response.message, 'success');
+                    // Redirect to order confirmation
+                    setTimeout(() => {
+                        window.location.href = "{{ url_for('order_confirmation', order_id='') }}" + response.order_id;
+                    }, 1500);
+                } else {
+                    showToast('Error', response.message, 'danger');
+                    button.prop('disabled', false).html(originalText);
+                }
+            },
+            error: function(xhr, status, error) {
+                showToast('Error', 'Network error. Please try again.', 'danger');
+                button.prop('disabled', false).html(originalText);
+            }
+        });
+    });
+    
+    // Toast notification function
+    function showToast(title, message, type) {
+        // Remove existing toasts
+        $('.toast-container').remove();
+        
+        const toastHtml = `
+            <div class="toast-container position-fixed top-0 end-0 p-3">
+                <div class="toast show" role="alert">
+                    <div class="toast-header bg-${type} text-white">
+                        <strong class="me-auto">${title}</strong>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+                    </div>
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        $('body').append(toastHtml);
+        
+        // Auto remove after 3 seconds
+        setTimeout(() => {
+            $('.toast-container').remove();
+        }, 3000);
+    }
+    
+    // Auto-fill city based on county
+    $('#county').change(function() {
+        const county = $(this).val();
+        if (county && county !== 'Other') {
+            $('input[name="city"]').val(county + ' Town');
+        }
+    });
+    
+    // Phone number formatting
+    $('input[name="phone"]').on('input', function() {
+        let value = $(this).val().replace(/\D/g, '');
+        if (value.length > 9) {
+            value = value.substring(0, 9);
+        }
+        $(this).val(value);
     });
 });
 </script>

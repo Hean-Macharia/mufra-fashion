@@ -904,6 +904,7 @@ def order_confirmation(order_id):
         flash('Error loading order confirmation', 'danger')
         return redirect(url_for('home'))
     
+
 @app.route('/debug-order/<order_id>')
 @login_required
 def debug_order(order_id):
@@ -1113,7 +1114,13 @@ def login():
                             session.pop('cart', None)
                         
                         flash('Login successful!', 'success')
-                        return redirect(url_for('home'))
+                        
+                        # Redirect admin users to admin panel
+                        if user.get('role') == 'admin':
+                            return redirect(url_for('admin_dashboard'))
+                        else:
+                            return redirect(url_for('home'))
+                            
                     else:
                         flash('Invalid email or password', 'danger')
                 except Exception as hash_error:
@@ -1132,7 +1139,12 @@ def login():
                         session['user_role'] = user.get('role', 'customer')
                         
                         flash('Login successful! Password has been secured.', 'success')
-                        return redirect(url_for('home'))
+                        
+                        # Redirect admin users to admin panel
+                        if user.get('role') == 'admin':
+                            return redirect(url_for('admin_dashboard'))
+                        else:
+                            return redirect(url_for('home'))
                     else:
                         flash('Invalid email or password', 'danger')
             else:
@@ -1143,7 +1155,6 @@ def login():
         print(f"Error in login: {e}")
         flash('Error during login', 'danger')
         return render_template('login.html')
-
 @app.route('/logout')
 def logout():
     """User logout"""
@@ -1315,15 +1326,27 @@ def admin_dashboard():
         total_orders = orders_collection.count_documents({})
         total_products = products_collection.count_documents({})
         total_users = users_collection.count_documents({'role': 'customer'})
+        
+        # Get recent orders with user information
         recent_orders = list(orders_collection.find().sort('created_at', -1).limit(10))
         
+        # Add user information to each order
+        for order in recent_orders:
+            user = users_collection.find_one({'_id': order['user_id']})
+            order['user_name'] = user.get('name', 'Unknown') if user else 'Unknown'
+            order['user_email'] = user.get('email', 'N/A') if user else 'N/A'
+        
         # Calculate revenue
-        revenue_cursor = orders_collection.aggregate([
-            {'$match': {'status': 'delivered'}},
-            {'$group': {'_id': None, 'total': {'$sum': '$total'}}}
-        ])
-        revenue_result = list(revenue_cursor)
-        total_revenue = revenue_result[0]['total'] if revenue_result else 0
+        try:
+            revenue_cursor = orders_collection.aggregate([
+                {'$match': {'status': 'delivered'}},
+                {'$group': {'_id': None, 'total': {'$sum': '$total'}}}
+            ])
+            revenue_result = list(revenue_cursor)
+            total_revenue = revenue_result[0]['total'] if revenue_result else 0
+        except Exception as agg_error:
+            print(f"Aggregation error: {agg_error}")
+            total_revenue = 0
         
         return render_template('admin/dashboard.html',
                              total_orders=total_orders,
@@ -1333,9 +1356,27 @@ def admin_dashboard():
                              recent_orders=recent_orders)
     except Exception as e:
         print(f"Error in admin_dashboard: {e}")
+        print(f"Error type: {type(e).__name__}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
+        
         flash('Error loading admin dashboard', 'danger')
         return redirect(url_for('home'))
-
+    
+@app.route('/debug-categories')
+@admin_required
+def debug_categories():
+    """Debug categories"""
+    try:
+        categories_collection = get_collection('categories')
+        categories = list(categories_collection.find({}))
+        
+        return jsonify({
+            'total_categories': len(categories),
+            'categories': categories
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)})
 @app.route('/admin/products')
 @admin_required
 def admin_products():
@@ -1369,13 +1410,22 @@ def add_product():
             colors = request.form.getlist('colors[]')
             
             # Handle image upload
-            image = ''
+            image_url = ''
             if 'image' in request.files:
                 file = request.files['image']
                 if file and allowed_file(file.filename):
                     filename = secure_filename(file.filename)
-                    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                    image = filename
+                    # Save file
+                    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                    file.save(file_path)
+                    # Create URL for the image
+                    image_url = f"/static/uploads/{filename}"
+                elif request.form.get('image_url'):  # Allow URL input as alternative
+                    image_url = request.form.get('image_url', '').strip()
+            
+            # If no image uploaded, use a placeholder
+            if not image_url:
+                image_url = 'https://via.placeholder.com/400x300?text=Product+Image'
             
             # Create product
             products_collection = get_collection('products')
@@ -1389,7 +1439,7 @@ def add_product():
                 'stock': stock,
                 'sizes': sizes,
                 'colors': colors,
-                'image': image,
+                'image': image_url,  # Use full URL/path
                 'featured': bool(request.form.get('featured')),
                 'rating': 0,
                 'reviews_count': 0,
@@ -1436,13 +1486,16 @@ def edit_product(product_id):
                 'updated_at': datetime.utcnow()
             }
             
-            # Handle image upload
+            # Handle image upload or URL
             if 'image' in request.files:
                 file = request.files['image']
                 if file and allowed_file(file.filename):
                     filename = secure_filename(file.filename)
-                    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                    update_data['image'] = filename
+                    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                    file.save(file_path)
+                    update_data['image'] = f"/static/uploads/{filename}"
+            elif request.form.get('image_url'):  # Allow URL input
+                update_data['image'] = request.form.get('image_url', '').strip()
             
             products_collection.update_one(
                 {'_id': ObjectId(product_id)},
@@ -1547,11 +1600,39 @@ def search():
         print(f"Error in search: {e}")
         return render_template('search_results.html', products=[], query=query)
 
-@app.route('/contact')
+@app.route('/contact', methods=['GET', 'POST'])
 def contact():
     """Contact page"""
+    if request.method == 'POST':
+        try:
+            # Get form data
+            name = request.form.get('name', '').strip()
+            email = request.form.get('email', '').strip()
+            phone = request.form.get('phone', '').strip()
+            subject = request.form.get('subject', '').strip()
+            order_number = request.form.get('order_number', '').strip()
+            message = request.form.get('message', '').strip()
+            
+            # Validate
+            if not all([name, email, message]):
+                flash('Please fill in all required fields', 'danger')
+                return redirect(url_for('contact'))
+            
+            # Here you would typically:
+            # 1. Save to database
+            # 2. Send email to admin
+            # 3. Send confirmation email to user
+            
+            # For now, just show success message
+            flash('Thank you for your message! We\'ll get back to you within 24 hours.', 'success')
+            return redirect(url_for('contact'))
+            
+        except Exception as e:
+            print(f"Error in contact form: {e}")
+            flash('Error sending message. Please try again.', 'danger')
+            return redirect(url_for('contact'))
+    
     return render_template('contact.html')
-
 @app.route('/resend-otp', methods=['POST'])
 def resend_otp():
     """Resend OTP"""
@@ -1598,6 +1679,7 @@ def internal_error(error):
 @app.context_processor
 def utility_processor():
     """Make utility functions available in templates"""
+    
     def safe_get(obj, key, default=None):
         """Safely get a value from a dictionary or object"""
         if isinstance(obj, dict):
@@ -1606,17 +1688,179 @@ def utility_processor():
             return getattr(obj, key, default)
         return default
     
+    def get_product_image(product):
+        """Get product image URL, with fallback"""
+        if not product:
+            return 'https://via.placeholder.com/400x300?text=Product+Image'
+        
+        image = safe_get(product, 'image', '')
+        if not image:
+            return 'https://via.placeholder.com/400x300?text=Product+Image'
+        
+        # If it's already a full URL or starts with /static, return as is
+        if image.startswith('http') or image.startswith('/static'):
+            return image
+        
+        # Otherwise, assume it's in uploads folder
+        return f"/static/uploads/{image}"
+    
+    def get_user_by_id(user_id):
+        """Get user by ID - for use in templates"""
+        try:
+            users_collection = get_collection('users')
+            user = users_collection.find_one({'_id': ObjectId(user_id)})
+            return user
+        except:
+            return None
+    
+    def get_cart_count():
+        """Get cart count for current user"""
+        try:
+            if 'user_id' in session:
+                users_collection = get_collection('users')
+                user = users_collection.find_one({'_id': ObjectId(session['user_id'])})
+                return len(user.get('cart', [])) if user else 0
+            else:
+                return len(session.get('cart', []))
+        except:
+            return 0
+    
+    def get_wishlist_count():
+        """Get wishlist count for current user"""
+        try:
+            if 'user_id' in session:
+                users_collection = get_collection('users')
+                user = users_collection.find_one({'_id': ObjectId(session['user_id'])})
+                return len(user.get('wishlist', [])) if user else 0
+            else:
+                return 0
+        except:
+            return 0
+    
+    def format_price(price):
+        """Format price with KES currency"""
+        try:
+            if price is None:
+                return "KES 0"
+            return f"KES {int(float(price)):,}"
+        except (ValueError, TypeError):
+            try:
+                return f"KES {price}"
+            except:
+                return "KES 0"
+    
+    def format_date(date, format='%B %d, %Y'):
+        """Format datetime object"""
+        try:
+            if date:
+                return date.strftime(format)
+            return "N/A"
+        except:
+            return "N/A"
+    
+    def get_order_status_badge(status):
+        """Get Bootstrap badge class for order status"""
+        status_map = {
+            'pending': 'warning',
+            'processing': 'info',
+            'paid': 'primary',
+            'shipped': 'secondary',
+            'delivered': 'success',
+            'cancelled': 'danger'
+        }
+        return status_map.get(status.lower(), 'secondary')
+    
+    def get_product_stock_status(stock):
+        """Get stock status text and color"""
+        try:
+            stock_int = int(stock)
+            if stock_int == 0:
+                return {'text': 'Out of Stock', 'color': 'danger'}
+            elif stock_int <= 10:
+                return {'text': f'Only {stock_int} left', 'color': 'warning'}
+            elif stock_int <= 50:
+                return {'text': 'In Stock', 'color': 'info'}
+            else:
+                return {'text': 'In Stock', 'color': 'success'}
+        except:
+            return {'text': 'Stock info unavailable', 'color': 'secondary'}
+    
+    def truncate_text(text, length=100):
+        """Truncate text to specified length"""
+        if not text:
+            return ""
+        if len(text) <= length:
+            return text
+        return text[:length] + "..."
+    
+    def get_current_year():
+        """Get current year"""
+        return datetime.now().year
+    
+    def get_user_role_badge(role):
+        """Get badge for user role"""
+        role_badges = {
+            'admin': 'danger',
+            'customer': 'primary',
+            'vendor': 'success',
+            'staff': 'info'
+        }
+        return role_badges.get(role, 'secondary')
+    
+    def get_payment_method_badge(method):
+        """Get badge for payment method"""
+        method_badges = {
+            'mpesa': 'success',
+            'paystack': 'primary',
+            'cash': 'warning',
+            'card': 'info'
+        }
+        return method_badges.get(method.lower() if method else '', 'secondary')
+    
+    def calculate_subtotal(cart_items):
+        """Calculate subtotal from cart items"""
+        try:
+            total = 0
+            for item in cart_items:
+                price = safe_get(item, 'price', 0)
+                quantity = safe_get(item, 'quantity', 1)
+                total += float(price) * int(quantity)
+            return total
+        except:
+            return 0
+    
     return dict(
+        # Built-in functions
         enumerate=enumerate,
         len=len,
         str=str,
         int=int,
         float=float,
+        list=list,
+        range=range,
+        
+        # Custom helper functions
         safe_get=safe_get,
+        get_product_image=get_product_image,
+        get_user_by_id=get_user_by_id,
+        get_cart_count=get_cart_count,
+        get_wishlist_count=get_wishlist_count,
+        format_price=format_price,
+        format_date=format_date,
+        get_order_status_badge=get_order_status_badge,
+        get_product_stock_status=get_product_stock_status,
+        truncate_text=truncate_text,
+        get_current_year=get_current_year,
+        get_user_role_badge=get_user_role_badge,
+        get_payment_method_badge=get_payment_method_badge,
+        calculate_subtotal=calculate_subtotal,
+        
+        # Other utilities
         datetime=datetime,
-        get_collection=get_collection
+        get_collection=get_collection,
+        request=request,
+        session=session
     )
-
 # ========== APPLICATION STARTUP ==========
 
 if __name__ == '__main__':

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Home - Trendy Fashion at Affordable Prices{% endblock %}
+{% block title %}Home - MUFRA FASHIONS{% endblock %}
 
 {% block content %}
 <!-- Hero Section -->
@@ -10,9 +10,20 @@
             <div class="col-md-6">
                 <h1 class="display-4 fw-bold mb-3">Discover Your Style with MUFRA FASHIONS</h1>
                 <p class="lead mb-4">Trendy shoes and clothing for every occasion. Quality products at unbeatable prices.</p>
-                <a href="{{ url_for('categories') }}" class="btn btn-primary btn-lg">
-                    <i class="fas fa-shopping-bag me-2"></i>Shop Now
-                </a>
+                <div class="d-flex flex-wrap gap-3">
+                    <a href="{{ url_for('categories') }}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-shopping-bag me-2"></i>Shop Now
+                    </a>
+                    {% if session.user_id %}
+                    <a href="{{ url_for('account') }}" class="btn btn-outline-primary btn-lg">
+                        <i class="fas fa-user me-2"></i>My Account
+                    </a>
+                    {% else %}
+                    <a href="{{ url_for('register') }}" class="btn btn-outline-primary btn-lg">
+                        <i class="fas fa-user-plus me-2"></i>Join Now
+                    </a>
+                    {% endif %}
+                </div>
             </div>
             <div class="col-md-6">
                 <img src="https://images.unsplash.com/photo-1445205170230-053b83016050?ixlib=rb-1.2.1&auto=format&fit=crop&w=1000&q=80" 
@@ -23,141 +34,510 @@
 </section>
 
 <!-- Featured Products -->
-<section class="featured-section">
+<section class="featured-section mb-5">
     <div class="container">
-        <h2 class="text-center mb-4">Featured Products</h2>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="mb-0">Featured Products</h2>
+            <a href="{{ url_for('categories') }}" class="btn btn-outline-primary">
+                View All <i class="fas fa-arrow-right ms-2"></i>
+            </a>
+        </div>
+        
+        {% if featured_products %}
         <div class="row">
             {% for product in featured_products %}
-                {% set product_rating = safe_get(product, 'rating', 0) %}
-                {% set product_reviews = safe_get(product, 'reviews_count', 0) %}
-                {% set product_image = safe_get(product, 'image', '') %}
-                {% set product_name = safe_get(product, 'name', 'Unnamed Product') %}
-                {% set product_description = safe_get(product, 'description', 'No description available') %}
-                {% set product_category = safe_get(product, 'category', 'Uncategorized') %}
-                {% set product_price = safe_get(product, 'price', 0) %}
-                {% set product_sizes = safe_get(product, 'sizes', ['M']) %}
-                {% set product_colors = safe_get(product, 'colors', ['Blue']) %}
-                {% set product_id = safe_get(product, '_id', '') %}
-                
-                <div class="col-md-3 col-sm-6 mb-4">
-                    <div class="card h-100">
-                        <div class="position-relative">
-                            <img src="{{ url_for('static', filename='uploads/' + product_image) if product_image else 'https://via.placeholder.com/300x200?text=Product' }}" 
-                                 class="card-img-top product-image" alt="{{ product_name }}">
-                            <span class="badge bg-primary category-badge">{{ product_category }}</span>
+            <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="position-relative">
+                        <a href="{{ url_for('product_details', product_id=product._id) if product._id else '#' }}">
+                            <!-- Using get_product_image helper -->
+                            <img src="{{ get_product_image(product) }}" 
+                                 class="card-img-top product-image" 
+                                 alt="{{ safe_get(product, 'name', 'Product') }}"
+                                 onerror="this.src='https://via.placeholder.com/400x300?text=Product'">
+                        </a>
+                        <span class="badge bg-primary category-badge">
+                            {{ safe_get(product, 'category', 'Uncategorized') }}
+                        </span>
+                        {% if safe_get(product, 'featured', False) %}
+                        <span class="badge bg-warning position-absolute top-0 end-0 m-2">
+                            <i class="fas fa-star me-1"></i>Featured
+                        </span>
+                        {% endif %}
+                        {% set stock = safe_get(product, 'stock', 0)|int %}
+                        {% if stock == 0 %}
+                        <div class="position-absolute top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 d-flex align-items-center justify-content-center">
+                            <span class="badge bg-danger">Out of Stock</span>
                         </div>
-                        <div class="card-body">
-                            <h5 class="card-title">{{ product_name }}</h5>
-                            <p class="card-text text-muted">{{ product_description[:50] }}...</p>
-                            <div class="rating mb-2">
-                                {% for i in range(5) %}
-                                    {% if i < product_rating|int %}
-                                        <i class="fas fa-star"></i>
-                                    {% else %}
-                                        <i class="far fa-star"></i>
-                                    {% endif %}
-                                {% endfor %}
-                                <small class="text-muted">({{ product_reviews }})</small>
-                            </div>
-                            <p class="price mb-3">KES {{ product_price }}</p>
-                            <div class="d-grid gap-2">
-                                {% if product_id %}
-                                <a href="{{ url_for('product_details', product_id=product_id) }}" 
-                                   class="btn btn-outline-primary">
-                                    <i class="fas fa-eye"></i> View Details
-                                </a>
-                                <form action="{{ url_for('add_to_cart', product_id=product_id) }}" 
-                                      method="POST" class="add-to-cart-form">
-                                    <input type="hidden" name="size" value="{{ product_sizes[0] if product_sizes else 'M' }}">
-                                    <input type="hidden" name="color" value="{{ product_colors[0] if product_colors else 'Blue' }}">
-                                    <input type="hidden" name="quantity" value="1">
-                                    <button type="submit" class="btn btn-primary w-100">
-                                        <i class="fas fa-cart-plus"></i> Add to Cart
-                                    </button>
-                                </form>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <a href="{{ url_for('product_details', product_id=product._id) if product._id else '#' }}" 
+                               class="text-decoration-none text-dark">
+                                {{ safe_get(product, 'name', 'Unnamed Product') }}
+                            </a>
+                        </h5>
+                        <p class="card-text text-muted small mb-2">
+                            {{ truncate_text(safe_get(product, 'description', ''), 60) }}
+                        </p>
+                        
+                        <!-- Rating -->
+                        <div class="rating mb-2">
+                            {% set product_rating = safe_get(product, 'rating', 0) %}
+                            {% set product_reviews = safe_get(product, 'reviews_count', 0) %}
+                            
+                            {% for i in range(5) %}
+                                {% if i < product_rating|int %}
+                                    <i class="fas fa-star text-warning"></i>
                                 {% else %}
-                                <button class="btn btn-outline-secondary" disabled>
-                                    <i class="fas fa-eye"></i> View Details
-                                </button>
-                                <button class="btn btn-secondary w-100" disabled>
-                                    <i class="fas fa-cart-plus"></i> Add to Cart
-                                </button>
+                                    <i class="far fa-star text-warning"></i>
                                 {% endif %}
+                            {% endfor %}
+                            <small class="text-muted ms-2">({{ product_reviews }})</small>
+                        </div>
+                        
+                        <!-- Price and Stock -->
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h4 class="price mb-0">{{ format_price(safe_get(product, 'price', 0)) }}</h4>
+                                <small class="text-muted">
+                                    {% set stock_status = get_product_stock_status(safe_get(product, 'stock', 0)) %}
+                                    <span class="text-{{ stock_status.color }}">
+                                        <i class="fas fa-{{ 'check-circle' if stock_status.color == 'success' else 'times-circle' }} me-1"></i>
+                                        {{ stock_status.text }}
+                                    </span>
+                                </small>
                             </div>
+                            {% if stock > 0 and product._id %}
+                            <form action="{{ url_for('add_to_cart', product_id=product._id) }}" 
+                                  method="POST" class="add-to-cart-form">
+                                <input type="hidden" name="size" value="{{ safe_get(product, 'sizes', ['M'])[0] }}">
+                                <input type="hidden" name="color" value="{{ safe_get(product, 'colors', ['Blue'])[0] }}">
+                                <input type="hidden" name="quantity" value="1">
+                                <button type="submit" class="btn btn-primary btn-sm" title="Add to Cart">
+                                    <i class="fas fa-cart-plus"></i>
+                                </button>
+                            </form>
+                            {% elif not product._id %}
+                            <button class="btn btn-secondary btn-sm" disabled title="Product unavailable">
+                                <i class="fas fa-ban"></i>
+                            </button>
+                            {% else %}
+                            <button class="btn btn-danger btn-sm" disabled title="Out of Stock">
+                                <i class="fas fa-times"></i>
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="card-footer bg-white border-top-0 pt-0">
+                        <div class="d-flex justify-content-between">
+                            <small class="text-muted">
+                                {% set sizes = safe_get(product, 'sizes', []) %}
+                                {% if sizes %}
+                                <i class="fas fa-ruler me-1"></i>
+                                {% for size in sizes[:3] %}
+                                    {{ size }}{% if not loop.last %}, {% endif %}
+                                {% endfor %}
+                                {% if sizes|length > 3 %}...{% endif %}
+                                {% endif %}
+                            </small>
+                            <small class="text-muted">
+                                {% set colors = safe_get(product, 'colors', []) %}
+                                {% if colors %}
+                                <i class="fas fa-palette me-1"></i>
+                                {% for color in colors[:2] %}
+                                    {{ color }}{% if not loop.last %}, {% endif %}
+                                {% endfor %}
+                                {% if colors|length > 2 %}...{% endif %}
+                                {% endif %}
+                            </small>
                         </div>
                     </div>
                 </div>
+            </div>
             {% endfor %}
         </div>
+        {% else %}
+        <!-- No Featured Products -->
+        <div class="text-center py-5">
+            <i class="fas fa-box-open fa-3x text-muted mb-4"></i>
+            <h3>No featured products available</h3>
+            <p class="text-muted mb-4">Check back soon for new arrivals!</p>
+            <a href="{{ url_for('categories') }}" class="btn btn-primary">
+                <i class="fas fa-shopping-bag me-2"></i>Browse All Products
+            </a>
+        </div>
+        {% endif %}
     </div>
 </section>
 
 <!-- Recommended Products -->
 {% if recommended_products %}
-<section class="container mb-5">
-    <h2 class="text-center mb-4">Recommended For You</h2>
-    <div class="row">
-        {% for product in recommended_products %}
-            {% set product_rating = safe_get(product, 'rating', 0) %}
-            {% set product_reviews = safe_get(product, 'reviews_count', 0) %}
-            {% set product_image = safe_get(product, 'image', '') %}
-            {% set product_name = safe_get(product, 'name', 'Unnamed Product') %}
-            {% set product_description = safe_get(product, 'description', 'No description available') %}
-            {% set product_category = safe_get(product, 'category', 'Uncategorized') %}
-            {% set product_price = safe_get(product, 'price', 0) %}
-            {% set product_sizes = safe_get(product, 'sizes', ['M']) %}
-            {% set product_colors = safe_get(product, 'colors', ['Blue']) %}
-            {% set product_id = safe_get(product, '_id', '') %}
-            
-            <div class="col-md-3 col-sm-6 mb-4">
+<section class="recommended-section mb-5">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="mb-0">Recommended For You</h2>
+            <small class="text-muted">Based on your browsing history</small>
+        </div>
+        
+        <div class="row">
+            {% for product in recommended_products %}
+            <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
                 <div class="card h-100">
-                    <img src="{{ url_for('static', filename='uploads/' + product_image) if product_image else 'https://via.placeholder.com/300x200?text=Product' }}" 
-                         class="card-img-top product-image" alt="{{ product_name }}">
+                    <a href="{{ url_for('product_details', product_id=product._id) if product._id else '#' }}">
+                        <!-- Using get_product_image helper -->
+                        <img src="{{ get_product_image(product) }}" 
+                             class="card-img-top product-image" 
+                             alt="{{ safe_get(product, 'name', 'Product') }}"
+                             onerror="this.src='https://via.placeholder.com/400x300?text=Product'">
+                    </a>
                     <div class="card-body">
-                        <h5 class="card-title">{{ product_name }}</h5>
-                        <p class="price">KES {{ product_price }}</p>
-                        {% if product_id %}
-                        <a href="{{ url_for('product_details', product_id=product_id) }}" 
-                           class="btn btn-outline-primary btn-sm">
-                            View Details
-                        </a>
-                        {% else %}
-                        <button class="btn btn-outline-secondary btn-sm" disabled>
-                            View Details
-                        </button>
-                        {% endif %}
+                        <h5 class="card-title">{{ safe_get(product, 'name', 'Unnamed Product') }}</h5>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h4 class="price mb-0">{{ format_price(safe_get(product, 'price', 0)) }}</h4>
+                            <span class="badge bg-primary">{{ safe_get(product, 'category', 'Uncategorized') }}</span>
+                        </div>
+                        <div class="mt-3">
+                            {% if product._id %}
+                            <a href="{{ url_for('product_details', product_id=product._id) }}" 
+                               class="btn btn-outline-primary btn-sm w-100">
+                                <i class="fas fa-eye me-2"></i>View Details
+                            </a>
+                            {% else %}
+                            <button class="btn btn-outline-secondary btn-sm w-100" disabled>
+                                <i class="fas fa-eye me-2"></i>View Details
+                            </button>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             </div>
-        {% endfor %}
+            {% endfor %}
+        </div>
     </div>
 </section>
 {% endif %}
 
-<!-- Features -->
-<section class="container mb-5">
-    <div class="row text-center">
-        <div class="col-md-4 mb-4">
-            <div class="p-4 border rounded bg-white">
-                <i class="fas fa-shipping-fast fa-3x text-primary mb-3"></i>
-                <h4>Free Shipping</h4>
-                <p class="text-muted">Free delivery within Embu for orders over KES 5000</p>
+<!-- Categories Section -->
+<section class="categories-section mb-5">
+    <div class="container">
+        <h2 class="text-center mb-4">Shop By Category</h2>
+        <div class="row">
+            <div class="col-md-3 col-sm-6 mb-4">
+                <a href="{{ url_for('categories') }}?category=Shoes" class="text-decoration-none">
+                    <div class="card text-center border-0 shadow-sm h-100 hover-card">
+                        <div class="card-body py-4">
+                            <div class="category-icon mb-3">
+                                <i class="fas fa-shoe-prints fa-3x text-primary"></i>
+                            </div>
+                            <h4 class="card-title mb-2">Shoes</h4>
+                            <p class="card-text text-muted">Sports, Casual & Formal</p>
+                            <span class="badge bg-primary">Shop Now</span>
+                        </div>
+                    </div>
+                </a>
             </div>
-        </div>
-        <div class="col-md-4 mb-4">
-            <div class="p-4 border rounded bg-white">
-                <i class="fas fa-undo fa-3x text-primary mb-3"></i>
-                <h4>Easy Returns</h4>
-                <p class="text-muted">30-day return policy for all items</p>
+            <div class="col-md-3 col-sm-6 mb-4">
+                <a href="{{ url_for('categories') }}?category=Clothes" class="text-decoration-none">
+                    <div class="card text-center border-0 shadow-sm h-100 hover-card">
+                        <div class="card-body py-4">
+                            <div class="category-icon mb-3">
+                                <i class="fas fa-tshirt fa-3x text-primary"></i>
+                            </div>
+                            <h4 class="card-title mb-2">Clothes</h4>
+                            <p class="card-text text-muted">Tops, Bottoms & More</p>
+                            <span class="badge bg-primary">Shop Now</span>
+                        </div>
+                    </div>
+                </a>
             </div>
-        </div>
-        <div class="col-md-4 mb-4">
-            <div class="p-4 border rounded bg-white">
-                <i class="fas fa-shield-alt fa-3x text-primary mb-3"></i>
-                <h4>Secure Payment</h4>
-                <p class="text-muted">100% secure payment with Paystack</p>
+            <div class="col-md-3 col-sm-6 mb-4">
+                <a href="{{ url_for('categories') }}?condition=New" class="text-decoration-none">
+                    <div class="card text-center border-0 shadow-sm h-100 hover-card">
+                        <div class="card-body py-4">
+                            <div class="category-icon mb-3">
+                                <i class="fas fa-tag fa-3x text-primary"></i>
+                            </div>
+                            <h4 class="card-title mb-2">New Arrivals</h4>
+                            <p class="card-text text-muted">Latest Collections</p>
+                            <span class="badge bg-primary">Shop Now</span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-4">
+                <a href="{{ url_for('categories') }}?condition=Second+Hand" class="text-decoration-none">
+                    <div class="card text-center border-0 shadow-sm h-100 hover-card">
+                        <div class="card-body py-4">
+                            <div class="category-icon mb-3">
+                                <i class="fas fa-recycle fa-3x text-primary"></i>
+                            </div>
+                            <h4 class="card-title mb-2">Second Hand</h4>
+                            <p class="card-text text-muted">Quality Pre-owned Items</p>
+                            <span class="badge bg-primary">Shop Now</span>
+                        </div>
+                    </div>
+                </a>
             </div>
         </div>
     </div>
 </section>
+
+<!-- Features Section -->
+<section class="features-section mb-5">
+    <div class="container">
+        <div class="row text-center">
+            <div class="col-md-4 mb-4">
+                <div class="p-4 border rounded bg-white shadow-sm h-100">
+                    <div class="feature-icon mb-3">
+                        <i class="fas fa-shipping-fast fa-3x text-primary"></i>
+                    </div>
+                    <h4 class="mb-3">Free Shipping</h4>
+                    <p class="text-muted mb-0">Free delivery within Embu for orders over KES 5,000. Fast delivery across Kenya.</p>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="p-4 border rounded bg-white shadow-sm h-100">
+                    <div class="feature-icon mb-3">
+                        <i class="fas fa-undo fa-3x text-primary"></i>
+                    </div>
+                    <h4 class="mb-3">Easy Returns</h4>
+                    <p class="text-muted mb-0">30-day hassle-free return policy. We make returns simple and convenient.</p>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="p-4 border rounded bg-white shadow-sm h-100">
+                    <div class="feature-icon mb-3">
+                        <i class="fas fa-shield-alt fa-3x text-primary"></i>
+                    </div>
+                    <h4 class="mb-3">Secure Payment</h4>
+                    <p class="text-muted mb-0">100% secure payment with M-Pesa, Paystack, and bank transfers. Your data is protected.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Newsletter Section -->
+<section class="newsletter-section">
+    <div class="container">
+        <div class="card bg-primary text-white">
+            <div class="card-body py-5">
+                <div class="row align-items-center">
+                    <div class="col-lg-8 mb-4 mb-lg-0">
+                        <h3 class="mb-3">Stay Updated with Fashion Trends</h3>
+                        <p class="mb-0">Subscribe to our newsletter and be the first to know about new arrivals, exclusive offers, and style tips.</p>
+                    </div>
+                    <div class="col-lg-4">
+                        <form class="newsletter-form">
+                            <div class="input-group">
+                                <input type="email" class="form-control" placeholder="Your email address" required>
+                                <button class="btn btn-light" type="submit">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </div>
+                            <small class="form-text mt-2 d-block">We respect your privacy. Unsubscribe at any time.</small>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% block extra_css %}
+<style>
+.hero-section {
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    padding: 80px 0;
+    border-radius: 15px;
+    margin-top: 20px;
+}
+
+.product-image {
+    height: 250px;
+    width: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.product-image:hover {
+    transform: scale(1.05);
+}
+
+.card {
+    transition: all 0.3s ease;
+    border: none;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+}
+
+.category-badge {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    font-size: 0.8rem;
+    z-index: 1;
+}
+
+.price {
+    color: #2c3e50;
+    font-weight: bold;
+    font-size: 1.25rem;
+}
+
+.category-icon {
+    width: 80px;
+    height: 80px;
+    background-color: #e3f2fd;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+}
+
+.feature-icon {
+    width: 70px;
+    height: 70px;
+    margin: 0 auto;
+}
+
+.hover-card {
+    transition: transform 0.3s;
+}
+
+.hover-card:hover {
+    transform: translateY(-5px);
+}
+
+.rating {
+    color: #ffc107;
+}
+
+.newsletter-form .form-control {
+    border: none;
+    border-radius: 5px 0 0 5px;
+}
+
+.newsletter-form .btn {
+    border-radius: 0 5px 5px 0;
+}
+
+@media (max-width: 768px) {
+    .hero-section {
+        padding: 40px 0;
+    }
+    
+    .hero-section h1 {
+        font-size: 2rem;
+    }
+    
+    .product-image {
+        height: 200px;
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Add to cart with AJAX
+    $('.add-to-cart-form').submit(function(e) {
+        e.preventDefault();
+        
+        const form = $(this);
+        const button = form.find('button[type="submit"]');
+        const originalHtml = button.html();
+        
+        button.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>');
+        
+        $.ajax({
+            type: 'POST',
+            url: form.attr('action'),
+            data: form.serialize(),
+            success: function(response) {
+                if (response.success) {
+                    showToast('Success', response.message, 'success');
+                    // Update cart count in navbar
+                    $('.cart-count-badge').text(response.cart_count || 0);
+                } else {
+                    showToast('Error', response.message, 'danger');
+                }
+            },
+            error: function() {
+                showToast('Error', 'Network error. Please try again.', 'danger');
+            },
+            complete: function() {
+                button.prop('disabled', false).html(originalHtml);
+            }
+        });
+    });
+    
+    // Newsletter form submission
+    $('.newsletter-form').submit(function(e) {
+        e.preventDefault();
+        
+        const email = $(this).find('input[type="email"]').val();
+        const button = $(this).find('button');
+        const originalText = button.html();
+        
+        if (!isValidEmail(email)) {
+            showToast('Error', 'Please enter a valid email address', 'danger');
+            return false;
+        }
+        
+        button.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
+        
+        // Simulate API call
+        setTimeout(() => {
+            showToast('Success', 'Thank you for subscribing!', 'success');
+            $(this)[0].reset();
+            button.prop('disabled', false).html(originalText);
+        }, 1500);
+    });
+    
+    // Email validation
+    function isValidEmail(email) {
+        const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return re.test(email);
+    }
+    
+    // Toast notification
+    function showToast(title, message, type) {
+        // Remove existing toasts
+        $('.toast-container').remove();
+        
+        const toastHtml = `
+            <div class="toast-container position-fixed top-0 end-0 p-3">
+                <div class="toast show" role="alert">
+                    <div class="toast-header bg-${type} text-white">
+                        <strong class="me-auto">${title}</strong>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+                    </div>
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        $('body').append(toastHtml);
+        
+        // Auto remove after 3 seconds
+        setTimeout(() => {
+            $('.toast-container').remove();
+        }, 3000);
+    }
+});
+</script>
+{% endblock %}
 {% endblock %}

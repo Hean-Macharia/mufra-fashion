@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 
-{% block title %}Search Results - MUFRA FASHIONS{% endblock %}
+{% block title %}Search Results for "{{ query }}" - MUFRA FASHIONS{% endblock %}
 
 {% block content %}
 <div class="container py-4">
     <!-- Search Header -->
     <div class="row mb-4">
-        <div class="col-12">
-            <h1>Search Results</h1>
+        <div class="col-md-8">
+            <h1 class="h2">Search Results</h1>
             <p class="text-muted">
                 {% if query %}
                     Found {{ products|length }} result(s) for "<strong>{{ query }}</strong>"
@@ -16,26 +16,126 @@
                 {% endif %}
             </p>
         </div>
+        <div class="col-md-4">
+            <div class="d-flex align-items-center justify-content-end h-100">
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" 
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                        Sort by: {{ sort_option.replace('_', ' ').title() if sort_option else 'Relevance' }}
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="?q={{ query }}&sort=price_asc">Price: Low to High</a></li>
+                        <li><a class="dropdown-item" href="?q={{ query }}&sort=price_desc">Price: High to Low</a></li>
+                        <li><a class="dropdown-item" href="?q={{ query }}&sort=rating_desc">Highest Rated</a></li>
+                        <li><a class="dropdown-item" href="?q={{ query }}&sort=name_asc">Name: A-Z</a></li>
+                        <li><a class="dropdown-item" href="?q={{ query }}&sort=name_desc">Name: Z-A</a></li>
+                        <li><a class="dropdown-item" href="?q={{ query }}&sort=date_desc">Newest First</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
     </div>
-    
+
+    <!-- Search Filters -->
+    {% if products %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">Refine Search</h5>
+                    <form method="GET" action="{{ url_for('search') }}" class="row g-3">
+                        <input type="hidden" name="q" value="{{ query }}">
+                        
+                        <div class="col-md-3">
+                            <label class="form-label">Category</label>
+                            <select name="category" class="form-select">
+                                <option value="">All Categories</option>
+                                {% for cat in categories %}
+                                <option value="{{ cat }}" {% if selected_category == cat %}selected{% endif %}>
+                                    {{ cat }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <label class="form-label">Condition</label>
+                            <select name="condition" class="form-select">
+                                <option value="">All Conditions</option>
+                                <option value="New" {% if condition == 'New' %}selected{% endif %}>New</option>
+                                <option value="Used" {% if condition == 'Used' %}selected{% endif %}>Used</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <label class="form-label">Stock Status</label>
+                            <select name="stock_status" class="form-select">
+                                <option value="">All Items</option>
+                                <option value="in_stock" {% if stock_status == 'in_stock' %}selected{% endif %}>In Stock</option>
+                                <option value="low_stock" {% if stock_status == 'low_stock' %}selected{% endif %}>Low Stock</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-filter"></i> Apply Filters
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Products Grid -->
     {% if products %}
     <div class="row">
         {% for product in products %}
         <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
-            <div class="card h-100">
-                <div class="position-relative">
-                    <a href="{{ url_for('product_details', product_id=product._id) }}">
-                        <img src="{{ url_for('static', filename='uploads/' + product.image) if product.image else 'https://via.placeholder.com/300x200?text=Product' }}" 
-                             class="card-img-top product-image" alt="{{ product.name }}">
-                    </a>
-                    <span class="badge bg-primary category-badge">{{ product.category }}</span>
+            <div class="card h-100 product-card">
+                <!-- Product Image -->
+                <a href="{{ url_for('product_details', product_id=product._id) }}" class="position-relative">
+                    {% if product.image %}
+                        {% if product.image.startswith('http') %}
+                            <img src="{{ product.image }}" class="card-img-top product-image" alt="{{ product.name }}">
+                        {% elif product.image.startswith('uploads/') %}
+                            <img src="{{ url_for('static', filename=product.image) }}" class="card-img-top product-image" alt="{{ product.name }}">
+                        {% else %}
+                            <img src="{{ url_for('static', filename='uploads/' + product.image) }}" class="card-img-top product-image" alt="{{ product.name }}">
+                        {% endif %}
+                    {% else %}
+                        <img src="https://via.placeholder.com/300x200?text=Product" class="card-img-top product-image" alt="{{ product.name }}">
+                    {% endif %}
+                    
+                    <!-- Product Status Badges -->
+                    <div class="position-absolute top-0 start-0 p-2">
+                        {% if product.featured %}
+                        <span class="badge bg-primary">Featured</span>
+                        {% endif %}
+                        {% if product.condition == 'New' %}
+                        <span class="badge bg-success">New</span>
+                        {% elif product.condition == 'Used' %}
+                        <span class="badge bg-warning">Used</span>
+                        {% endif %}
+                        {% set stock_info = get_product_stock_status(product.stock) %}
+                        {% if stock_info.text == 'Out of Stock' %}
+                        <span class="badge bg-danger">Out of Stock</span>
+                        {% elif stock_info.text.startswith('Only') %}
+                        <span class="badge bg-warning">{{ stock_info.text }}</span>
+                        {% endif %}
+                    </div>
+                    
                     {% if product.stock == 0 %}
                     <div class="position-absolute top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 d-flex align-items-center justify-content-center">
                         <span class="badge bg-danger">Out of Stock</span>
                     </div>
                     {% endif %}
-                </div>
+                </a>
+                
                 <div class="card-body">
                     <h5 class="card-title">
                         <a href="{{ url_for('product_details', product_id=product._id) }}" 
@@ -43,39 +143,61 @@
                             {{ product.name }}
                         </a>
                     </h5>
-                    <p class="card-text text-muted small">{{ product.description[:60] }}...</p>
+                    
+                    <p class="card-text text-muted small mb-2">{{ product.description[:100] }}...</p>
+                    
+                    <!-- Category -->
+                    <p class="text-muted small mb-2">
+                        <i class="fas fa-tag"></i> {{ product.category }}
+                        {% if product.subcategory %}
+                         • {{ product.subcategory }}
+                        {% endif %}
+                    </p>
+                    
+                    <!-- Rating -->
                     <div class="rating mb-2">
                         {% for i in range(5) %}
                             {% if i < product.rating|int %}
                                 <i class="fas fa-star text-warning"></i>
+                            {% elif i < product.rating %}
+                                <i class="fas fa-star-half-alt text-warning"></i>
                             {% else %}
                                 <i class="far fa-star text-warning"></i>
                             {% endif %}
                         {% endfor %}
                         <small class="text-muted">({{ product.reviews_count }})</small>
                     </div>
+                    
                     <div class="d-flex justify-content-between align-items-center">
-                        <span class="price">KES {{ product.price }}</span>
+                        <span class="price fw-bold">{{ format_price(product.price) }}</span>
                         {% if product.stock > 0 %}
                         <form action="{{ url_for('add_to_cart', product_id=product._id) }}" 
                               method="POST" class="add-to-cart-form">
-                            <input type="hidden" name="size" value="{{ product.sizes[0] if product.sizes else 'M' }}">
-                            <input type="hidden" name="color" value="{{ product.colors[0] if product.colors else 'Blue' }}">
                             <input type="hidden" name="quantity" value="1">
                             <button type="submit" class="btn btn-primary btn-sm">
-                                <i class="fas fa-cart-plus"></i>
+                                <i class="fas fa-cart-plus"></i> Add to Cart
                             </button>
                         </form>
                         {% endif %}
                     </div>
                 </div>
-                <div class="card-footer bg-white border-top-0">
-                    <small class="text-muted">
-                        <i class="fas fa-tag me-1"></i>{{ product.condition }}
-                        {% if product.featured %}
-                        <i class="fas fa-star text-warning ms-2 me-1"></i>Featured
-                        {% endif %}
-                    </small>
+                
+                <div class="card-footer bg-white border-top-0 pt-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">
+                            {% if product.stock > 10 %}
+                            <i class="fas fa-check-circle text-success"></i> In Stock
+                            {% elif product.stock > 0 %}
+                            <i class="fas fa-exclamation-triangle text-warning"></i> Only {{ product.stock }} left
+                            {% else %}
+                            <i class="fas fa-times-circle text-danger"></i> Out of Stock
+                            {% endif %}
+                        </small>
+                        <a href="{{ url_for('product_details', product_id=product._id) }}" 
+                           class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-eye"></i> View
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -102,18 +224,12 @@
                     <i class="fas fa-home me-2"></i> Go Home
                 </a>
             </div>
-        </div>
-    </div>
-    {% endif %}
-    
-    <!-- Search Tips -->
-    {% if products|length == 0 and query %}
-    <div class="row mt-5">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body">
+            
+            <!-- Search Tips -->
+            <div class="card mt-4">
+                <div class="card-body text-start">
                     <h5 class="card-title">Search Tips</h5>
-                    <ul class="text-muted">
+                    <ul class="text-muted mb-0">
                         <li>Check your spelling</li>
                         <li>Try more general keywords</li>
                         <li>Try different keywords</li>
@@ -124,18 +240,81 @@
         </div>
     </div>
     {% endif %}
+    
+    <!-- Pagination -->
+    {% if total_pages and total_pages > 1 %}
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page > 1 %}
+            <li class="page-item">
+                <a class="page-link" href="?q={{ query }}&page={{ page - 1 }}">Previous</a>
+            </li>
+            {% endif %}
+            
+            {% for p in range(1, total_pages + 1) %}
+            <li class="page-item {% if p == page %}active{% endif %}">
+                <a class="page-link" href="?q={{ query }}&page={{ p }}">{{ p }}</a>
+            </li>
+            {% endfor %}
+            
+            {% if page < total_pages %}
+            <li class="page-item">
+                <a class="page-link" href="?q={{ query }}&page={{ page + 1 }}">Next</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
 </div>
+
+{% block extra_css %}
+<style>
+.product-card {
+    transition: transform 0.2s;
+}
+
+.product-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.product-image {
+    height: 200px;
+    object-fit: cover;
+}
+
+.rating {
+    font-size: 0.9rem;
+}
+
+.highlight {
+    background-color: #fff3cd;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-weight: bold;
+}
+</style>
+{% endblock %}
 
 {% block extra_js %}
 <script>
 $(document).ready(function() {
     // Highlight search terms
-    const query = "{{ query }}";
+    const query = "{{ query|lower }}";
     if (query) {
-        $('.card-title, .card-text').each(function() {
+        // Highlight in product names
+        $('.card-title a').each(function() {
             const text = $(this).text();
             const regex = new RegExp(query, 'gi');
-            const highlighted = text.replace(regex, '<span class="bg-warning">$&</span>');
+            const highlighted = text.replace(regex, match => `<span class="highlight">${match}</span>`);
+            $(this).html(highlighted);
+        });
+        
+        // Highlight in descriptions
+        $('.card-text').each(function() {
+            const text = $(this).text();
+            const regex = new RegExp(query, 'gi');
+            const highlighted = text.replace(regex, match => `<span class="highlight">${match}</span>`);
             $(this).html(highlighted);
         });
     }
