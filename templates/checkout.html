@@ -49,7 +49,6 @@
                         {% for item in cart_items %}
                         <div class="d-flex mb-3 pb-3 {% if not loop.last %}border-bottom{% endif %}">
                             <div class="flex-shrink-0">
-                                <!-- Updated image source -->
                                 {% if item.image %}
                                     {% if item.image.startswith('http') or item.image.startswith('/static') %}
                                         <img src="{{ item.image }}" 
@@ -91,26 +90,39 @@
                         
                         <div class="d-flex justify-content-between mb-2">
                             <span class="text-muted">Shipping:</span>
-                            <span class="fw-bold" id="deliveryFee">Calculating...</span>
+                            <span class="fw-bold" id="deliveryFee">{{ format_price(200) }}</span>
                         </div>
                         
-                        {% if session.user_id %}
                         <div class="d-flex justify-content-between mb-2">
-                            <span class="text-muted">Member Discount:</span>
+                            <span class="text-muted">Discount:</span>
                             <span class="text-success">- {{ format_price(0) }}</span>
                         </div>
-                        {% endif %}
 
                         <hr class="my-3">
                         
                         <div class="d-flex justify-content-between mb-4">
                             <span class="fw-bold fs-5">Total:</span>
-                            <span class="fw-bold fs-5 text-primary" id="totalAmount">{{ format_price(subtotal) }}</span>
+                            <span class="fw-bold fs-5 text-primary" id="totalAmount">{{ format_price(subtotal + 200) }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Payment Info -->
+                    <div class="alert alert-info">
+                        <div class="d-flex">
+                            <i class="fas fa-shield-alt fa-lg me-3"></i>
+                            <div>
+                                <h6 class="mb-1">Secure Payment</h6>
+                                <p class="small mb-0">
+                                    • Pay with card or bank transfer<br>
+                                    • 100% secure SSL encrypted<br>
+                                    • Instant payment confirmation
+                                </p>
+                            </div>
                         </div>
                     </div>
 
                     <!-- Shipping Info -->
-                    <div class="alert alert-info">
+                    <div class="alert alert-light">
                         <div class="d-flex">
                             <i class="fas fa-shipping-fast fa-lg me-3"></i>
                             <div>
@@ -118,7 +130,7 @@
                                 <p class="small mb-0">
                                     • Free shipping within Embu for orders over KES 5,000<br>
                                     • Delivery within 3-5 business days<br>
-                                    • Cash on delivery available
+                                    • Nationwide delivery available
                                 </p>
                             </div>
                         </div>
@@ -227,114 +239,21 @@
                                 <i class="fas fa-credit-card me-2"></i>Payment Method
                             </h4>
                             
-                            <div class="payment-methods">
-                                <div class="form-check payment-method-card mb-3" data-method="mpesa">
+                            <div class="payment-method">
+                                <div class="form-check mb-3">
                                     <input class="form-check-input" type="radio" name="payment_method" 
-                                           id="mpesa" value="mpesa" checked required>
-                                    <label class="form-check-label w-100" for="mpesa">
+                                           id="paystack" value="paystack" checked required>
+                                    <label class="form-check-label" for="paystack">
                                         <div class="d-flex align-items-center">
-                                            <div class="payment-icon bg-success">
-                                                <i class="fas fa-mobile-alt"></i>
-                                            </div>
-                                            <div class="ms-3">
-                                                <h6 class="mb-1">M-Pesa</h6>
-                                                <p class="small text-muted mb-0">
-                                                    Pay via M-Pesa. You'll receive a payment request.
-                                                </p>
-                                            </div>
-                                            <div class="ms-auto">
-                                                <span class="badge bg-success">Recommended</span>
-                                            </div>
-                                        </div>
-                                    </label>
-                                </div>
-                                
-                                <div class="form-check payment-method-card mb-3" data-method="paystack">
-                                    <input class="form-check-input" type="radio" name="payment_method" 
-                                           id="paystack" value="paystack">
-                                    <label class="form-check-label w-100" for="paystack">
-                                        <div class="d-flex align-items-center">
-                                            <div class="payment-icon bg-primary">
-                                                <i class="fas fa-credit-card"></i>
-                                            </div>
-                                            <div class="ms-3">
-                                                <h6 class="mb-1">Paystack (Card/Bank)</h6>
-                                                <p class="small text-muted mb-0">
-                                                    Pay with card or bank transfer securely.
+                                            <i class="fas fa-credit-card fa-2x text-primary me-3"></i>
+                                            <div>
+                                                <h6 class="mb-1">Paystack Secure Payment</h6>
+                                                <p class="text-muted small mb-0">
+                                                    Pay with card, mobile money, bank transfer, or USSD
                                                 </p>
                                             </div>
                                         </div>
                                     </label>
-                                </div>
-                                
-                                <div class="form-check payment-method-card" data-method="cod">
-                                    <input class="form-check-input" type="radio" name="payment_method" 
-                                           id="cod" value="cod">
-                                    <label class="form-check-label w-100" for="cod">
-                                        <div class="d-flex align-items-center">
-                                            <div class="payment-icon bg-warning">
-                                                <i class="fas fa-money-bill-wave"></i>
-                                            </div>
-                                            <div class="ms-3">
-                                                <h6 class="mb-1">Cash on Delivery</h6>
-                                                <p class="small text-muted mb-0">
-                                                    Pay when your order arrives (Cash only).
-                                                </p>
-                                            </div>
-                                            <div class="ms-auto">
-                                                <span class="badge bg-info">+KES 50 fee</span>
-                                            </div>
-                                        </div>
-                                    </label>
-                                </div>
-                            </div>
-                            
-                            <!-- Payment Method Details -->
-                            <div id="mpesaDetails" class="payment-details mt-4">
-                                <div class="alert alert-success">
-                                    <div class="d-flex">
-                                        <i class="fas fa-info-circle fa-lg me-3"></i>
-                                        <div>
-                                            <h6 class="mb-1">How M-Pesa payment works:</h6>
-                                            <ol class="mb-0 small">
-                                                <li>Enter your phone number above (must be M-Pesa registered)</li>
-                                                <li>Complete checkout</li>
-                                                <li>You'll receive an M-Pesa prompt on your phone</li>
-                                                <li>Enter your M-Pesa PIN to complete payment</li>
-                                            </ol>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div id="paystackDetails" class="payment-details mt-4" style="display: none;">
-                                <div class="alert alert-primary">
-                                    <div class="d-flex">
-                                        <i class="fas fa-shield-alt fa-lg me-3"></i>
-                                        <div>
-                                            <h6 class="mb-1">Secure Paystack Payment</h6>
-                                            <p class="mb-0 small">
-                                                You'll be redirected to Paystack's secure payment page to complete your transaction with card or bank transfer.
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div id="codDetails" class="payment-details mt-4" style="display: none;">
-                                <div class="alert alert-warning">
-                                    <div class="d-flex">
-                                        <i class="fas fa-exclamation-triangle fa-lg me-3"></i>
-                                        <div>
-                                            <h6 class="mb-1">Cash on Delivery Information:</h6>
-                                            <ul class="mb-0 small">
-                                                <li>KES 50 cash handling fee applies</li>
-                                                <li>Exact change is appreciated</li>
-                                                <li>Available only in select areas</li>
-                                                <li>Order may be delayed by 1-2 business days</li>
-                                            </ul>
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -348,13 +267,6 @@
                                     and confirm that my shipping information is correct. *
                                 </label>
                             </div>
-                            
-                            <div class="form-check mt-2">
-                                <input class="form-check-input" type="checkbox" id="newsletter">
-                                <label class="form-check-label" for="newsletter">
-                                    Sign up for our newsletter to receive updates and special offers
-                                </label>
-                            </div>
                         </div>
 
                         <!-- Action Buttons -->
@@ -362,8 +274,8 @@
                             <a href="{{ url_for('cart') }}" class="btn btn-outline-primary">
                                 <i class="fas fa-arrow-left me-2"></i> Back to Cart
                             </a>
-                            <button type="submit" class="btn btn-success btn-lg px-5" id="placeOrderBtn">
-                                <i class="fas fa-lock me-2"></i> Place Order
+                            <button type="submit" class="btn btn-primary btn-lg px-5" id="placeOrderBtn">
+                                <i class="fas fa-lock me-2"></i> Pay with Paystack
                             </button>
                         </div>
                     </form>
@@ -438,6 +350,27 @@
     </div>
 </div>
 
+<!-- Payment Processing Modal -->
+<div class="modal fade" id="paymentProcessingModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Processing Payment</h5>
+            </div>
+            <div class="modal-body text-center">
+                <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mb-3">Please wait while we redirect you to secure payment...</p>
+                <div class="progress">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" 
+                         style="width: 100%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% block extra_css %}
 <style>
 .progress-steps {
@@ -499,52 +432,31 @@
     object-fit: cover;
 }
 
-.payment-method-card {
-    border: 2px solid #dee2e6;
-    border-radius: 10px;
-    padding: 15px;
-    transition: all 0.3s;
-    cursor: pointer;
-}
-
-.payment-method-card:hover {
-    border-color: #0d6efd;
-    background-color: #f8f9fa;
-}
-
-.payment-method-card .form-check-input:checked ~ .form-check-label {
-    color: #0d6efd;
-}
-
-.payment-method-card .form-check-input:checked {
-    border-color: #0d6efd;
-    background-color: #0d6efd;
-}
-
-.payment-icon {
-    width: 50px;
-    height: 50px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 1.5rem;
-}
-
-.payment-details {
-    animation: fadeIn 0.5s;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
 .sticky-top {
     position: -webkit-sticky;
     position: sticky;
     top: 20px;
+}
+
+.form-check-input:checked {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+.payment-method .form-check {
+    border: 2px solid #e9ecef;
+    border-radius: 10px;
+    padding: 15px;
+    transition: all 0.3s;
+}
+
+.payment-method .form-check:hover {
+    border-color: #0d6efd;
+    background-color: rgba(13, 110, 253, 0.05);
+}
+
+.payment-method .form-check-input:checked ~ label {
+    border-color: #0d6efd;
 }
 
 @media (max-width: 768px) {
@@ -568,6 +480,10 @@
         margin: 0 15px 0 0;
         flex-shrink: 0;
     }
+    
+    #placeOrderBtn {
+        width: 100%;
+    }
 }
 </style>
 {% endblock %}
@@ -578,28 +494,15 @@ $(document).ready(function() {
     // Initialize delivery fee calculation
     calculateDeliveryFee();
     
-    // Payment method selection
-    $('.payment-method-card').click(function() {
-        const method = $(this).data('method');
-        $('#' + method).prop('checked', true);
-        showPaymentDetails(method);
-    });
-    
-    // Show payment method details
-    function showPaymentDetails(method) {
-        $('.payment-details').hide();
-        $('#' + method + 'Details').show();
-        
-        // Update COD fee if selected
-        if (method === 'cod') {
-            updateCODTotal();
-        } else {
-            calculateDeliveryFee();
-        }
-    }
-    
     // County change for delivery fee
-    $('#county').change(calculateDeliveryFee);
+    $('#county').change(function() {
+        calculateDeliveryFee();
+        // Auto-fill city based on county
+        const county = $(this).val();
+        if (county && county !== 'Other') {
+            $('input[name="city"]').val(county + ' Town');
+        }
+    });
     
     // Calculate delivery fee and total
     function calculateDeliveryFee() {
@@ -615,11 +518,6 @@ $(document).ready(function() {
             }
         }
         
-        // Add COD fee if selected
-        if ($('#cod').is(':checked')) {
-            deliveryFee += 50;
-        }
-        
         const formattedFee = 'KES ' + deliveryFee.toLocaleString();
         $('#deliveryFee').text(formattedFee);
         
@@ -629,11 +527,6 @@ $(document).ready(function() {
         $('#totalAmount').text(formattedTotal);
         
         return deliveryFee;
-    }
-    
-    // Update total for COD
-    function updateCODTotal() {
-        calculateDeliveryFee();
     }
     
     // Form validation and submission
@@ -653,7 +546,11 @@ $(document).ready(function() {
             return false;
         }
         
-        // Show processing
+        // Show processing modal
+        const processingModal = new bootstrap.Modal(document.getElementById('paymentProcessingModal'));
+        processingModal.show();
+        
+        // Show processing button
         const button = $('#placeOrderBtn');
         const originalText = button.html();
         button.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>Processing...');
@@ -664,31 +561,57 @@ $(document).ready(function() {
             url: $(this).attr('action'),
             data: $(this).serialize(),
             success: function(response) {
+                console.log('Checkout response:', response);
+                
                 if (response.success) {
-                    showToast('Success', response.message, 'success');
-                    // Redirect to order confirmation
-                    setTimeout(() => {
-                        window.location.href = "{{ url_for('order_confirmation', order_id='') }}" + response.order_id;
-                    }, 1500);
+                    // Redirect to Paystack payment
+                    if (response.authorization_url) {
+                        processingModal.hide();
+                        window.location.href = response.authorization_url;
+                    } else if (response.message === 'Redirecting to secure payment...') {
+                        // Wait a moment then redirect
+                        setTimeout(() => {
+                            processingModal.hide();
+                            if (response.redirect_url) {
+                                window.location.href = response.redirect_url;
+                            }
+                        }, 1000);
+                    } else {
+                        processingModal.hide();
+                        showToast('Info', response.message, 'info');
+                        button.prop('disabled', false).html(originalText);
+                    }
                 } else {
-                    showToast('Error', response.message, 'danger');
+                    processingModal.hide();
+                    showToast('Error', response.message || 'Checkout failed', 'danger');
                     button.prop('disabled', false).html(originalText);
                 }
             },
             error: function(xhr, status, error) {
+                processingModal.hide();
+                console.error('Checkout error:', xhr.responseText);
                 showToast('Error', 'Network error. Please try again.', 'danger');
                 button.prop('disabled', false).html(originalText);
             }
         });
     });
     
+    // Phone number formatting
+    $('input[name="phone"]').on('input', function() {
+        let value = $(this).val().replace(/\D/g, '');
+        if (value.length > 9) {
+            value = value.substring(0, 9);
+        }
+        $(this).val(value);
+    });
+    
     // Toast notification function
-    function showToast(title, message, type) {
+    function showToast(title, message, type = 'info') {
         // Remove existing toasts
         $('.toast-container').remove();
         
         const toastHtml = `
-            <div class="toast-container position-fixed top-0 end-0 p-3">
+            <div class="toast-container position-fixed bottom-0 end-0 p-3">
                 <div class="toast show" role="alert">
                     <div class="toast-header bg-${type} text-white">
                         <strong class="me-auto">${title}</strong>
@@ -703,28 +626,23 @@ $(document).ready(function() {
         
         $('body').append(toastHtml);
         
-        // Auto remove after 3 seconds
+        // Auto remove after 5 seconds
         setTimeout(() => {
             $('.toast-container').remove();
-        }, 3000);
+        }, 5000);
     }
     
-    // Auto-fill city based on county
-    $('#county').change(function() {
-        const county = $(this).val();
-        if (county && county !== 'Other') {
-            $('input[name="city"]').val(county + ' Town');
-        }
-    });
+    // Check if we have a payment status from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const paymentStatus = urlParams.get('payment');
     
-    // Phone number formatting
-    $('input[name="phone"]').on('input', function() {
-        let value = $(this).val().replace(/\D/g, '');
-        if (value.length > 9) {
-            value = value.substring(0, 9);
-        }
-        $(this).val(value);
-    });
+    if (paymentStatus === 'success') {
+        showToast('Success', 'Payment completed successfully!', 'success');
+    } else if (paymentStatus === 'failed') {
+        showToast('Error', 'Payment failed. Please try again.', 'danger');
+    } else if (paymentStatus === 'cancelled') {
+        showToast('Info', 'Payment was cancelled. You can try again.', 'warning');
+    }
 });
 </script>
 {% endblock %}

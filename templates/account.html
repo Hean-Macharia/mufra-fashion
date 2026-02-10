@@ -11,17 +11,24 @@
                 <div class="card-body">
                     <div class="text-center mb-4">
                         <div class="avatar-circle mb-3">
-                            <i class="fas fa-user fa-3x text-primary"></i>
+                            {% if user.profile_picture %}
+                                <img src="{{ user.profile_picture }}" 
+                                     class="rounded-circle" 
+                                     alt="{{ user.name }}"
+                                     style="width: 80px; height: 80px; object-fit: cover;">
+                            {% else %}
+                                <i class="fas fa-user fa-3x text-primary"></i>
+                            {% endif %}
                         </div>
                         <h5>{{ user.name }}</h5>
                         <p class="text-muted small">{{ user.email }}</p>
                         <p class="small">
                             <i class="fas fa-calendar me-1"></i>
-                            Member since {{ format_date(user.created_at, '%B %Y') }}
+                            Member since {{ user.created_at.strftime('%B %Y') }}
                         </p>
                     </div>
                     
-                    <ul class="nav flex-column account-nav">
+                    <ul class="nav flex-column account-nav" id="accountNav">
                         <li class="nav-item">
                             <a class="nav-link active" href="#dashboard" data-bs-toggle="tab">
                                 <i class="fas fa-tachometer-alt me-2"></i> Dashboard
@@ -30,27 +37,30 @@
                         <li class="nav-item">
                             <a class="nav-link" href="#orders" data-bs-toggle="tab">
                                 <i class="fas fa-shopping-bag me-2"></i> My Orders
-                                {% if orders|length > 0 %}
+                                {% if orders and orders|length > 0 %}
                                 <span class="badge bg-primary float-end">{{ orders|length }}</span>
                                 {% endif %}
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#addresses" data-bs-toggle="tab">
-                                <i class="fas fa-map-marker-alt me-2"></i> Addresses
+                            <a class="nav-link" href="#cart" data-bs-toggle="tab">
+                                <i class="fas fa-shopping-cart me-2"></i> Shopping Cart
+                                {% if user.cart and user.cart|length > 0 %}
+                                <span class="badge bg-warning float-end">{{ user.cart|length }}</span>
+                                {% endif %}
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="#wishlist" data-bs-toggle="tab">
                                 <i class="fas fa-heart me-2"></i> Wishlist
-                                {% if user.wishlist|length > 0 %}
+                                {% if user.wishlist and user.wishlist|length > 0 %}
                                 <span class="badge bg-danger float-end">{{ user.wishlist|length }}</span>
                                 {% endif %}
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="#settings" data-bs-toggle="tab">
-                                <i class="fas fa-cog me-2"></i> Account Settings
+                                <i class="fas fa-cog me-2"></i> Settings
                             </a>
                         </li>
                         <li class="nav-item mt-3">
@@ -70,93 +80,201 @@
                 <div class="tab-pane fade show active" id="dashboard">
                     <div class="card">
                         <div class="card-header">
-                            <h4 class="mb-0"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</h4>
+                            <h4 class="mb-0"><i class="fas fa-tachometer-alt me-2"></i>Dashboard Overview</h4>
                         </div>
                         <div class="card-body">
                             <!-- Stats Cards -->
                             <div class="row mb-4">
-                                <div class="col-md-3 col-6 mb-3">
+                                <div class="col-md-3 col-sm-6 mb-3">
                                     <div class="stat-card text-center p-3 bg-primary text-white rounded">
                                         <i class="fas fa-shopping-bag fa-2x mb-2"></i>
                                         <h6 class="mb-1">Total Orders</h6>
-                                        <h4 class="mb-0">{{ orders|length }}</h4>
+                                        <h4 class="mb-0">{{ orders|length if orders else 0 }}</h4>
                                     </div>
                                 </div>
-                                <div class="col-md-3 col-6 mb-3">
+                                <div class="col-md-3 col-sm-6 mb-3">
                                     <div class="stat-card text-center p-3 bg-warning text-white rounded">
                                         <i class="fas fa-clock fa-2x mb-2"></i>
                                         <h6 class="mb-1">Pending</h6>
-                                        <h4 class="mb-0">{{ orders|selectattr('status', 'equalto', 'pending')|list|length }}</h4>
+                                        <h4 class="mb-0">
+                                            {% if orders %}
+                                                {% set pending_count = 0 %}
+                                                {% for order in orders %}
+                                                    {% if order.status == 'pending' %}
+                                                        {% set pending_count = pending_count + 1 %}
+                                                    {% endif %}
+                                                {% endfor %}
+                                                {{ pending_count }}
+                                            {% else %}
+                                                0
+                                            {% endif %}
+                                        </h4>
                                     </div>
                                 </div>
-                                <div class="col-md-3 col-6 mb-3">
+                                <div class="col-md-3 col-sm-6 mb-3">
                                     <div class="stat-card text-center p-3 bg-success text-white rounded">
                                         <i class="fas fa-check-circle fa-2x mb-2"></i>
                                         <h6 class="mb-1">Delivered</h6>
-                                        <h4 class="mb-0">{{ orders|selectattr('status', 'equalto', 'delivered')|list|length }}</h4>
+                                        <h4 class="mb-0">
+                                            {% if orders %}
+                                                {% set delivered_count = 0 %}
+                                                {% for order in orders %}
+                                                    {% if order.status == 'delivered' %}
+                                                        {% set delivered_count = delivered_count + 1 %}
+                                                    {% endif %}
+                                                {% endfor %}
+                                                {{ delivered_count }}
+                                            {% else %}
+                                                0
+                                            {% endif %}
+                                        </h4>
                                     </div>
                                 </div>
-                                <div class="col-md-3 col-6 mb-3">
+                                <div class="col-md-3 col-sm-6 mb-3">
                                     <div class="stat-card text-center p-3 bg-info text-white rounded">
                                         <i class="fas fa-money-bill-wave fa-2x mb-2"></i>
                                         <h6 class="mb-1">Total Spent</h6>
-                                        <h4 class="mb-0">{{ format_price(orders|sum(attribute='total')) }}</h4>
+                                        <h4 class="mb-0">
+                                            {% if orders %}
+                                                {% set total_spent = 0 %}
+                                                {% for order in orders %}
+                                                    {% set total_spent = total_spent + order.total %}
+                                                {% endfor %}
+                                                KES {{ total_spent|int }}
+                                            {% else %}
+                                                KES 0
+                                            {% endif %}
+                                        </h4>
                                     </div>
                                 </div>
                             </div>
                             
-                            <!-- Recent Orders -->
-                            <h5 class="mb-3">Recent Orders</h5>
-                            {% if orders %}
-                            <div class="table-responsive">
-                                <table class="table table-hover">
-                                    <thead>
-                                        <tr>
-                                            <th>Order ID</th>
-                                            <th>Date</th>
-                                            <th>Status</th>
-                                            <th>Items</th>
-                                            <th>Total</th>
-                                            <th>Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for order in orders[:5] %}
-                                        <tr>
-                                            <td><strong>#{{ order.order_id }}</strong></td>
-                                            <td>{{ format_date(order.created_at, '%b %d, %Y') }}</td>
-                                            <td>
-                                                <span class="badge bg-{{ get_order_status_badge(order.status) }}">
-                                                    {{ order.status|title }}
-                                                </span>
-                                            </td>
-                                            <td>{{ order.items|length }} items</td>
-                                            <td><strong>{{ format_price(order.total) }}</strong></td>
-                                            <td>
-                                                <a href="{{ url_for('order_confirmation', order_id=order.order_id) }}" 
-                                                   class="btn btn-sm btn-outline-primary">
-                                                    <i class="fas fa-eye"></i> View
+                            <!-- Recent Activity -->
+                            <div class="row">
+                                <!-- Recent Orders -->
+                                <div class="col-md-8 mb-4">
+                                    <h5 class="mb-3">Recent Orders</h5>
+                                    {% if orders and orders|length > 0 %}
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Order ID</th>
+                                                    <th>Date</th>
+                                                    <th>Status</th>
+                                                    <th>Total</th>
+                                                    <th>Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for order in orders[:5] %}
+                                                <tr>
+                                                    <td><strong>#{{ order.order_id }}</strong></td>
+                                                    <td>{{ order.created_at.strftime('%b %d') }}</td>
+                                                    <td>
+                                                        <span class="badge {% if order.status == 'pending' %}bg-warning
+                                                                    {% elif order.status == 'processing' %}bg-info
+                                                                    {% elif order.status == 'delivered' %}bg-success
+                                                                    {% elif order.status == 'cancelled' %}bg-danger
+                                                                    {% else %}bg-secondary{% endif %}">
+                                                            {{ order.status|title }}
+                                                        </span>
+                                                    </td>
+                                                    <td><strong>KES {{ order.total|int }}</strong></td>
+                                                    <td>
+                                                        <a href="{{ url_for('order_confirmation', order_id=order.order_id) }}" 
+                                                           class="btn btn-sm btn-outline-primary">
+                                                            <i class="fas fa-eye"></i> View
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="text-end">
+                                        <a href="#orders" class="btn btn-outline-primary" data-bs-toggle="tab">
+                                            View All Orders <i class="fas fa-arrow-right ms-1"></i>
+                                        </a>
+                                    </div>
+                                    {% else %}
+                                    <div class="text-center py-4">
+                                        <i class="fas fa-shopping-bag fa-3x text-muted mb-3"></i>
+                                        <p class="text-muted mb-4">You haven't placed any orders yet.</p>
+                                        <a href="{{ url_for('categories') }}" class="btn btn-primary">
+                                            <i class="fas fa-shopping-bag me-2"></i> Start Shopping
+                                        </a>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Account Summary -->
+                                <div class="col-md-4 mb-4">
+                                    <div class="card">
+                                        <div class="card-header bg-light">
+                                            <h6 class="mb-0"><i class="fas fa-user-circle me-2"></i>Account Summary</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="mb-3">
+                                                <small class="text-muted d-block">Account Type</small>
+                                                <strong class="d-block">{{ user.role|title }}</strong>
+                                            </div>
+                                            <div class="mb-3">
+                                                <small class="text-muted d-block">Member Since</small>
+                                                <strong class="d-block">{{ user.created_at.strftime('%B %Y') }}</strong>
+                                            </div>
+                                            <div class="mb-3">
+                                                <small class="text-muted d-block">Last Login</small>
+                                                <strong class="d-block">{{ user.last_login.strftime('%b %d, %Y') }}</strong>
+                                            </div>
+                                            <div class="mb-3">
+                                                <small class="text-muted d-block">Email Verified</small>
+                                                <strong class="d-block">
+                                                    {% if user.verified %}
+                                                    <span class="text-success"><i class="fas fa-check-circle"></i> Verified</span>
+                                                    {% else %}
+                                                    <span class="text-warning"><i class="fas fa-exclamation-circle"></i> Not Verified</span>
+                                                    {% endif %}
+                                                </strong>
+                                            </div>
+                                            <div class="text-center mt-3">
+                                                <a href="#settings" class="btn btn-outline-primary btn-sm" data-bs-toggle="tab">
+                                                    <i class="fas fa-cog me-1"></i> Manage Account
                                                 </a>
-                                            </td>
-                                        </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="text-end">
-                                <a href="#orders" class="btn btn-outline-primary" data-bs-toggle="tab">
-                                    View All Orders <i class="fas fa-arrow-right ms-1"></i>
-                                </a>
+                            
+                            <!-- Quick Actions -->
+                            <div class="row mt-4">
+                                <div class="col-12">
+                                    <h5 class="mb-3">Quick Actions</h5>
+                                    <div class="row g-2">
+                                        <div class="col-md-3 col-6">
+                                            <a href="{{ url_for('categories') }}" class="btn btn-outline-primary w-100">
+                                                <i class="fas fa-shopping-bag me-2"></i> Shop Now
+                                            </a>
+                                        </div>
+                                        <div class="col-md-3 col-6">
+                                            <a href="#cart" class="btn btn-outline-warning w-100" data-bs-toggle="tab">
+                                                <i class="fas fa-shopping-cart me-2"></i> View Cart
+                                            </a>
+                                        </div>
+                                        <div class="col-md-3 col-6">
+                                            <a href="#wishlist" class="btn btn-outline-danger w-100" data-bs-toggle="tab">
+                                                <i class="fas fa-heart me-2"></i> Wishlist
+                                            </a>
+                                        </div>
+                                        <div class="col-md-3 col-6">
+                                            <a href="#settings" class="btn btn-outline-success w-100" data-bs-toggle="tab">
+                                                <i class="fas fa-cog me-2"></i> Settings
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            {% else %}
-                            <div class="text-center py-5">
-                                <i class="fas fa-shopping-bag fa-3x text-muted mb-3"></i>
-                                <p class="text-muted mb-4">You haven't placed any orders yet.</p>
-                                <a href="{{ url_for('categories') }}" class="btn btn-primary">
-                                    <i class="fas fa-shopping-bag me-2"></i> Start Shopping
-                                </a>
-                            </div>
-                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -167,151 +285,64 @@
                         <div class="card-header">
                             <div class="d-flex justify-content-between align-items-center">
                                 <h4 class="mb-0"><i class="fas fa-shopping-bag me-2"></i>My Orders</h4>
+                                {% if orders and orders|length > 0 %}
                                 <span class="badge bg-primary">{{ orders|length }} orders</span>
+                                {% endif %}
                             </div>
                         </div>
                         <div class="card-body">
-                            {% if orders %}
-                            <div class="accordion" id="ordersAccordion">
+                            {% if orders and orders|length > 0 %}
+                            <!-- Orders List -->
+                            <div class="orders-list">
                                 {% for order in orders %}
-                                <div class="accordion-item mb-3 border rounded">
-                                    <h2 class="accordion-header">
-                                        <button class="accordion-button collapsed" type="button" 
-                                                data-bs-toggle="collapse" 
-                                                data-bs-target="#order{{ loop.index }}">
-                                            <div class="d-flex justify-content-between w-100 align-items-center">
-                                                <div class="text-start">
+                                <div class="order-card card mb-3 border">
+                                    <div class="card-body">
+                                        <div class="row align-items-center">
+                                            <div class="col-md-4">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="order-status-icon me-3">
+                                                        {% if order.status == 'pending' %}
+                                                            <i class="fas fa-clock fa-2x text-warning"></i>
+                                                        {% elif order.status == 'processing' %}
+                                                            <i class="fas fa-cog fa-2x text-info"></i>
+                                                        {% elif order.status == 'delivered' %}
+                                                            <i class="fas fa-check-circle fa-2x text-success"></i>
+                                                        {% elif order.status == 'cancelled' %}
+                                                            <i class="fas fa-times-circle fa-2x text-danger"></i>
+                                                        {% else %}
+                                                            <i class="fas fa-shopping-bag fa-2x text-secondary"></i>
+                                                        {% endif %}
+                                                    </div>
                                                     <div>
-                                                        <strong class="me-3">Order #{{ order.order_id }}</strong>
-                                                        <small class="text-muted">{{ format_date(order.created_at) }}</small>
+                                                        <h6 class="mb-1">Order #{{ order.order_id }}</h6>
+                                                        <small class="text-muted">{{ order.created_at.strftime('%B %d, %Y') }}</small>
                                                     </div>
-                                                    <div class="mt-1">
-                                                        <span class="badge bg-{{ get_order_status_badge(order.status) }} me-2">
-                                                            {{ order.status|title }}
-                                                        </span>
-                                                        <span class="text-muted">
-                                                            {{ order.items|length }} item(s)
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                                <div class="text-end">
-                                                    <div class="h5 mb-0">{{ format_price(order.total) }}</div>
-                                                    <small class="text-muted">Including delivery</small>
                                                 </div>
                                             </div>
-                                        </button>
-                                    </h2>
-                                    <div id="order{{ loop.index }}" class="accordion-collapse collapse">
-                                        <div class="accordion-body">
-                                            <div class="row">
-                                                <!-- Order Items -->
-                                                <div class="col-md-7">
-                                                    <h6 class="mb-3">Order Items</h6>
-                                                    {% for item in order.items %}
-                                                    <div class="d-flex align-items-center mb-3 pb-3 border-bottom">
-                                                        <div class="flex-shrink-0">
-                                                            {% if item.image %}
-                                                                {% if item.image.startswith('http') %}
-                                                                    <img src="{{ item.image }}" 
-                                                                         class="rounded" 
-                                                                         alt="{{ item.name }}"
-                                                                         style="width: 80px; height: 80px; object-fit: cover;">
-                                                                {% elif item.image.startswith('uploads/') %}
-                                                                    <img src="{{ url_for('static', filename=item.image) }}" 
-                                                                         class="rounded" 
-                                                                         alt="{{ item.name }}"
-                                                                         style="width: 80px; height: 80px; object-fit: cover;">
-                                                                {% else %}
-                                                                    <img src="{{ url_for('static', filename='uploads/' + item.image) }}" 
-                                                                         class="rounded" 
-                                                                         alt="{{ item.name }}"
-                                                                         style="width: 80px; height: 80px; object-fit: cover;">
-                                                                {% endif %}
-                                                            {% else %}
-                                                                <img src="https://via.placeholder.com/80x80?text=Product" 
-                                                                     class="rounded" 
-                                                                     alt="{{ item.name }}"
-                                                                     style="width: 80px; height: 80px; object-fit: cover;">
-                                                            {% endif %}
-                                                        </div>
-                                                        <div class="flex-grow-1 ms-3">
-                                                            <h6 class="mb-1">{{ item.name }}</h6>
-                                                            <div class="d-flex flex-wrap gap-2 mb-2">
-                                                                {% if item.size %}
-                                                                <small class="text-muted">
-                                                                    <i class="fas fa-ruler me-1"></i>Size: {{ item.size }}
-                                                                </small>
-                                                                {% endif %}
-                                                                {% if item.color %}
-                                                                <small class="text-muted">
-                                                                    <i class="fas fa-palette me-1"></i>Color: {{ item.color }}
-                                                                </small>
-                                                                {% endif %}
-                                                                <small class="text-muted">
-                                                                    <i class="fas fa-box me-1"></i>Qty: {{ item.quantity }}
-                                                                </small>
-                                                            </div>
-                                                            <p class="mb-0 fw-bold">{{ format_price(item.price * item.quantity) }}</p>
-                                                        </div>
-                                                    </div>
-                                                    {% endfor %}
+                                            <div class="col-md-3">
+                                                <div class="text-center">
+                                                    <small class="text-muted d-block">Items</small>
+                                                    <strong>
+                                                        {% if order.items and order.items is iterable and order.items is not string %}
+                                                            {{ order.items|length }}
+                                                        {% else %}
+                                                            0
+                                                        {% endif %}
+                                                    </strong>
                                                 </div>
-                                                
-                                                <!-- Order Details -->
-                                                <div class="col-md-5">
-                                                    <h6 class="mb-3">Order Details</h6>
-                                                    <div class="card bg-light">
-                                                        <div class="card-body">
-                                                            <div class="mb-3">
-                                                                <h6>Order Summary</h6>
-                                                                <div class="d-flex justify-content-between mb-1">
-                                                                    <span>Subtotal:</span>
-                                                                    <span>{{ format_price(order.subtotal) }}</span>
-                                                                </div>
-                                                                <div class="d-flex justify-content-between mb-1">
-                                                                    <span>Delivery Fee:</span>
-                                                                    <span>{{ format_price(order.delivery_fee) }}</span>
-                                                                </div>
-                                                                <hr class="my-2">
-                                                                <div class="d-flex justify-content-between fw-bold">
-                                                                    <span>Total:</span>
-                                                                    <span>{{ format_price(order.total) }}</span>
-                                                                </div>
-                                                            </div>
-                                                            
-                                                            <div class="mb-3">
-                                                                <h6>Payment Method</h6>
-                                                                <span class="badge bg-{{ get_payment_method_badge(order.payment_method) }}">
-                                                                    <i class="fas fa-credit-card me-1"></i>
-                                                                    {{ order.payment_method|title }}
-                                                                </span>
-                                                            </div>
-                                                            
-                                                            <div class="mb-3">
-                                                                <h6>Shipping Address</h6>
-                                                                <address class="mb-0">
-                                                                    {{ order.shipping_address.street }}<br>
-                                                                    {{ order.shipping_address.city }}<br>
-                                                                    {{ order.shipping_address.county }}<br>
-                                                                    <i class="fas fa-phone me-1"></i>{{ order.shipping_address.phone }}
-                                                                </address>
-                                                            </div>
-                                                            
-                                                            <div class="d-flex gap-2 mt-3">
-                                                                <a href="{{ url_for('order_confirmation', order_id=order.order_id) }}" 
-                                                                   class="btn btn-outline-primary btn-sm flex-fill">
-                                                                    <i class="fas fa-receipt me-1"></i> View Invoice
-                                                                </a>
-                                                                {% if order.status == 'delivered' %}
-                                                                <button class="btn btn-outline-success btn-sm flex-fill"
-                                                                        data-bs-toggle="modal" 
-                                                                        data-bs-target="#reviewModal">
-                                                                    <i class="fas fa-star me-1"></i> Write Review
-                                                                </button>
-                                                                {% endif %}
-                                                            </div>
-                                                        </div>
-                                                    </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="text-center">
+                                                    <small class="text-muted d-block">Total Amount</small>
+                                                    <strong class="text-primary">KES {{ order.total|int }}</strong>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <div class="d-flex gap-2">
+                                                    <a href="{{ url_for('order_confirmation', order_id=order.order_id) }}" 
+                                                       class="btn btn-outline-primary btn-sm flex-grow-1">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
                                                 </div>
                                             </div>
                                         </div>
@@ -322,9 +353,10 @@
                             {% else %}
                             <div class="text-center py-5">
                                 <i class="fas fa-shopping-bag fa-3x text-muted mb-3"></i>
-                                <p class="text-muted mb-4">You haven't placed any orders yet.</p>
-                                <a href="{{ url_for('categories') }}" class="btn btn-primary">
-                                    <i class="fas fa-shopping-bag me-2"></i> Start Shopping
+                                <h4>No Orders Yet</h4>
+                                <p class="text-muted mb-4">You haven't placed any orders yet. Start shopping now!</p>
+                                <a href="{{ url_for('categories') }}" class="btn btn-primary btn-lg">
+                                    <i class="fas fa-shopping-bag me-2"></i> Browse Products
                                 </a>
                             </div>
                             {% endif %}
@@ -332,72 +364,131 @@
                     </div>
                 </div>
                 
-                <!-- Addresses Tab -->
-                <div class="tab-pane fade" id="addresses">
+                <!-- Shopping Cart Tab -->
+                <div class="tab-pane fade" id="cart">
                     <div class="card">
                         <div class="card-header">
                             <div class="d-flex justify-content-between align-items-center">
-                                <h4 class="mb-0"><i class="fas fa-map-marker-alt me-2"></i>My Addresses</h4>
-                                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" 
-                                        data-bs-target="#addAddressModal">
-                                    <i class="fas fa-plus me-1"></i> Add New
-                                </button>
+                                <h4 class="mb-0"><i class="fas fa-shopping-cart me-2"></i>Shopping Cart</h4>
+                                {% if user.cart and user.cart|length > 0 %}
+                                <span class="badge bg-warning">{{ user.cart|length }} items</span>
+                                {% endif %}
                             </div>
                         </div>
                         <div class="card-body">
+                            {% if user.cart and user.cart|length > 0 %}
                             <div class="row">
-                                {% if user.addresses and user.addresses|length > 0 %}
-                                    {% for address in user.addresses %}
-                                    <div class="col-md-6 mb-3">
-                                        <div class="card h-100 {% if address.default %}border-primary{% endif %}">
+                                <!-- Cart Items -->
+                                <div class="col-lg-8">
+                                    <div class="cart-items">
+                                        {% for item in user.cart %}
+                                        <div class="cart-item card mb-3">
                                             <div class="card-body">
-                                                <div class="d-flex justify-content-between mb-2">
-                                                    <h6>{{ address.label|default('Address') }}</h6>
-                                                    {% if address.default %}
-                                                    <span class="badge bg-primary">Default</span>
-                                                    {% endif %}
-                                                </div>
-                                                <address class="mb-0">
-                                                    <strong>{{ address.name }}</strong><br>
-                                                    {{ address.street }}<br>
-                                                    {{ address.city }}, {{ address.county }}<br>
-                                                    {{ address.country|default('Kenya') }}<br>
-                                                    {% if address.postal_code %}
-                                                    Postal: {{ address.postal_code }}<br>
-                                                    {% endif %}
-                                                    <i class="fas fa-phone me-1"></i>{{ address.phone }}
-                                                </address>
-                                                <div class="mt-3 d-flex gap-2">
-                                                    <button class="btn btn-outline-primary btn-sm edit-address" 
-                                                            data-address-id="{{ address._id }}">
-                                                        <i class="fas fa-edit"></i> Edit
-                                                    </button>
-                                                    <button class="btn btn-outline-danger btn-sm delete-address" 
-                                                            data-address-id="{{ address._id }}">
-                                                        <i class="fas fa-trash"></i> Remove
-                                                    </button>
-                                                    {% if not address.default %}
-                                                    <button class="btn btn-outline-success btn-sm set-default" 
-                                                            data-address-id="{{ address._id }}">
-                                                        <i class="fas fa-check"></i> Set Default
-                                                    </button>
-                                                    {% endif %}
+                                                <div class="row align-items-center">
+                                                    <div class="col-md-2">
+                                                        {% if item.image %}
+                                                            <img src="{{ item.image }}" 
+                                                                 class="img-fluid rounded" 
+                                                                 alt="{{ item.name }}"
+                                                                 style="width: 80px; height: 80px; object-fit: cover;">
+                                                        {% else %}
+                                                            <img src="https://via.placeholder.com/80x80?text=Product" 
+                                                                 class="img-fluid rounded" 
+                                                                 alt="{{ item.name }}">
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <h6 class="mb-1">{{ item.name }}</h6>
+                                                        <div class="d-flex flex-wrap gap-2">
+                                                            {% if item.size %}
+                                                            <small class="text-muted">Size: {{ item.size }}</small>
+                                                            {% endif %}
+                                                            {% if item.color %}
+                                                            <small class="text-muted">Color: {{ item.color }}</small>
+                                                            {% endif %}
+                                                        </div>
+                                                        <p class="mb-0 text-primary fw-bold">KES {{ item.price|int }}</p>
+                                                    </div>
+                                                    <div class="col-md-3">
+                                                        <div class="input-group input-group-sm">
+                                                            <span class="input-group-text">Qty:</span>
+                                                            <input type="number" 
+                                                                   class="form-control text-center" 
+                                                                   value="{{ item.quantity }}" 
+                                                                   min="1" 
+                                                                   max="10"
+                                                                   readonly>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-2 text-end">
+                                                        <h6 class="mb-0">KES {{ (item.price * item.quantity)|int }}</h6>
+                                                        <a href="{{ url_for('remove_from_cart', item_index=loop.index0) }}" 
+                                                           class="btn btn-link text-danger btn-sm p-0 mt-1">
+                                                            <i class="fas fa-trash"></i> Remove
+                                                        </a>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
+                                        {% endfor %}
                                     </div>
-                                    {% endfor %}
-                                {% else %}
-                                <div class="col-12 text-center py-5">
-                                    <i class="fas fa-map-marker-alt fa-3x text-muted mb-3"></i>
-                                    <p class="text-muted mb-4">You haven't added any addresses yet.</p>
-                                    <button class="btn btn-primary" data-bs-toggle="modal" 
-                                            data-bs-target="#addAddressModal">
-                                        <i class="fas fa-plus me-2"></i> Add Your First Address
-                                    </button>
                                 </div>
-                                {% endif %}
+                                
+                                <!-- Cart Summary -->
+                                <div class="col-lg-4">
+                                    <div class="card">
+                                        <div class="card-header bg-light">
+                                            <h6 class="mb-0">Order Summary</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            {% set subtotal = 0 %}
+                                            {% for item in user.cart %}
+                                                {% set subtotal = subtotal + (item.price * item.quantity) %}
+                                            {% endfor %}
+                                            
+                                            {% set delivery_fee = 200 if subtotal < 5000 else 0 %}
+                                            {% set total = subtotal + delivery_fee %}
+                                            
+                                            <div class="d-flex justify-content-between mb-2">
+                                                <span>Subtotal</span>
+                                                <span>KES {{ subtotal|int }}</span>
+                                            </div>
+                                            <div class="d-flex justify-content-between mb-2">
+                                                <span>Delivery Fee</span>
+                                                <span>KES {{ delivery_fee }}</span>
+                                            </div>
+                                            <div class="d-flex justify-content-between mb-3 fw-bold">
+                                                <span>Total</span>
+                                                <span>KES {{ total|int }}</span>
+                                            </div>
+                                            <div class="d-grid gap-2">
+                                                <a href="{{ url_for('checkout') }}" class="btn btn-primary">
+                                                    <i class="fas fa-lock me-2"></i> Proceed to Checkout
+                                                </a>
+                                                <a href="{{ url_for('categories') }}" class="btn btn-outline-primary">
+                                                    <i class="fas fa-shopping-bag me-2"></i> Continue Shopping
+                                                </a>
+                                            </div>
+                                            <div class="mt-3">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-info-circle me-1"></i>
+                                                    Free delivery on orders over KES 5,000 in Embu County
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
+                            {% else %}
+                            <div class="text-center py-5">
+                                <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
+                                <h4>Your Cart is Empty</h4>
+                                <p class="text-muted mb-4">Add some products to your cart and they will appear here.</p>
+                                <a href="{{ url_for('categories') }}" class="btn btn-primary btn-lg">
+                                    <i class="fas fa-shopping-bag me-2"></i> Browse Products
+                                </a>
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -417,88 +508,40 @@
                             {% if user.wishlist and user.wishlist|length > 0 %}
                             <div class="row">
                                 {% for product in user.wishlist %}
-                                <div class="col-md-4 col-sm-6 mb-4">
-                                    <div class="card h-100">
+                                <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
+                                    <div class="card h-100 product-card">
                                         <div class="position-relative">
                                             {% if product.image %}
-                                                {% if product.image.startswith('http') %}
-                                                    <img src="{{ product.image }}" 
-                                                         class="card-img-top product-image" 
-                                                         alt="{{ product.name }}">
-                                                {% elif product.image.startswith('uploads/') %}
-                                                    <img src="{{ url_for('static', filename=product.image) }}" 
-                                                         class="card-img-top product-image" 
-                                                         alt="{{ product.name }}">
-                                                {% else %}
-                                                    <img src="{{ url_for('static', filename='uploads/' + product.image) }}" 
-                                                         class="card-img-top product-image" 
-                                                         alt="{{ product.name }}">
-                                                {% endif %}
+                                                <img src="{{ product.image }}" 
+                                                     class="card-img-top product-image" 
+                                                     alt="{{ product.name }}"
+                                                     style="height: 200px; object-fit: cover;">
                                             {% else %}
                                                 <img src="https://via.placeholder.com/300x200?text=Product" 
                                                      class="card-img-top product-image" 
-                                                     alt="{{ product.name }}">
-                                            {% endif %}
-                                            
-                                            <div class="position-absolute top-0 end-0 p-2">
-                                                <button class="btn btn-danger btn-sm remove-wishlist" 
-                                                        data-product-id="{{ product._id }}"
-                                                        title="Remove from wishlist">
-                                                    <i class="fas fa-times"></i>
-                                                </button>
-                                            </div>
-                                            
-                                            {% if product.stock == 0 %}
-                                            <div class="position-absolute top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 d-flex align-items-center justify-content-center">
-                                                <span class="badge bg-danger">Out of Stock</span>
-                                            </div>
+                                                     alt="{{ product.name }}"
+                                                     style="height: 200px; object-fit: cover;">
                                             {% endif %}
                                         </div>
                                         <div class="card-body">
                                             <h6 class="card-title mb-2">
-                                                <a href="{{ url_for('product_details', product_id=product._id) }}" 
+                                                <a href="{{ url_for('product_details', product_id=product._id) if product._id else '#' }}" 
                                                    class="text-decoration-none text-dark">
-                                                    {{ product.name|truncate(50) }}
+                                                    {{ product.name[:40] }}{% if product.name|length > 40 %}...{% endif %}
                                                 </a>
                                             </h6>
-                                            <div class="rating small mb-2">
-                                                {% for i in range(5) %}
-                                                    {% if i < product.rating|int %}
-                                                        <i class="fas fa-star text-warning"></i>
-                                                    {% else %}
-                                                        <i class="far fa-star text-warning"></i>
-                                                    {% endif %}
-                                                {% endfor %}
-                                                <small class="text-muted ms-1">({{ product.reviews_count }})</small>
-                                            </div>
-                                            <p class="price mb-3 fw-bold">{{ format_price(product.price) }}</p>
-                                            
-                                            {% set stock_info = get_product_stock_status(product.stock) %}
-                                            <p class="small mb-3">
-                                                <i class="fas fa-box me-1"></i>
-                                                <span class="text-{{ stock_info.color }}">
-                                                    {{ stock_info.text }}
-                                                </span>
-                                            </p>
-                                            
+                                            <p class="price fw-bold mb-2">KES {{ product.price|int if product.price else 0 }}</p>
+                                        </div>
+                                        <div class="card-footer bg-white border-top-0">
                                             <div class="d-grid gap-2">
-                                                <a href="{{ url_for('product_details', product_id=product._id) }}" 
+                                                <a href="{{ url_for('product_details', product_id=product._id) if product._id else '#' }}" 
                                                    class="btn btn-outline-primary btn-sm">
                                                     <i class="fas fa-eye me-1"></i> View Details
                                                 </a>
-                                                {% if product.stock > 0 %}
-                                                <form action="{{ url_for('add_to_cart', product_id=product._id) }}" 
-                                                      method="POST" class="add-to-cart-form">
-                                                    <input type="hidden" name="quantity" value="1">
-                                                    <button type="submit" class="btn btn-primary btn-sm w-100">
-                                                        <i class="fas fa-cart-plus me-1"></i> Add to Cart
-                                                    </button>
-                                                </form>
-                                                {% else %}
-                                                <button class="btn btn-secondary btn-sm w-100" disabled>
-                                                    <i class="fas fa-ban me-1"></i> Out of Stock
-                                                </button>
-                                                {% endif %}
+                                                <a href="{{ url_for('add_to_cart', product_id=product._id) if product._id else '#' }}" 
+                                                   class="btn btn-primary btn-sm w-100">
+                                                    <i class="fas fa-cart-plus me-1"></i> Add to Cart
+                                                </a>
                                             </div>
                                         </div>
                                     </div>
@@ -508,8 +551,9 @@
                             {% else %}
                             <div class="text-center py-5">
                                 <i class="fas fa-heart fa-3x text-muted mb-3"></i>
-                                <p class="text-muted mb-4">Your wishlist is empty.</p>
-                                <a href="{{ url_for('categories') }}" class="btn btn-primary">
+                                <h4>Your Wishlist is Empty</h4>
+                                <p class="text-muted mb-4">Save your favorite products here for later.</p>
+                                <a href="{{ url_for('categories') }}" class="btn btn-primary btn-lg">
                                     <i class="fas fa-heart me-2"></i> Browse Products
                                 </a>
                             </div>
@@ -525,9 +569,10 @@
                             <h4 class="mb-0"><i class="fas fa-cog me-2"></i>Account Settings</h4>
                         </div>
                         <div class="card-body">
-                            <!-- Personal Information Form -->
-                            <form id="personalInfoForm" action="{{ url_for('update_profile') }}" method="POST">
-                                <h5 class="mb-4 border-bottom pb-2">Personal Information</h5>
+                            <!-- Profile Settings -->
+                            <form id="profileForm" action="{{ url_for('update_profile') }}" method="POST">
+                                <h5 class="mb-4 border-bottom pb-2">Profile Information</h5>
+                                
                                 <div class="row mb-3">
                                     <div class="col-md-6">
                                         <label class="form-label">Full Name *</label>
@@ -541,7 +586,7 @@
                                     </div>
                                 </div>
                                 
-                                <div class="row mb-4">
+                                <div class="row">
                                     <div class="col-md-6">
                                         <label class="form-label">Phone Number *</label>
                                         <input type="tel" class="form-control" name="phone" 
@@ -554,9 +599,9 @@
                                     </div>
                                 </div>
                                 
-                                <div class="d-flex gap-2">
+                                <div class="d-flex gap-2 mt-4">
                                     <button type="submit" class="btn btn-primary">
-                                        <i class="fas fa-save me-2"></i> Save Changes
+                                        <i class="fas fa-save me-2"></i> Save Profile
                                     </button>
                                     <button type="reset" class="btn btn-outline-secondary">
                                         <i class="fas fa-undo me-2"></i> Reset
@@ -564,22 +609,22 @@
                                 </div>
                             </form>
                             
-                            <!-- Change Password Form -->
-                            <form id="changePasswordForm" class="mt-5" action="{{ url_for('change_password') }}" method="POST">
+                            <!-- Change Password -->
+                            <form id="passwordForm" class="mt-5" action="{{ url_for('change_password') }}" method="POST">
                                 <h5 class="mb-4 border-bottom pb-2">Change Password</h5>
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
                                         <label class="form-label">Current Password *</label>
                                         <input type="password" class="form-control" name="current_password" required>
                                     </div>
                                 </div>
-                                <div class="row mb-4">
-                                    <div class="col-md-6">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
                                         <label class="form-label">New Password *</label>
                                         <input type="password" class="form-control" name="new_password" required>
-                                        <small class="text-muted">Must be at least 6 characters long</small>
+                                        <small class="text-muted">Minimum 6 characters</small>
                                     </div>
-                                    <div class="col-md-6">
+                                    <div class="col-md-6 mb-3">
                                         <label class="form-label">Confirm New Password *</label>
                                         <input type="password" class="form-control" name="confirm_password" required>
                                     </div>
@@ -594,121 +639,7 @@
                                     </button>
                                 </div>
                             </form>
-                            
-                            <!-- Danger Zone -->
-                            <div class="mt-5 pt-4 border-top">
-                                <h5 class="mb-4 text-danger">
-                                    <i class="fas fa-exclamation-triangle me-2"></i>Danger Zone
-                                </h5>
-                                <div class="alert alert-danger">
-                                    <h6 class="alert-heading">Delete Account</h6>
-                                    <p class="mb-3">Once you delete your account, there is no going back. Please be certain.</p>
-                                    <button class="btn btn-danger" data-bs-toggle="modal" 
-                                            data-bs-target="#deleteAccountModal">
-                                        <i class="fas fa-trash me-2"></i> Delete Account
-                                    </button>
-                                </div>
-                            </div>
                         </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Add Address Modal -->
-<div class="modal fade" id="addAddressModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Add New Address</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form id="addAddressForm">
-                <div class="modal-body">
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Full Name *</label>
-                            <input type="text" class="form-control" name="name" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Phone Number *</label>
-                            <input type="tel" class="form-control" name="phone" required>
-                        </div>
-                        <div class="col-md-12 mb-3">
-                            <label class="form-label">Street Address *</label>
-                            <input type="text" class="form-control" name="street" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">City/Town *</label>
-                            <input type="text" class="form-control" name="city" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">County *</label>
-                            <select class="form-select" name="county" required>
-                                <option value="">Select County</option>
-                                <option value="Embu">Embu County</option>
-                                <option value="Nairobi">Nairobi County</option>
-                                <option value="Mombasa">Mombasa County</option>
-                                <option value="Kisumu">Kisumu County</option>
-                                <option value="Nakuru">Nakuru County</option>
-                                <option value="Meru">Meru County</option>
-                                <option value="Kiambu">Kiambu County</option>
-                                <option value="Kakamega">Kakamega County</option>
-                                <option value="Uasin Gishu">Uasin Gishu County</option>
-                                <option value="Kisii">Kisii County</option>
-                                <!-- Add more counties as needed -->
-                            </select>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Postal Code</label>
-                            <input type="text" class="form-control" name="postal_code">
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Address Label</label>
-                            <input type="text" class="form-control" name="label" 
-                                   placeholder="e.g., Home, Office, etc.">
-                        </div>
-                    </div>
-                    <div class="form-check mb-3">
-                        <input class="form-check-input" type="checkbox" name="default" id="setDefault">
-                        <label class="form-check-label" for="setDefault">
-                            Set as default shipping address
-                        </label>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save Address</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Delete Account Modal -->
-<div class="modal fade" id="deleteAccountModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title">Delete Account</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="alert alert-danger mb-0">
-                    <h6 class="alert-heading">Warning: This action cannot be undone!</h6>
-                    <p class="mb-3">Are you sure you want to delete your account? All your data, including orders and wishlist, will be permanently deleted.</p>
-                    <div class="form-check mb-3">
-                        <input class="form-check-input" type="checkbox" id="confirmDelete">
-                        <label class="form-check-label" for="confirmDelete">
-                            I understand this action is irreversible
-                        </label>
-                    </div>
-                    <div class="d-grid">
-                        <button class="btn btn-danger" id="deleteAccountBtn" disabled>
-                            <i class="fas fa-trash me-2"></i> Permanently Delete My Account
-                        </button>
                     </div>
                 </div>
             </div>
@@ -754,6 +685,10 @@
 .stat-card {
     transition: all 0.3s;
     cursor: pointer;
+    min-height: 140px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .stat-card:hover {
@@ -761,20 +696,40 @@
     box-shadow: 0 5px 15px rgba(0,0,0,0.1);
 }
 
-.product-image {
-    height: 200px;
-    object-fit: cover;
+.order-card {
+    transition: all 0.3s;
 }
 
-.cart-item-image {
-    width: 60px;
-    height: 60px;
-    object-fit: cover;
-    border-radius: 5px;
+.order-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
-.rating.small {
-    font-size: 0.8rem;
+.order-status-icon {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.product-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: 1px solid #e9ecef;
+}
+
+.product-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+@media (max-width: 768px) {
+    .stat-card {
+        min-height: 120px;
+    }
+    
+    .order-card .row > div {
+        margin-bottom: 1rem;
+    }
 }
 </style>
 {% endblock %}
@@ -798,11 +753,14 @@ $(document).ready(function() {
     // Restore active tab from URL hash
     if (window.location.hash) {
         const hash = window.location.hash.substring(1);
-        $('.account-nav a[href="#' + hash + '"]').click();
+        const tab = document.querySelector(`.account-nav a[href="#${hash}"]`);
+        if (tab) {
+            $(tab).click();
+        }
     }
     
     // Form submissions
-    $('#personalInfoForm').submit(function(e) {
+    $('#profileForm').submit(function(e) {
         e.preventDefault();
         const formData = $(this).serialize();
         
@@ -815,12 +773,12 @@ $(document).ready(function() {
                 setTimeout(() => location.reload(), 1500);
             },
             error: function(xhr) {
-                showToast('Error', xhr.responseJSON?.message || 'Update failed', 'error');
+                showToast('Error', xhr.responseJSON?.message || 'Update failed', 'danger');
             }
         });
     });
     
-    $('#changePasswordForm').submit(function(e) {
+    $('#passwordForm').submit(function(e) {
         e.preventDefault();
         const formData = $(this).serialize();
         
@@ -830,92 +788,39 @@ $(document).ready(function() {
             data: formData,
             success: function(response) {
                 showToast('Success', 'Password changed successfully', 'success');
-                $('#changePasswordForm')[0].reset();
+                $('#passwordForm')[0].reset();
             },
             error: function(xhr) {
-                showToast('Error', xhr.responseJSON?.message || 'Password change failed', 'error');
+                showToast('Error', xhr.responseJSON?.message || 'Password change failed', 'danger');
             }
         });
     });
     
-    // Wishlist removal
-    $('.remove-wishlist').click(function() {
-        const productId = $(this).data('product-id');
-        const card = $(this).closest('.col-md-4');
-        
-        if (confirm('Remove this item from your wishlist?')) {
-            $.ajax({
-                url: `/remove-from-wishlist/${productId}`,
-                type: 'POST',
-                success: function(response) {
-                    card.fadeOut(300, function() {
-                        $(this).remove();
-                        updateWishlistCount();
-                    });
-                    showToast('Success', 'Removed from wishlist', 'success');
-                },
-                error: function() {
-                    showToast('Error', 'Failed to remove item', 'error');
-                }
-            });
-        }
-    });
-    
-    // Delete account confirmation
-    $('#confirmDelete').change(function() {
-        $('#deleteAccountBtn').prop('disabled', !$(this).is(':checked'));
-    });
-    
-    $('#deleteAccountBtn').click(function() {
-        if (confirm('Are you absolutely sure? This cannot be undone!')) {
-            $.ajax({
-                url: '/delete-account',
-                type: 'POST',
-                success: function() {
-                    window.location.href = '/';
-                },
-                error: function() {
-                    showToast('Error', 'Failed to delete account', 'error');
-                }
-            });
-        }
-    });
-    
-    // Helper function to show toast notifications
+    // Toast notification
     function showToast(title, message, type = 'info') {
-        const toast = $(`
-            <div class="toast align-items-center text-white bg-${type} border-0" role="alert">
-                <div class="d-flex">
-                    <div class="toast-body">
-                        <strong>${title}:</strong> ${message}
+        // Remove existing toasts
+        $('.toast-container').remove();
+        
+        const toastHtml = `
+            <div class="toast-container position-fixed top-0 end-0 p-3">
+                <div class="toast show" role="alert">
+                    <div class="toast-header bg-${type} text-white">
+                        <strong class="me-auto">${title}</strong>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
                     </div>
-                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    <div class="toast-body">
+                        ${message}
+                    </div>
                 </div>
             </div>
-        `);
+        `;
         
-        $('.toast-container').append(toast);
-        const bsToast = new bootstrap.Toast(toast[0]);
-        bsToast.show();
+        $('body').append(toastHtml);
         
-        setTimeout(() => toast.remove(), 5000);
-    }
-    
-    // Helper function to update wishlist count
-    function updateWishlistCount() {
-        const count = $('.col-md-4').length;
-        $('.badge.bg-danger').text(count + ' items');
-        if (count === 0) {
-            $('#wishlist .card-body').html(`
-                <div class="text-center py-5">
-                    <i class="fas fa-heart fa-3x text-muted mb-3"></i>
-                    <p class="text-muted mb-4">Your wishlist is empty.</p>
-                    <a href="/categories" class="btn btn-primary">
-                        <i class="fas fa-heart me-2"></i> Browse Products
-                    </a>
-                </div>
-            `);
-        }
+        // Auto remove after 3 seconds
+        setTimeout(() => {
+            $('.toast-container').remove();
+        }, 3000);
     }
 });
 </script>
