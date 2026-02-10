@@ -22,7 +22,8 @@
                             <label class="form-label">Email Address *</label>
                             <input type="email" class="form-control" name="email" 
                                    value="{{ request.form.email if request.form }}" required>
-                            <div class="form-text">We'll send a verification code to this email</div>
+                            <!-- CHANGED: Updated email description -->
+                            <div class="form-text">Used for order notifications and account recovery</div>
                         </div>
                         
                         <div class="mb-3">
@@ -40,7 +41,8 @@
                             <label class="form-label">Password *</label>
                             <input type="password" class="form-control" name="password" 
                                    id="password" required>
-                            <div class="form-text">Minimum 8 characters with letters and numbers</div>
+                            <!-- CHANGED: Updated password requirements -->
+                            <div class="form-text">Minimum 6 characters</div>
                         </div>
                         
                         <div class="mb-4">
@@ -63,6 +65,12 @@
                             <button type="submit" class="btn btn-primary btn-lg">
                                 <i class="fas fa-user-plus me-2"></i> Create Account
                             </button>
+                        </div>
+                        
+                        <!-- ADDED: Instant registration notice -->
+                        <div class="alert alert-info mt-3" role="alert">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Instant Registration:</strong> Your account is created immediately. No email verification needed!
                         </div>
                         
                         <hr class="my-4">
@@ -90,8 +98,29 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <!-- Same as checkout modal -->
-                <p>Your registration is subject to acceptance by MUFRA FASHIONS...</p>
+                <h6>1. Acceptance of Terms</h6>
+                <p>By creating an account with MUFRA FASHIONS, you agree to be bound by these terms and conditions.</p>
+                
+                <h6>2. Account Registration</h6>
+                <p>You must provide accurate and complete information when creating an account. You are responsible for maintaining the confidentiality of your account credentials.</p>
+                
+                <h6>3. Ordering and Payment</h6>
+                <p>All orders are subject to availability and confirmation of the order price. We reserve the right to refuse any order.</p>
+                
+                <h6>4. Delivery</h6>
+                <p>Delivery times are estimates and not guaranteed. Risk of loss passes to you upon delivery.</p>
+                
+                <h6>5. Returns and Refunds</h6>
+                <p>Returns are accepted within 7 days of delivery for items in original condition. Refunds will be processed within 14 business days.</p>
+                
+                <h6>6. Privacy</h6>
+                <p>Your personal information will be handled in accordance with our Privacy Policy.</p>
+                
+                <h6>7. Modifications</h6>
+                <p>We reserve the right to modify these terms at any time. Continued use of the service constitutes acceptance of modified terms.</p>
+                
+                <h6>8. Limitation of Liability</h6>
+                <p>MUFRA FASHIONS shall not be liable for any indirect, incidental, or consequential damages arising from your use of our services.</p>
             </div>
         </div>
     </div>
@@ -107,19 +136,28 @@
             </div>
             <div class="modal-body">
                 <h6>1. Information We Collect</h6>
-                <p>We collect personal information you provide when registering, placing orders, or contacting us.</p>
+                <p>We collect personal information you provide when registering, placing orders, or contacting us, including name, email, phone number, and shipping address.</p>
                 
                 <h6>2. How We Use Your Information</h6>
-                <p>To process orders, communicate with you, improve our services, and send promotional materials.</p>
+                <p>To process orders, communicate with you about your orders, improve our services, and send promotional materials (with your consent).</p>
                 
                 <h6>3. Information Sharing</h6>
-                <p>We do not sell your personal information. We may share with payment processors and delivery services.</p>
+                <p>We do not sell your personal information. We may share with payment processors, delivery services, and fraud prevention services as necessary to fulfill orders.</p>
                 
-                <h6>4. Security</h6>
-                <p>We implement security measures to protect your personal information.</p>
+                <h6>4. Data Security</h6>
+                <p>We implement industry-standard security measures to protect your personal information from unauthorized access, alteration, or destruction.</p>
                 
                 <h6>5. Your Rights</h6>
-                <p>You can access, correct, or delete your personal information through your account settings.</p>
+                <p>You can access, correct, or delete your personal information through your account settings. You may also opt-out of marketing communications at any time.</p>
+                
+                <h6>6. Cookies and Tracking</h6>
+                <p>We use cookies to improve your browsing experience and analyze website traffic. You can control cookies through your browser settings.</p>
+                
+                <h6>7. Children's Privacy</h6>
+                <p>Our services are not directed to individuals under 18. We do not knowingly collect personal information from children.</p>
+                
+                <h6>8. Changes to Privacy Policy</h6>
+                <p>We may update this policy periodically. Continued use of our services constitutes acceptance of the updated policy.</p>
             </div>
         </div>
     </div>
@@ -142,21 +180,7 @@ $(document).ready(function() {
         }
     });
     
-    // Password strength
-    $('#password').on('input', function() {
-        const password = $(this).val();
-        let strength = 0;
-        
-        if (password.length >= 8) strength++;
-        if (/[A-Z]/.test(password)) strength++;
-        if (/[0-9]/.test(password)) strength++;
-        if (/[^A-Za-z0-9]/.test(password)) strength++;
-        
-        // Update strength indicator
-        $('#password-strength').removeClass().addClass('strength-' + strength);
-    });
-    
-    // Form validation
+    // Form validation - UPDATED for 6 character minimum
     $('form').submit(function(e) {
         const password = $('#password').val();
         const confirm = $('#confirm_password').val();
@@ -167,9 +191,10 @@ $(document).ready(function() {
             return false;
         }
         
-        if (password.length < 8) {
+        // CHANGED: Updated to 6 characters minimum
+        if (password.length < 6) {
             e.preventDefault();
-            showToast('Error', 'Password must be at least 8 characters', 'error');
+            showToast('Error', 'Password must be at least 6 characters', 'error');
             return false;
         }
         
@@ -179,6 +204,38 @@ $(document).ready(function() {
             return false;
         }
     });
+    
+    // Show toast notification function
+    function showToast(title, message, type = 'info') {
+        // Create toast element
+        const toastId = 'toast-' + Date.now();
+        const toastHtml = `
+            <div id="${toastId}" class="toast align-items-center text-white bg-${type === 'error' ? 'danger' : type} border-0" role="alert">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <strong>${title}</strong><br>${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            </div>
+        `;
+        
+        // Add to toast container
+        if (!$('.toast-container').length) {
+            $('body').append('<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999"></div>');
+        }
+        
+        $('.toast-container').append(toastHtml);
+        
+        // Show toast
+        const toast = new bootstrap.Toast(document.getElementById(toastId));
+        toast.show();
+        
+        // Remove after hide
+        document.getElementById(toastId).addEventListener('hidden.bs.toast', function () {
+            this.remove();
+        });
+    }
 });
 </script>
 {% endblock %}

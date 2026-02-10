@@ -100,8 +100,9 @@ def generate_order_id():
     return 'MUFRA' + ''.join(random.choices(string.digits, k=8))
 
 def send_email(to, subject, template, **kwargs):
-    """Robust email sending for production"""
+    """Robust email sending for production with timeout"""
     import os
+    import socket
     
     # Check if we're in production
     is_production = os.getenv('FLASK_ENV') == 'production' or not app.debug
@@ -125,6 +126,15 @@ def send_email(to, subject, template, **kwargs):
         return True
     
     try:
+        # Check if credentials are configured
+        if not app.config.get('MAIL_USERNAME') or not app.config.get('MAIL_PASSWORD'):
+            print(f"⚠️  Email credentials not configured - skipping email")
+            print(f"   MAIL_USERNAME: {bool(app.config.get('MAIL_USERNAME'))}")
+            print(f"   MAIL_PASSWORD: {bool(app.config.get('MAIL_PASSWORD'))}")
+            print(f"✅ Continuing without email")
+            print(f"{'='*60}\n")
+            return True  # Don't fail registration if email isn't configured
+        
         # Create email content
         try:
             html_body = render_template(f'emails/{template}.html', **kwargs)
@@ -140,7 +150,7 @@ def send_email(to, subject, template, **kwargs):
             """
             text_body = f"{subject}\nHello {kwargs.get('name', 'User')},\nYour verification code is: {kwargs.get('otp', 'N/A')}"
         
-        # Send using SMTP
+        # Send using SMTP with timeout
         import smtplib
         from email.mime.text import MIMEText
         from email.mime.multipart import MIMEMultipart
@@ -153,34 +163,48 @@ def send_email(to, subject, template, **kwargs):
         msg.attach(MIMEText(text_body, 'plain'))
         msg.attach(MIMEText(html_body, 'html'))
         
-        with smtplib.SMTP(app.config['MAIL_SERVER'], app.config['MAIL_PORT']) as server:
-            server.starttls()
-            server.login(app.config['MAIL_USERNAME'], app.config['MAIL_PASSWORD'])
-            server.send_message(msg)
+        # Set timeout to 5 seconds to prevent hanging
+        socket.setdefaulttimeout(5)
         
-        print(f"✅ Email sent successfully")
+        try:
+            with smtplib.SMTP(app.config['MAIL_SERVER'], app.config['MAIL_PORT'], timeout=5) as server:
+                server.settimeout(5)
+                server.starttls()
+                server.login(app.config['MAIL_USERNAME'], app.config['MAIL_PASSWORD'])
+                server.send_message(msg)
+            
+            print(f"✅ Email sent successfully")
+            print(f"{'='*60}\n")
+            
+            # Log successful send in production
+            if is_production:
+                try:
+                    email_logs = get_collection('email_logs')
+                    email_logs.insert_one({
+                        'to': to,
+                        'subject': subject,
+                        'status': 'sent',
+                        'timestamp': datetime.utcnow()
+                    })
+                except:
+                    pass
+            
+            return True
+        finally:
+            socket.setdefaulttimeout(None)  # Reset timeout
+        
+    except socket.timeout:
+        print(f"❌ EMAIL TIMEOUT (5 seconds) - continuing without email")
         print(f"{'='*60}\n")
-        
-        # Log successful send in production
-        if is_production:
-            try:
-                email_logs = get_collection('email_logs')
-                email_logs.insert_one({
-                    'to': to,
-                    'subject': subject,
-                    'status': 'sent',
-                    'timestamp': datetime.utcnow()
-                })
-            except:
-                pass
-        
+        # Don't fail registration due to timeout
         return True
         
     except Exception as e:
         print(f"❌ EMAIL SEND FAILED: {str(e)}")
+        print(f"   Error Type: {type(e).__name__}")
+        print(f"   Continuing despite email failure")
         
-        # CRITICAL: Don't fail registration if email fails
-        # Just log the error and continue
+        # Log failed send in production
         if is_production:
             try:
                 email_logs = get_collection('email_logs')
@@ -194,11 +218,11 @@ def send_email(to, subject, template, **kwargs):
             except:
                 pass
         
-        print(f"⚠️  Continuing despite email failure")
         print(f"{'='*60}\n")
         
         # Return True anyway so registration doesn't fail
         return True
+
 def send_verification_email(email, name, otp):
     """Send OTP verification email"""
     subject = "Verify Your Email - MUFRA FASHIONS"
@@ -1273,7 +1297,7 @@ def debug_order(order_id):
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    """User registration - Production ready"""
+    """User registration - Direct redirect without email verification"""
     try:
         if request.method == 'POST':
             # Get form data
@@ -1310,42 +1334,32 @@ def register():
                 'phone': phone,
                 'password': generate_password_hash(password),
                 'role': 'customer',
-                'verified': False,
+                'verified': True,  # Auto-verify since no email verification
                 'cart': [],
                 'wishlist': [],
                 'created_at': datetime.utcnow()
             }
             
-            # Generate OTP
-            otp = generate_otp()
-            user['verification_otp'] = otp
-            user['otp_expires'] = datetime.utcnow() + timedelta(minutes=10)
-            
-            # Save user FIRST (always save even if email fails)
+            # Save user to database
             result = users_collection.insert_one(user)
             
-            # Store in session
-            session['temp_user_id'] = str(result.inserted_id)
+            # Create session immediately
+            session['user_id'] = str(result.inserted_id)
+            session['user_name'] = user['name']
+            session['user_role'] = user.get('role', 'customer')
             
-            # Try to send email (but don't fail if it doesn't work)
-            try:
-                email_result = send_verification_email(email, name, otp)
-                
-                if email_result:
-                    flash('Registration successful! Check your email for verification code.', 'success')
-                else:
-                    flash(f'Registration successful! Your verification code: {otp}', 'info')
-            except Exception as email_error:
-                print(f"Email error (but continuing): {email_error}")
-                flash(f'Registration successful! Your verification code: {otp}', 'info')
+            # Flash success message
+            flash(f'Welcome to MUFRA FASHIONS, {name}! Registration successful.', 'success')
             
-            return redirect(url_for('verify_email'))
+            # Redirect directly to home
+            return redirect(url_for('home'))
         
         return render_template('register.html')
     except Exception as e:
         print(f"Registration error: {e}")
         flash('Error during registration. Please try again.', 'danger')
         return render_template('register.html')
+
 @app.route('/verify-email', methods=['GET', 'POST'])
 def verify_email():
     """Email verification"""

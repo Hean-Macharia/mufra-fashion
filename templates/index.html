@@ -56,9 +56,7 @@
                                  alt="{{ safe_get(product, 'name', 'Product') }}"
                                  onerror="this.src='https://via.placeholder.com/400x300?text=Product'">
                         </a>
-                        <span class="badge bg-primary category-badge">
-                            {{ safe_get(product, 'category', 'Uncategorized') }}
-                        </span>
+                        <!-- REMOVED: Category badge from here -->
                         {% if safe_get(product, 'featured', False) %}
                         <span class="badge bg-warning position-absolute top-0 end-0 m-2">
                             <i class="fas fa-star me-1"></i>Featured
@@ -194,9 +192,10 @@
                     </a>
                     <div class="card-body">
                         <h5 class="card-title">{{ safe_get(product, 'name', 'Unnamed Product') }}</h5>
+                        <!-- REMOVED: Category badge from here too -->
                         <div class="d-flex justify-content-between align-items-center">
                             <h4 class="price mb-0">{{ format_price(safe_get(product, 'price', 0)) }}</h4>
-                            <span class="badge bg-primary">{{ safe_get(product, 'category', 'Uncategorized') }}</span>
+                            <!-- You can keep a smaller badge here if you want, but I'll remove it -->
                         </div>
                         <div class="mt-3">
                             {% if product._id %}
@@ -379,13 +378,7 @@
     box-shadow: 0 15px 30px rgba(0,0,0,0.15);
 }
 
-.category-badge {
-    position: absolute;
-    top: 15px;
-    left: 15px;
-    font-size: 0.8rem;
-    z-index: 1;
-}
+/* REMOVED: .category-badge styles since we removed the badges */
 
 .price {
     color: #2c3e50;
