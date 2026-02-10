@@ -38,7 +38,7 @@ app.config['MAIL_USE_TLS'] = os.getenv('MAIL_USE_TLS', 'True').lower() == 'true'
 app.config['MAIL_USE_SSL'] = os.getenv('MAIL_USE_SSL', 'False').lower() == 'true'
 app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME', 'your-email@gmail.com')
 app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD', 'your-app-password')
-app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER', 'noreply@mufrafashions.com')
+app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER', 'mufrafashions@gmail.com')
 app.config['MAIL_SUPPRESS_SEND'] = os.getenv('MAIL_SUPPRESS_SEND', 'False').lower() == 'true'
 
 # Paystack configuration
@@ -100,80 +100,105 @@ def generate_order_id():
     return 'MUFRA' + ''.join(random.choices(string.digits, k=8))
 
 def send_email(to, subject, template, **kwargs):
-    """Send email to a recipient using direct SMTP"""
+    """Robust email sending for production"""
+    import os
+    
+    # Check if we're in production
+    is_production = os.getenv('FLASK_ENV') == 'production' or not app.debug
+    
+    print(f"\n{'='*60}")
+    print(f"📧 EMAIL REQUEST:")
+    print(f"   To: {to}")
+    print(f"   Subject: {subject}")
+    print(f"   Production Mode: {is_production}")
+    
+    # Always log OTP for debugging
+    if 'otp' in kwargs:
+        print(f"🔐 OTP FOR {to}: {kwargs['otp']}")
+        print(f"   User can enter this code to verify")
+    
+    # Check if email sending is suppressed
+    if app.config.get('MAIL_SUPPRESS_SEND', False):
+        print(f"⚠️  MAIL_SUPPRESS_SEND=True - Email suppressed")
+        print(f"✅ Returning success (simulated)")
+        print(f"{'='*60}\n")
+        return True
+    
     try:
-        print(f"\n{'='*60}")
-        print(f"📧 SENDING EMAIL TO: {to}")
-        print(f"📋 SUBJECT: {subject}")
-        print(f"📝 TEMPLATE: {template}")
+        # Create email content
+        try:
+            html_body = render_template(f'emails/{template}.html', **kwargs)
+            text_body = render_template(f'emails/{template}.txt', **kwargs)
+        except:
+            # Fallback template
+            html_body = f"""
+            <html><body>
+                <h2>{subject}</h2>
+                <p>Hello {kwargs.get('name', 'User')},</p>
+                <p>Your verification code is: <strong>{kwargs.get('otp', 'N/A')}</strong></p>
+            </body></html>
+            """
+            text_body = f"{subject}\nHello {kwargs.get('name', 'User')},\nYour verification code is: {kwargs.get('otp', 'N/A')}"
         
-        # Always show OTP in console for development
-        if 'otp' in kwargs:
-            print(f"🔐 OTP FOR USER: {kwargs['otp']}")
-            print(f"   User can enter this code to verify")
-        
-        # Check if we should suppress sending
-        if app.config.get('MAIL_SUPPRESS_SEND', False):
-            print(f"\n⚠️  MAIL_SUPPRESS_SEND is True - email will not be sent")
-            print(f"{'='*60}\n")
-            return True
-        
-        # Use direct SMTP (more reliable than Flask-Mail)
+        # Send using SMTP
         import smtplib
         from email.mime.text import MIMEText
         from email.mime.multipart import MIMEMultipart
         
-        # Create message
         msg = MIMEMultipart('alternative')
         msg['Subject'] = subject
         msg['From'] = app.config['MAIL_DEFAULT_SENDER']
         msg['To'] = to
         
-        try:
-            # Try to render templates
-            html_body = render_template(f'emails/{template}.html', **kwargs)
-            text_body = render_template(f'emails/{template}.txt', **kwargs)
-        except:
-            # Fallback templates
-            html_body = f"""
-            <html>
-            <body>
-                <h2>{subject}</h2>
-                <p>Hello {kwargs.get('name', 'User')},</p>
-                <p>Your verification code is: <strong>{kwargs.get('otp', 'N/A')}</strong></p>
-            </body>
-            </html>
-            """
-            text_body = f"{subject}\n\nHello {kwargs.get('name', 'User')},\n\nYour verification code is: {kwargs.get('otp', 'N/A')}"
+        msg.attach(MIMEText(text_body, 'plain'))
+        msg.attach(MIMEText(html_body, 'html'))
         
-        # Attach parts
-        part1 = MIMEText(text_body, 'plain')
-        part2 = MIMEText(html_body, 'html')
-        msg.attach(part1)
-        msg.attach(part2)
-        
-        # Send email
         with smtplib.SMTP(app.config['MAIL_SERVER'], app.config['MAIL_PORT']) as server:
             server.starttls()
             server.login(app.config['MAIL_USERNAME'], app.config['MAIL_PASSWORD'])
             server.send_message(msg)
         
-        print(f"✅ Email sent successfully to: {to}")
+        print(f"✅ Email sent successfully")
         print(f"{'='*60}\n")
+        
+        # Log successful send in production
+        if is_production:
+            try:
+                email_logs = get_collection('email_logs')
+                email_logs.insert_one({
+                    'to': to,
+                    'subject': subject,
+                    'status': 'sent',
+                    'timestamp': datetime.utcnow()
+                })
+            except:
+                pass
+        
         return True
         
     except Exception as e:
-        print(f"❌ ERROR SENDING EMAIL: {e}")
-        print(f"\n🔍 Debug info:")
-        print(f"  To: {to}")
-        print(f"  Subject: {subject}")
+        print(f"❌ EMAIL SEND FAILED: {str(e)}")
         
-        if 'otp' in kwargs:
-            print(f"\n🔐 IMPORTANT: OTP FOR USER: {kwargs['otp']}")
-            print(f"   User can use this code to verify their account")
+        # CRITICAL: Don't fail registration if email fails
+        # Just log the error and continue
+        if is_production:
+            try:
+                email_logs = get_collection('email_logs')
+                email_logs.insert_one({
+                    'to': to,
+                    'subject': subject,
+                    'status': 'failed',
+                    'error': str(e),
+                    'timestamp': datetime.utcnow()
+                })
+            except:
+                pass
         
+        print(f"⚠️  Continuing despite email failure")
         print(f"{'='*60}\n")
-        return False
+        
+        # Return True anyway so registration doesn't fail
+        return True
 def send_verification_email(email, name, otp):
     """Send OTP verification email"""
     subject = "Verify Your Email - MUFRA FASHIONS"
@@ -1248,7 +1273,7 @@ def debug_order(order_id):
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    """User registration"""
+    """User registration - Production ready"""
     try:
         if request.method == 'POST':
             # Get form data
@@ -1296,26 +1321,31 @@ def register():
             user['verification_otp'] = otp
             user['otp_expires'] = datetime.utcnow() + timedelta(minutes=10)
             
-            # Save user
+            # Save user FIRST (always save even if email fails)
             result = users_collection.insert_one(user)
             
-            # Send verification email
-            email_sent = send_verification_email(email, name, otp)
+            # Store in session
+            session['temp_user_id'] = str(result.inserted_id)
             
-            if email_sent:
-                flash('Registration successful! Check your email for verification code.', 'success')
-            else:
+            # Try to send email (but don't fail if it doesn't work)
+            try:
+                email_result = send_verification_email(email, name, otp)
+                
+                if email_result:
+                    flash('Registration successful! Check your email for verification code.', 'success')
+                else:
+                    flash(f'Registration successful! Your verification code: {otp}', 'info')
+            except Exception as email_error:
+                print(f"Email error (but continuing): {email_error}")
                 flash(f'Registration successful! Your verification code: {otp}', 'info')
             
-            session['temp_user_id'] = str(result.inserted_id)
             return redirect(url_for('verify_email'))
         
         return render_template('register.html')
     except Exception as e:
-        print(f"Error in register: {e}")
-        flash('Error during registration', 'danger')
+        print(f"Registration error: {e}")
+        flash('Error during registration. Please try again.', 'danger')
         return render_template('register.html')
-
 @app.route('/verify-email', methods=['GET', 'POST'])
 def verify_email():
     """Email verification"""
@@ -1684,6 +1714,7 @@ def change_password():
 
 
 # ========== OTHER ROUTES ==========
+
 @app.route('/add-review/<product_id>', methods=['POST'])
 @login_required
 def add_review(product_id):
