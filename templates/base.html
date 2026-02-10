@@ -12,22 +12,227 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     
+    <style>
+        /* Mobile Navigation - Always Visible Horizontal Bar */
+        @media (max-width: 768px) {
+            .navbar {
+                padding: 0.5rem 0;
+            }
+            
+            .navbar .container {
+                flex-direction: column;
+                padding: 0;
+            }
+            
+            /* Main horizontal navigation container */
+            .mobile-nav-container {
+                display: flex;
+                width: 100%;
+                overflow-x: auto;
+                overflow-y: hidden;
+                scrollbar-width: thin;
+                scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+                padding: 0.5rem 0;
+                background-color: #0d6efd; /* Same as bg-primary */
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            /* Hide scrollbar for Chrome, Safari and Opera */
+            .mobile-nav-container::-webkit-scrollbar {
+                height: 4px;
+            }
+            
+            .mobile-nav-container::-webkit-scrollbar-track {
+                background: transparent;
+            }
+            
+            .mobile-nav-container::-webkit-scrollbar-thumb {
+                background-color: rgba(255, 255, 255, 0.3);
+                border-radius: 10px;
+            }
+            
+            /* Horizontal navigation items */
+            .mobile-nav-items {
+                display: flex;
+                flex-wrap: nowrap;
+                padding: 0 0.5rem;
+                min-width: max-content;
+            }
+            
+            .mobile-nav-items .nav-item {
+                margin: 0 0.25rem;
+                white-space: nowrap;
+            }
+            
+            .mobile-nav-items .nav-link {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                padding: 0.5rem 0.75rem;
+                border-radius: 8px;
+                background-color: rgba(255, 255, 255, 0.1);
+                color: white;
+                font-size: 0.85rem;
+                min-width: 70px;
+                transition: all 0.3s ease;
+            }
+            
+            .mobile-nav-items .nav-link:hover {
+                background-color: rgba(255, 255, 255, 0.2);
+            }
+            
+            .mobile-nav-items .nav-link.active {
+                background-color: rgba(255, 255, 255, 0.25);
+                font-weight: bold;
+            }
+            
+            .mobile-nav-items .nav-link i {
+                font-size: 1.1rem;
+                margin-bottom: 0.25rem;
+            }
+            
+            /* Search bar in mobile */
+            .mobile-search-container {
+                width: 100%;
+                padding: 0.5rem 1rem;
+                background-color: #0d6efd;
+                border-top: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            
+            /* User and cart section */
+            .mobile-user-cart-container {
+                display: flex;
+                width: 100%;
+                justify-content: space-between;
+                padding: 0.5rem 1rem;
+                background-color: #0d6efd;
+                border-top: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            
+            .mobile-user-cart-container .nav-link {
+                display: flex;
+                align-items: center;
+                color: white;
+                padding: 0.5rem;
+                border-radius: 8px;
+                background-color: rgba(255, 255, 255, 0.1);
+                transition: all 0.3s ease;
+            }
+            
+            .mobile-user-cart-container .nav-link:hover {
+                background-color: rgba(255, 255, 255, 0.2);
+            }
+            
+            /* Logo adjustments for mobile */
+            .brand-logo-mobile {
+                display: flex;
+                align-items: center;
+                padding: 0.5rem 1rem;
+                background-color: #0d6efd;
+                width: 100%;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            
+            .logo-image {
+                height: 35px;
+                width: auto;
+                margin-right: 10px;
+            }
+            
+            .brand-text {
+                display: flex;
+                flex-direction: column;
+            }
+            
+            .brand-main {
+                font-size: 1.2rem;
+                font-weight: bold;
+                line-height: 1.1;
+            }
+            
+            .brand-tagline {
+                font-size: 0.7rem;
+                font-style: italic;
+                opacity: 0.9;
+            }
+            
+            /* Hide desktop elements on mobile */
+            .desktop-only {
+                display: none !important;
+            }
+            
+            /* Show mobile elements */
+            .mobile-only {
+                display: block !important;
+            }
+        }
+        
+        /* Desktop styles */
+        @media (min-width: 769px) {
+            .mobile-only {
+                display: none !important;
+            }
+            
+            .desktop-only {
+                display: flex !important;
+            }
+            
+            /* Logo Styling for desktop */
+            .brand-logo {
+                display: flex;
+                align-items: center;
+                text-decoration: none;
+                color: white;
+            }
+            
+            .logo-image {
+                height: 40px;
+                width: auto;
+                margin-right: 10px;
+                object-fit: contain;
+            }
+            
+            .brand-text {
+                display: flex;
+                flex-direction: column;
+            }
+            
+            .brand-main {
+                font-size: 1.5rem;
+                font-weight: bold;
+                line-height: 1.2;
+            }
+            
+            .brand-tagline {
+                font-size: 0.75rem;
+                font-style: italic;
+                opacity: 0.9;
+                line-height: 1;
+            }
+        }
+        
+        /* Ensure proper spacing */
+        main {
+            padding-top: 1rem;
+        }
+    </style>
+    
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <!-- Navigation - Desktop -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary desktop-only">
         <div class="container">
-            <a class="navbar-brand" href="{{ url_for('home') }}">
-                <i class="fas fa-tshirt me-2"></i>
-                <strong>MUFRA FASHIONS</strong>
+            <a class="brand-logo" href="{{ url_for('home') }}">
+                <img src="{{ url_for('static', filename='images/logo.jpeg') }}" alt="MUFRA FASHIONS Logo" class="logo-image">
+                <div class="brand-text">
+                    <span class="brand-main">MUFRA FASHIONS</span>
+                    <span class="brand-tagline">A style that speaks</span>
+                </div>
             </a>
             
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            
-            <div class="collapse navbar-collapse" id="navbarNav">
+            <div class="navbar-collapse">
+                <!-- Main Navigation Links -->
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'home' %}active{% endif %}" href="{{ url_for('home') }}">
@@ -100,6 +305,90 @@
         </div>
     </nav>
 
+    <!-- Navigation - Mobile (Always Visible) -->
+    <div class="mobile-only">
+        <!-- Logo -->
+        <div class="brand-logo-mobile">
+            <img src="{{ url_for('static', filename='images/logo.jpeg') }}" alt="MUFRA FASHIONS Logo" class="logo-image">
+            <div class="brand-text">
+                <span class="brand-main">MUFRA FASHIONS</span>
+                <span class="brand-tagline">A style that speaks</span>
+            </div>
+        </div>
+        
+        <!-- Horizontal Navigation Links -->
+        <div class="mobile-nav-container">
+            <div class="mobile-nav-items">
+                <a class="nav-link {% if request.endpoint == 'home' %}active{% endif %}" href="{{ url_for('home') }}">
+                    <i class="fas fa-home"></i>
+                    Home
+                </a>
+                <a class="nav-link {% if request.endpoint == 'categories' %}active{% endif %}" href="{{ url_for('categories') }}">
+                    <i class="fas fa-th-large"></i>
+                    Categories
+                </a>
+                <a class="nav-link {% if request.endpoint == 'contact' %}active{% endif %}" href="{{ url_for('contact') }}">
+                    <i class="fas fa-phone"></i>
+                    Contact
+                </a>
+                {% if session.user_role == 'admin' %}
+                <a class="nav-link {% if request.endpoint.startswith('admin') %}active{% endif %}" href="{{ url_for('admin_dashboard') }}">
+                    <i class="fas fa-cog"></i>
+                    Admin
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Search Bar -->
+        <div class="mobile-search-container">
+            <form action="{{ url_for('search') }}" method="get">
+                <div class="input-group">
+                    <input type="search" class="form-control" placeholder="Search products..." name="q" value="{{ request.args.get('q', '') }}">
+                    <button class="btn btn-light" type="submit">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- User & Cart -->
+        <div class="mobile-user-cart-container">
+            <div class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="userDropdownMobile" role="button" data-bs-toggle="dropdown">
+                    <i class="fas fa-user"></i>
+                    {% if session.user_name %}
+                        {{ session.user_name|truncate(10) }}
+                    {% else %}
+                        Account
+                    {% endif %}
+                </a>
+                <ul class="dropdown-menu">
+                    {% if session.user_id %}
+                        <li><a class="dropdown-item" href="{{ url_for('account') }}"><i class="fas fa-user-circle"></i> My Account</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                    {% else %}
+                        <li><a class="dropdown-item" href="{{ url_for('login') }}"><i class="fas fa-sign-in-alt"></i> Login</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('register') }}"><i class="fas fa-user-plus"></i> Register</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+            
+            <div class="nav-item">
+                <a class="nav-link position-relative" href="{{ url_for('cart') }}">
+                    <i class="fas fa-shopping-cart"></i>
+                    Cart
+                    {% if session.cart %}
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                            {{ session.cart|length }}
+                        </span>
+                    {% endif %}
+                </a>
+            </div>
+        </div>
+    </div>
+
     <!-- Flash Messages -->
     <div class="container mt-3">
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -125,7 +414,8 @@
             <div class="row">
                 <div class="col-md-4">
                     <h5><i class="fas fa-tshirt me-2"></i>MUFRA FASHIONS</h5>
-                    <p>Your one-stop shop for trendy fashion items at affordable prices.</p>
+                    <p class="mb-1">A style that speaks</p>
+                    <p class="small">Your one-stop shop for trendy fashion items at affordable prices.</p>
                 </div>
                 <div class="col-md-4">
                     <h5>Contact Info</h5>
