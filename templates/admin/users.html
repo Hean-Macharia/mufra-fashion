@@ -1,138 +1,305 @@
-{% extends "base.html" %}
+{% extends "admin/base.html" %}
 
-{% block title %}Manage Users - Admin{% endblock %}
+{% block title %}Manage Users - MUFRA FASHIONS{% endblock %}
+
+{% block page_title %}User Management{% endblock %}
+
+{% block page_description %}View, manage, and analyze your customer base and their activities.{% endblock %}
+
+{% block breadcrumb_page %}Users{% endblock %}
+
+{% block page_buttons %}
+<div class="btn-group">
+    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#exportUsersModal">
+        <i class="fas fa-download me-2"></i> Export
+    </button>
+    <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown">
+        <i class="fas fa-user-plus me-2"></i> Add User
+    </button>
+    <ul class="dropdown-menu">
+        <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#addUserModal">
+            <i class="fas fa-user me-2"></i> Add Single User
+        </a></li>
+        <li><a class="dropdown-item" href="#">
+            <i class="fas fa-file-import me-2"></i> Import Users
+        </a></li>
+    </ul>
+</div>
+{% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
-    <div class="row">
-        <!-- Sidebar (same as dashboard) -->
-        <div class="col-md-3 col-lg-2 px-0">
-            <div class="admin-sidebar">
-                <div class="d-flex flex-column p-3">
-                    <h4 class="mb-4">Admin Panel</h4>
-                    <ul class="nav flex-column mb-auto">
-                        <li class="nav-item">
-                            <a class="admin-nav-link" href="{{ url_for('admin_dashboard') }}">
-                                <i class="fas fa-tachometer-alt me-2"></i> Dashboard
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="admin-nav-link" href="{{ url_for('admin_products') }}">
-                                <i class="fas fa-box me-2"></i> Products
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="admin-nav-link" href="{{ url_for('admin_orders') }}">
-                                <i class="fas fa-shopping-bag me-2"></i> Orders
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="admin-nav-link active" href="{{ url_for('admin_users') }}">
-                                <i class="fas fa-users me-2"></i> Users
-                            </a>
-                        </li>
-                    </ul>
+<div class="users-management">
+    <!-- User Stats Overview -->
+    <div class="row mb-4">
+        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+            <div class="stat-card mini-card">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon-sm bg-primary">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h6 class="text-muted mb-1">Total Users</h6>
+                        <h4 class="mb-0">{{ users|length }}</h4>
+                    </div>
                 </div>
             </div>
         </div>
         
-        <!-- Main Content -->
-        <div class="col-md-9 col-lg-10">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1>Manage Users</h1>
-                <div class="input-group" style="width: 300px;">
-                    <input type="text" class="form-control" placeholder="Search users..." id="userSearch">
-                    <button class="btn btn-outline-primary" type="button">
-                        <i class="fas fa-search"></i>
-                    </button>
+        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+            <div class="stat-card mini-card">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon-sm bg-success">
+                        <i class="fas fa-user-check"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h6 class="text-muted mb-1">Verified</h6>
+                        <h4 class="mb-0">{{ users|selectattr('verified', 'equalto', true)|list|length }}</h4>
+                    </div>
                 </div>
             </div>
-            
-            <!-- Users Table -->
+        </div>
+        
+        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+            <div class="stat-card mini-card">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon-sm bg-warning">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h6 class="text-muted mb-1">Today</h6>
+                        <h4 class="mb-0">{{ today_users|default(0) }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+            <div class="stat-card mini-card">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon-sm bg-info">
+                        <i class="fas fa-shopping-cart"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h6 class="text-muted mb-1">Active Buyers</h6>
+                        <h4 class="mb-0">{{ active_buyers|default(0) }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+            <div class="stat-card mini-card">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon-sm bg-danger">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h6 class="text-muted mb-1">Admins</h6>
+                        <h4 class="mb-0">{{ users|selectattr('role', 'equalto', 'admin')|list|length }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+            <div class="stat-card mini-card">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon-sm bg-secondary">
+                        <i class="fas fa-money-bill-wave"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h6 class="text-muted mb-1">Avg. Spend</h6>
+                        <h4 class="mb-0">KES {{ average_spend|default(0)|format_number }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Search and Filter -->
+    <div class="row mb-4">
+        <div class="col-12">
             <div class="card">
                 <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-0">
+                                    <i class="fas fa-search text-muted"></i>
+                                </span>
+                                <input type="text" class="form-control border-0" id="userSearch" 
+                                       placeholder="Search by name, email, phone...">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" id="roleFilter">
+                                <option value="">All Roles</option>
+                                <option value="customer">Customers</option>
+                                <option value="admin">Admins</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" id="statusFilter">
+                                <option value="">All Status</option>
+                                <option value="verified">Verified</option>
+                                <option value="unverified">Unverified</option>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button class="btn btn-outline-secondary w-100" id="clearUserFilters">
+                                <i class="fas fa-times me-2"></i> Clear
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Users Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">User List</h5>
+                    <div class="d-flex align-items-center">
+                        <span class="text-muted me-3">{{ users|length }} users found</span>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" 
+                                    data-bs-toggle="dropdown">
+                                <i class="fas fa-columns me-2"></i> Columns
+                            </button>
+                            <ul class="dropdown-menu" id="columnToggle">
+                                <li><a class="dropdown-item" href="#" data-column="0"><i class="fas fa-check text-success me-2"></i>User</a></li>
+                                <li><a class="dropdown-item" href="#" data-column="1"><i class="fas fa-check text-success me-2"></i>Contact</a></li>
+                                <li><a class="dropdown-item" href="#" data-column="2"><i class="fas fa-check text-success me-2"></i>Registration</a></li>
+                                <li><a class="dropdown-item" href="#" data-column="3"><i class="fas fa-check text-success me-2"></i>Orders</a></li>
+                                <li><a class="dropdown-item" href="#" data-column="4"><i class="fas fa-check text-success me-2"></i>Status</a></li>
+                                <li><a class="dropdown-item" href="#" data-column="5"><i class="fas fa-check text-success me-2"></i>Actions</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
+                        <table class="table table-hover mb-0 data-table" id="usersTable">
+                            <thead class="table-light">
                                 <tr>
-                                    <th>User</th>
+                                    <th class="ps-4">User</th>
                                     <th>Contact</th>
                                     <th>Registration</th>
                                     <th>Orders</th>
                                     <th>Status</th>
-                                    <th>Actions</th>
+                                    <th class="text-end pe-4">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for user in users %}
+                                {% set user_orders = get_collection('orders').find({'user_id': user._id}) %}
+                                {% set orders_count = user_orders.count() %}
+                                {% set total_spent = user_orders.aggregate([{'$group': {'_id': None, 'total': {'$sum': '$total'}}}]) %}
+                                {% set total_spent_value = total_spent.next()['total'] if total_spent.alive else 0 %}
                                 <tr>
-                                    <td>
+                                    <td class="ps-4">
                                         <div class="d-flex align-items-center">
-                                            <div class="avatar-circle-sm me-3">
-                                                <i class="fas fa-user"></i>
+                                            <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center me-3" 
+                                                 style="width: 40px; height: 40px;">
+                                                <i class="fas fa-user text-primary"></i>
                                             </div>
                                             <div>
-                                                <strong>{{ user.name }}</strong><br>
-                                                <small class="text-muted">ID: {{ user._id }}</small>
+                                                <div class="fw-bold text-dark">{{ user.name|default('No Name') }}</div>
+                                                <small class="text-muted">
+                                                    ID: {{ user._id|string|truncate(8, True, '') }}
+                                                    {% if user.role == 'admin' %}
+                                                    <span class="badge bg-danger ms-2">Admin</span>
+                                                    {% endif %}
+                                                </small>
                                             </div>
                                         </div>
                                     </td>
                                     <td>
-                                        <small class="d-block">{{ user.email }}</small>
-                                        <small class="text-muted">{{ user.phone }}</small>
+                                        <div class="fw-medium">{{ user.email|default('No email') }}</div>
+                                        <div class="text-muted small">
+                                            <i class="fas fa-phone me-1"></i>{{ user.phone|default('No phone') }}
+                                        </div>
                                     </td>
                                     <td>
-                                        {{ user.created_at.strftime('%Y-%m-%d') }}<br>
-                                        <small class="text-muted">{{ user.created_at|timesince }}</small>
+                                        <div>{{ user.created_at|format_date('%b %d, %Y') if user.created_at else 'N/A' }}</div>
+                                        <small class="text-muted">
+                                            {% if user.created_at %}
+                                                {{ ((now() - user.created_at).days) }} days ago
+                                            {% endif %}
+                                        </small>
                                     </td>
                                     <td>
-                                        {% set user_orders = mongo.db.orders.find({'user_id': user._id}) %}
-                                        <span class="badge bg-primary">{{ user_orders.count() }} orders</span><br>
-                                        {% set total_spent = user_orders.sum('total') %}
-                                        <small>KES {{ total_spent if total_spent else 0 }}</small>
+                                        <div class="fw-bold text-primary">{{ orders_count }}</div>
+                                        <div class="text-muted small">
+                                            {% if orders_count > 0 %}
+                                                KES {{ total_spent_value|default(0)|format_number }}
+                                            {% else %}
+                                                No orders
+                                            {% endif %}
+                                        </div>
                                     </td>
                                     <td>
-                                        {% if user.verified %}
-                                        <span class="badge bg-success">Verified</span>
-                                        {% else %}
-                                        <span class="badge bg-warning">Unverified</span>
+                                        <div class="mb-1">
+                                            <span class="badge bg-{{ 'success' if user.verified else 'warning' }} rounded-pill px-3 py-1">
+                                                <i class="fas fa-{{ 'check-circle' if user.verified else 'clock' }} me-1"></i>
+                                                {{ 'Verified' if user.verified else 'Unverified' }}
+                                            </span>
+                                        </div>
+                                        {% if user.last_login %}
+                                        <div class="text-muted small">
+                                            <i class="fas fa-sign-in-alt me-1"></i>
+                                            {{ user.last_login|format_date('%b %d') }}
+                                        </div>
                                         {% endif %}
-                                        {% if user.role == 'admin' %}
-                                        <span class="badge bg-danger mt-1">Admin</span>
-                                        {% endif %}
                                     </td>
-                                    <td>
-                                        <div class="btn-group btn-group-sm">
-                                            <button type="button" class="btn btn-outline-primary" 
+                                    <td class="text-end pe-4">
+                                        <div class="btn-group">
+                                            <button type="button" class="btn btn-sm btn-outline-primary" 
                                                     data-bs-toggle="modal" 
                                                     data-bs-target="#userModal{{ user._id }}">
                                                 <i class="fas fa-eye"></i>
                                             </button>
-                                            <button type="button" class="btn btn-outline-info">
+                                            <button type="button" class="btn btn-sm btn-outline-info" onclick="sendEmailToUser('{{ user._id }}', '{{ user.email }}')">
                                                 <i class="fas fa-envelope"></i>
                                             </button>
                                             {% if user.role != 'admin' %}
                                             <div class="dropdown">
-                                                <button class="btn btn-outline-secondary dropdown-toggle" 
+                                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" 
                                                         type="button" data-bs-toggle="dropdown">
-                                                    <i class="fas fa-cog"></i>
+                                                    <i class="fas fa-ellipsis-v"></i>
                                                 </button>
-                                                <ul class="dropdown-menu">
+                                                <ul class="dropdown-menu dropdown-menu-end">
                                                     <li>
                                                         <a class="dropdown-item" href="#" 
                                                            onclick="updateUserRole('{{ user._id }}', 'admin')">
+                                                            <i class="fas fa-user-shield me-2 text-danger"></i>
                                                             Make Admin
                                                         </a>
                                                     </li>
                                                     <li>
                                                         <a class="dropdown-item" href="#" 
                                                            onclick="verifyUser('{{ user._id }}')">
+                                                            <i class="fas fa-check-circle me-2 text-success"></i>
                                                             Verify User
                                                         </a>
                                                     </li>
                                                     <li>
+                                                        <a class="dropdown-item" href="#" 
+                                                           onclick="sendWelcomeEmail('{{ user._id }}')">
+                                                            <i class="fas fa-envelope-open-text me-2 text-info"></i>
+                                                            Send Welcome Email
+                                                        </a>
+                                                    </li>
+                                                    <li><hr class="dropdown-divider"></li>
+                                                    <li>
                                                         <a class="dropdown-item text-danger" href="#" 
                                                            onclick="deleteUser('{{ user._id }}', '{{ user.name }}')">
+                                                            <i class="fas fa-trash me-2"></i>
                                                             Delete User
                                                         </a>
                                                     </li>
@@ -142,187 +309,669 @@
                                         </div>
                                     </td>
                                 </tr>
-                                
-                                <!-- User Details Modal -->
-                                <div class="modal fade" id="userModal{{ user._id }}" tabindex="-1">
-                                    <div class="modal-dialog">
-                                        <div class="modal-content">
-                                            <div class="modal-header">
-                                                <h5 class="modal-title">User Details</h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                            </div>
-                                            <div class="modal-body">
-                                                <div class="text-center mb-4">
-                                                    <div class="avatar-circle-lg mb-3">
-                                                        <i class="fas fa-user fa-2x"></i>
-                                                    </div>
-                                                    <h5>{{ user.name }}</h5>
-                                                    <p class="text-muted">{{ user.email }}</p>
-                                                </div>
-                                                
-                                                <div class="row mb-3">
-                                                    <div class="col-md-6">
-                                                        <p><strong>Phone:</strong><br>{{ user.phone }}</p>
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <p><strong>Role:</strong><br>
-                                                            <span class="badge bg-{{ 'danger' if user.role == 'admin' else 'primary' }}">
-                                                                {{ user.role|title }}
-                                                            </span>
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                
-                                                <div class="row mb-3">
-                                                    <div class="col-md-6">
-                                                        <p><strong>Joined:</strong><br>{{ user.created_at.strftime('%B %d, %Y') }}</p>
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <p><strong>Status:</strong><br>
-                                                            {% if user.verified %}
-                                                            <span class="badge bg-success">Verified</span>
-                                                            {% else %}
-                                                            <span class="badge bg-warning">Unverified</span>
-                                                            {% endif %}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                
-                                                <h6>Recent Orders</h6>
-                                                {% set recent_orders = mongo.db.orders.find({'user_id': user._id}).sort('created_at', -1).limit(3) %}
-                                                {% if recent_orders.count() > 0 %}
-                                                <div class="list-group">
-                                                    {% for order in recent_orders %}
-                                                    <a href="#" class="list-group-item list-group-item-action">
-                                                        <div class="d-flex w-100 justify-content-between">
-                                                            <h6 class="mb-1">{{ order.order_id }}</h6>
-                                                            <small>KES {{ order.total }}</small>
-                                                        </div>
-                                                        <small class="text-muted">{{ order.created_at.strftime('%Y-%m-%d') }} • {{ order.status|title }}</small>
-                                                    </a>
-                                                    {% endfor %}
-                                                </div>
-                                                {% else %}
-                                                <p class="text-muted">No orders yet</p>
-                                                {% endif %}
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
                                 {% endfor %}
+                                
+                                {% if users|length == 0 %}
+                                <tr>
+                                    <td colspan="6" class="text-center py-5">
+                                        <div class="text-muted">
+                                            <i class="fas fa-users fa-3x mb-3"></i>
+                                            <p class="mb-0">No users found</p>
+                                            <small>When users register, they'll appear here.</small>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endif %}
                             </tbody>
                         </table>
                     </div>
-                    
-                    {% if users|length == 0 %}
-                    <div class="text-center py-5">
-                        <i class="fas fa-users fa-3x text-muted mb-3"></i>
-                        <p class="text-muted">No users found</p>
-                    </div>
-                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-{% block extra_css %}
-<style>
-.avatar-circle-sm {
-    width: 40px;
-    height: 40px;
-    background-color: #e3f2fd;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
+<!-- Add User Modal -->
+<div class="modal fade" id="addUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addUserForm" method="POST" action="{{ url_for('add_user') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Full Name *</label>
+                        <input type="text" class="form-control" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email Address *</label>
+                        <input type="email" class="form-control" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Phone Number</label>
+                        <input type="tel" class="form-control" name="phone">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Password *</label>
+                        <input type="password" class="form-control" name="password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Confirm Password *</label>
+                        <input type="password" class="form-control" name="confirm_password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Role</label>
+                        <select class="form-select" name="role">
+                            <option value="customer">Customer</option>
+                            <option value="admin">Administrator</option>
+                        </select>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="verified" id="verifiedCheck" checked>
+                        <label class="form-check-label" for="verifiedCheck">
+                            Mark as verified
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
-.avatar-circle-lg {
-    width: 80px;
-    height: 80px;
-    background-color: #e3f2fd;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto;
-}
-</style>
+<!-- Export Users Modal -->
+<div class="modal fade" id="exportUsersModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Export Users</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Export Format</label>
+                    <select class="form-select" id="exportUsersFormat">
+                        <option value="csv">CSV (Excel)</option>
+                        <option value="pdf">PDF Document</option>
+                        <option value="json">JSON Data</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Include Fields</label>
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="exportName" checked>
+                                <label class="form-check-label" for="exportName">Name</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="exportEmail" checked>
+                                <label class="form-check-label" for="exportEmail">Email</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="exportPhone" checked>
+                                <label class="form-check-label" for="exportPhone">Phone</label>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="exportOrders" checked>
+                                <label class="form-check-label" for="exportOrders">Orders</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="exportTotal" checked>
+                                <label class="form-check-label" for="exportTotal">Total Spent</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="exportJoined" checked>
+                                <label class="form-check-label" for="exportJoined">Joined Date</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">User Status</label>
+                    <select class="form-select" id="exportUsersStatus">
+                        <option value="all">All Users</option>
+                        <option value="verified">Verified Only</option>
+                        <option value="unverified">Unverified Only</option>
+                        <option value="with_orders">With Orders Only</option>
+                        <option value="no_orders">No Orders Only</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="exportUsers()">
+                    <i class="fas fa-download me-2"></i> Export
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- User Detail Modals -->
+{% for user in users %}
+{% set user_orders = get_collection('orders').find({'user_id': user._id}) %}
+{% set orders_count = user_orders.count() %}
+<div class="modal fade" id="userModal{{ user._id }}" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user me-2"></i>
+                    {{ user.name|default('User') }}'s Profile
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- User Header -->
+                <div class="row mb-4">
+                    <div class="col-md-8">
+                        <div class="d-flex align-items-center">
+                            <div class="rounded-circle bg-primary bg-opacity-10 p-3 me-3">
+                                <i class="fas fa-user fa-2x text-primary"></i>
+                            </div>
+                            <div>
+                                <h4 class="mb-1">{{ user.name|default('No Name') }}</h4>
+                                <div class="d-flex align-items-center">
+                                    <span class="badge bg-{{ 'danger' if user.role == 'admin' else 'primary' }} me-2">
+                                        {{ user.role|title if user.role else 'Customer' }}
+                                    </span>
+                                    <span class="badge bg-{{ 'success' if user.verified else 'warning' }}">
+                                        {{ 'Verified' if user.verified else 'Unverified' }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-md-end">
+                        <div class="mt-3 mt-md-0">
+                            <div class="text-muted small mb-1">Member Since</div>
+                            <div class="fw-bold">{{ user.created_at|format_date('%b %d, %Y') if user.created_at else 'N/A' }}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Contact Information -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card bg-light border-0 h-100">
+                            <div class="card-body">
+                                <h6 class="card-title mb-3">
+                                    <i class="fas fa-address-card me-2"></i>
+                                    Contact Information
+                                </h6>
+                                <div class="mb-3">
+                                    <div class="text-muted small mb-1">Email Address</div>
+                                    <div class="fw-medium">{{ user.email|default('No email') }}</div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="text-muted small mb-1">Phone Number</div>
+                                    <div class="fw-medium">{{ user.phone|default('No phone') }}</div>
+                                </div>
+                                {% if user.last_login %}
+                                <div class="mb-3">
+                                    <div class="text-muted small mb-1">Last Login</div>
+                                    <div class="fw-medium">{{ user.last_login|format_date('%b %d, %Y %I:%M %p') }}</div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card bg-light border-0 h-100">
+                            <div class="card-body">
+                                <h6 class="card-title mb-3">
+                                    <i class="fas fa-chart-line me-2"></i>
+                                    Purchase Statistics
+                                </h6>
+                                <div class="row text-center">
+                                    <div class="col-6">
+                                        <div class="display-5 fw-bold text-primary">{{ orders_count }}</div>
+                                        <div class="text-muted small">Total Orders</div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="display-5 fw-bold text-success">
+                                            KES {{ user_orders.aggregate([{'$group': {'_id': None, 'total': {'$sum': '$total'}}}]).next()['total'] if orders_count > 0 else 0 }}
+                                        </div>
+                                        <div class="text-muted small">Total Spent</div>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <div class="text-muted small mb-1">Average Order Value</div>
+                                    <div class="fw-bold">
+                                        KES {{ (user_orders.aggregate([{'$group': {'_id': None, 'total': {'$sum': '$total'}}}]).next()['total'] / orders_count if orders_count > 0 else 0)|int }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Recent Orders -->
+                <div class="card border-0">
+                    <div class="card-header bg-white border-bottom">
+                        <h6 class="mb-0">Recent Orders ({{ orders_count }})</h6>
+                    </div>
+                    <div class="card-body p-0">
+                        {% if orders_count > 0 %}
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-4">Order ID</th>
+                                        <th>Date</th>
+                                        <th>Items</th>
+                                        <th>Total</th>
+                                        <th>Status</th>
+                                        <th class="text-end pe-4">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for order in user_orders.sort('created_at', -1).limit(5) %}
+                                    <tr>
+                                        <td class="ps-4">
+                                            <div class="fw-medium">{{ order.order_id|format_order_id }}</div>
+                                        </td>
+                                        <td>{{ order.created_at|format_date('%b %d') if order.created_at else 'N/A' }}</td>
+                                        <td>{{ order.items|length }} items</td>
+                                        <td class="fw-bold">KES {{ order.total|default(0)|format_number }}</td>
+                                        <td>
+                                            <span class="badge bg-{{ 
+                                                'success' if order.status == 'delivered' 
+                                                else 'warning' if order.status == 'pending'
+                                                else 'primary' if order.status == 'paid'
+                                                else 'info' if order.status == 'processing'
+                                                else 'secondary' if order.status == 'shipped'
+                                                else 'danger'
+                                            }} rounded-pill px-3 py-1">
+                                                {{ order.status|title if order.status else 'Unknown' }}
+                                            </span>
+                                        </td>
+                                        <td class="text-end pe-4">
+                                            <a href="{{ url_for('admin_orders') }}?order_id={{ order.order_id }}" 
+                                               class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-shopping-bag fa-2x text-muted mb-3"></i>
+                            <p class="text-muted mb-0">No orders yet</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="sendEmailToUser('{{ user._id }}', '{{ user.email }}')">
+                    <i class="fas fa-envelope me-2"></i> Send Email
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
 {% endblock %}
 
 {% block extra_js %}
 <script>
-function updateUserRole(userId, role) {
-    if (!confirm(`Are you sure you want to make this user an ${role}?`)) {
-        return;
-    }
-    
-    fetch(`/admin/users/${userId}/role`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
+$(document).ready(function() {
+    // Initialize DataTable
+    const usersTable = $('#usersTable').DataTable({
+        "pageLength": 25,
+        "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+        "order": [[2, 'desc']], // Sort by registration date descending
+        "language": {
+            "search": "Search users:",
+            "lengthMenu": "Show _MENU_ users",
+            "info": "Showing _START_ to _END_ of _TOTAL_ users",
+            "paginate": {
+                "previous": "<i class='fas fa-chevron-left'></i>",
+                "next": "<i class='fas fa-chevron-right'></i>"
+            }
         },
-        body: JSON.stringify({ role: role })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showToast('Success', 'User role updated successfully', 'success');
-            setTimeout(() => location.reload(), 1000);
+        "responsive": true
+    });
+
+    // Search functionality
+    $('#userSearch').on('keyup', function() {
+        usersTable.search(this.value).draw();
+    });
+
+    // Role filter
+    $('#roleFilter').on('change', function() {
+        const role = this.value;
+        if (role === '') {
+            usersTable.column(0).search('').draw();
         } else {
-            showToast('Error', data.message, 'error');
+            // Custom filtering for role badges
+            $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+                const row = usersTable.row(dataIndex).node();
+                const hasRole = $(row).find('.badge.bg-danger').length > 0;
+                return role === 'admin' ? hasRole : !hasRole;
+            });
+            usersTable.draw();
+            $.fn.dataTable.ext.search.pop(); // Remove filter after drawing
         }
     });
+
+    // Status filter
+    $('#statusFilter').on('change', function() {
+        const status = this.value;
+        // Implement status filtering logic here
+        console.log('Status filter:', status);
+    });
+
+    // Clear filters
+    $('#clearUserFilters').on('click', function() {
+        $('#userSearch').val('');
+        $('#roleFilter').val('');
+        $('#statusFilter').val('');
+        usersTable.search('').columns().search('').draw();
+    });
+
+    // Column toggle
+    $('#columnToggle .dropdown-item').on('click', function(e) {
+        e.preventDefault();
+        const columnIdx = $(this).data('column');
+        const column = usersTable.column(columnIdx);
+        const isVisible = column.visible();
+        
+        column.visible(!isVisible);
+        
+        // Update icon
+        const icon = $(this).find('i');
+        if (isVisible) {
+            icon.removeClass('fa-check text-success').addClass('fa-times text-danger');
+        } else {
+            icon.removeClass('fa-times text-danger').addClass('fa-check text-success');
+        }
+    });
+
+    // Form validation for add user
+    $('#addUserForm').on('submit', function(e) {
+        const password = $('input[name="password"]').val();
+        const confirmPassword = $('input[name="confirm_password"]').val();
+        
+        if (password !== confirmPassword) {
+            e.preventDefault();
+            alert('Passwords do not match!');
+        }
+    });
+
+    // Initialize tooltips
+    $('[data-bs-toggle="tooltip"]').tooltip();
+});
+
+// User management functions
+function updateUserRole(userId, role) {
+    const roleName = role === 'admin' ? 'Administrator' : 'Customer';
+    
+    if (confirm(`Are you sure you want to make this user an ${roleName}?`)) {
+        $.ajax({
+            url: '/admin/users/' + userId + '/role',
+            method: 'POST',
+            data: { role: role },
+            success: function(response) {
+                if (response.success) {
+                    showToast('Success', `User role updated to ${roleName}`, 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showToast('Error', response.message, 'error');
+                }
+            },
+            error: function() {
+                showToast('Error', 'Failed to update user role. Please try again.', 'error');
+            }
+        });
+    }
 }
 
 function verifyUser(userId) {
-    fetch(`/admin/users/${userId}/verify`, {
-        method: 'POST'
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showToast('Success', 'User verified successfully', 'success');
-            setTimeout(() => location.reload(), 1000);
-        } else {
-            showToast('Error', data.message, 'error');
-        }
-    });
+    if (confirm('Verify this user? They will be able to access all features.')) {
+        $.ajax({
+            url: '/admin/users/' + userId + '/verify',
+            method: 'POST',
+            success: function(response) {
+                if (response.success) {
+                    showToast('Success', 'User verified successfully', 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showToast('Error', response.message, 'error');
+                }
+            },
+            error: function() {
+                showToast('Error', 'Failed to verify user. Please try again.', 'error');
+            }
+        });
+    }
 }
 
 function deleteUser(userId, userName) {
-    if (!confirm(`Are you sure you want to delete user ${userName}? This action cannot be undone.`)) {
+    if (!confirm(`Are you sure you want to delete user "${userName}"? This action cannot be undone and will delete all associated orders.`)) {
         return;
     }
     
-    fetch(`/admin/users/${userId}`, {
-        method: 'DELETE'
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showToast('Success', 'User deleted successfully', 'success');
-            setTimeout(() => location.reload(), 1000);
-        } else {
-            showToast('Error', data.message, 'error');
+    $.ajax({
+        url: '/admin/users/' + userId,
+        method: 'DELETE',
+        success: function(response) {
+            if (response.success) {
+                showToast('Success', 'User deleted successfully', 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showToast('Error', response.message, 'error');
+            }
+        },
+        error: function() {
+            showToast('Error', 'Failed to delete user. Please try again.', 'error');
         }
     });
 }
 
-// Search functionality
-document.getElementById('userSearch').addEventListener('input', function(e) {
-    const searchTerm = e.target.value.toLowerCase();
-    const rows = document.querySelectorAll('tbody tr');
+function sendEmailToUser(userId, email) {
+    const subject = prompt('Email subject:', 'Message from MUFRA FASHIONS');
+    if (!subject) return;
     
-    rows.forEach(row => {
-        const text = row.textContent.toLowerCase();
-        row.style.display = text.includes(searchTerm) ? '' : 'none';
+    const message = prompt('Email message:', 'Dear customer,\n\nThank you for being part of MUFRA FASHIONS.\n\nBest regards,\nMUFRA Team');
+    if (!message) return;
+    
+    $.ajax({
+        url: '/admin/users/' + userId + '/send-email',
+        method: 'POST',
+        data: {
+            subject: subject,
+            message: message
+        },
+        success: function(response) {
+            if (response.success) {
+                showToast('Success', 'Email sent successfully', 'success');
+            } else {
+                showToast('Error', response.message, 'error');
+            }
+        },
+        error: function() {
+            showToast('Error', 'Failed to send email. Please try again.', 'error');
+        }
     });
-});
+}
+
+function sendWelcomeEmail(userId) {
+    if (confirm('Send welcome email to this user?')) {
+        $.ajax({
+            url: '/admin/users/' + userId + '/welcome-email',
+            method: 'POST',
+            success: function(response) {
+                if (response.success) {
+                    showToast('Success', 'Welcome email sent successfully', 'success');
+                } else {
+                    showToast('Error', response.message, 'error');
+                }
+            },
+            error: function() {
+                showToast('Error', 'Failed to send welcome email. Please try again.', 'error');
+            }
+        });
+    }
+}
+
+function exportUsers() {
+    const format = $('#exportUsersFormat').val();
+    const status = $('#exportUsersStatus').val();
+    
+    // Collect selected fields
+    const fields = [];
+    if ($('#exportName').is(':checked')) fields.push('name');
+    if ($('#exportEmail').is(':checked')) fields.push('email');
+    if ($('#exportPhone').is(':checked')) fields.push('phone');
+    if ($('#exportOrders').is(':checked')) fields.push('orders');
+    if ($('#exportTotal').is(':checked')) fields.push('total');
+    if ($('#exportJoined').is(':checked')) fields.push('joined');
+    
+    // Create export URL
+    const params = new URLSearchParams({
+        format: format,
+        status: status,
+        fields: fields.join(',')
+    });
+    
+    window.location.href = '/admin/users/export?' + params.toString();
+}
+
+// Toast notification function
+function showToast(title, message, type) {
+    const toastHtml = `
+        <div class="toast align-items-center text-white bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body">
+                    <strong>${title}</strong><br>${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    `;
+    
+    const toastContainer = document.getElementById('toastContainer') || createToastContainer();
+    toastContainer.innerHTML += toastHtml;
+    
+    const toast = new bootstrap.Toast(toastContainer.lastElementChild);
+    toast.show();
+}
+
+function createToastContainer() {
+    const container = document.createElement('div');
+    container.id = 'toastContainer';
+    container.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+    container.style.zIndex = '1050';
+    document.body.appendChild(container);
+    return container;
+}
 </script>
-{% endblock %}
+
+<style>
+.users-management {
+    padding-bottom: 2rem;
+}
+
+.mini-card {
+    background: white;
+    border-radius: 10px;
+    padding: 1.25rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    transition: all 0.3s ease;
+    height: 100%;
+}
+
+.mini-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.stat-icon-sm {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.25rem;
+}
+
+#usersTable_wrapper {
+    padding: 0;
+}
+
+#usersTable thead th {
+    font-weight: 600;
+    color: #495057;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+#usersTable tbody td {
+    vertical-align: middle;
+    padding: 1rem;
+    border-top: 1px solid #f0f0f0;
+}
+
+#usersTable tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.badge.rounded-pill {
+    font-weight: 500;
+    font-size: 0.8rem;
+    padding: 0.35rem 0.75rem;
+}
+
+.modal-lg {
+    max-width: 900px;
+}
+
+/* User profile styling */
+.rounded-circle.bg-primary.bg-opacity-10 {
+    background-color: rgba(52, 152, 219, 0.1);
+}
+
+.display-5 {
+    font-size: 2.5rem;
+    font-weight: 300;
+    line-height: 1.2;
+}
+
+@media (max-width: 768px) {
+    .mini-card {
+        margin-bottom: 1rem;
+    }
+    
+    #usersTable_wrapper {
+        font-size: 0.9rem;
+    }
+    
+    .modal-lg {
+        max-width: 95%;
+        margin: 1rem auto;
+    }
+    
+    .display-5 {
+        font-size: 2rem;
+    }
+}
+</style>
 {% endblock %}

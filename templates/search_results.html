@@ -97,19 +97,30 @@
         {% for product in products %}
         <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
             <div class="card h-100 product-card">
-                <!-- Product Image -->
-                <a href="{{ url_for('product_details', product_id=product._id) }}" class="position-relative">
-                    {% if product.image %}
-                        {% if product.image.startswith('http') %}
-                            <img src="{{ product.image }}" class="card-img-top product-image" alt="{{ product.name }}">
-                        {% elif product.image.startswith('uploads/') %}
-                            <img src="{{ url_for('static', filename=product.image) }}" class="card-img-top product-image" alt="{{ product.name }}">
+                <div class="position-relative">
+                    <a href="{{ url_for('product_details', product_id=product._id) }}">
+                        {% set product_images = get_product_images(product) %}
+                        {% if product_images|length > 1 %}
+                        <div class="position-relative overflow-hidden">
+                            <img src="{{ product_images[0].url }}" 
+                                 class="card-img-top product-image" 
+                                 alt="{{ product.name }}"
+                                 style="height: 200px; object-fit: cover;"
+                                 onerror="this.src='https://via.placeholder.com/300x200?text=Product'">
+                            <div class="image-count-badge position-absolute top-0 end-0 m-2">
+                                <span class="badge bg-dark bg-opacity-75">
+                                    <i class="fas fa-images me-1"></i>{{ product_images|length }}
+                                </span>
+                            </div>
+                        </div>
                         {% else %}
-                            <img src="{{ url_for('static', filename='uploads/' + product.image) }}" class="card-img-top product-image" alt="{{ product.name }}">
+                        <img src="{{ get_main_product_image(product) }}" 
+                             class="card-img-top product-image" 
+                             alt="{{ product.name }}"
+                             style="height: 200px; object-fit: cover;"
+                             onerror="this.src='https://via.placeholder.com/300x200?text=Product'">
                         {% endif %}
-                    {% else %}
-                        <img src="https://via.placeholder.com/300x200?text=Product" class="card-img-top product-image" alt="{{ product.name }}">
-                    {% endif %}
+                    </a>
                     
                     <!-- Product Status Badges -->
                     <div class="position-absolute top-0 start-0 p-2">
@@ -134,7 +145,7 @@
                         <span class="badge bg-danger">Out of Stock</span>
                     </div>
                     {% endif %}
-                </a>
+                </div>
                 
                 <div class="card-body">
                     <h5 class="card-title">
@@ -270,17 +281,23 @@
 {% block extra_css %}
 <style>
 .product-card {
-    transition: transform 0.2s;
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: 1px solid #e9ecef;
 }
 
 .product-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
 }
 
 .product-image {
     height: 200px;
     object-fit: cover;
+    transition: transform 0.3s;
+}
+
+.product-card:hover .product-image {
+    transform: scale(1.05);
 }
 
 .rating {
@@ -292,6 +309,53 @@
     padding: 2px 4px;
     border-radius: 3px;
     font-weight: bold;
+}
+
+.image-count-badge .badge {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+    backdrop-filter: blur(5px);
+}
+
+.image-count-badge .badge i {
+    font-size: 0.6rem;
+}
+
+.wishlist-btn {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    width: 35px;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+}
+
+.wishlist-btn:hover {
+    background: white;
+    transform: scale(1.1);
+}
+
+.wishlist-btn.active {
+    background: #dc3545;
+    color: white;
+}
+
+.quick-view-btn {
+    position: absolute;
+    bottom: -40px;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 8px;
+    text-align: center;
+    transition: bottom 0.3s;
+}
+
+.product-card:hover .quick-view-btn {
+    bottom: 0;
 }
 </style>
 {% endblock %}
@@ -317,6 +381,63 @@ $(document).ready(function() {
             const highlighted = text.replace(regex, match => `<span class="highlight">${match}</span>`);
             $(this).html(highlighted);
         });
+    }
+    
+    // Image error handling
+    $('.product-image').on('error', function() {
+        $(this).attr('src', 'https://via.placeholder.com/300x200?text=Product');
+    });
+    
+    // Add to cart form submission
+    $('.add-to-cart-form').submit(function(e) {
+        e.preventDefault();
+        const form = $(this);
+        const productName = form.closest('.product-card').find('.card-title').text().trim();
+        
+        $.ajax({
+            url: form.attr('action'),
+            type: 'POST',
+            data: form.serialize(),
+            success: function(response) {
+                // Show success toast
+                showToast('Success', `"${productName}" added to cart!`, 'success');
+                
+                // Update cart count in navbar
+                if (response.cart_count !== undefined) {
+                    $('.cart-count').text(response.cart_count);
+                }
+            },
+            error: function(xhr) {
+                showToast('Error', xhr.responseJSON?.message || 'Failed to add to cart', 'danger');
+            }
+        });
+    });
+    
+    // Toast notification
+    function showToast(title, message, type = 'info') {
+        // Remove existing toasts
+        $('.toast-container').remove();
+        
+        const toastHtml = `
+            <div class="toast-container position-fixed top-0 end-0 p-3">
+                <div class="toast show" role="alert">
+                    <div class="toast-header bg-${type} text-white">
+                        <strong class="me-auto">${title}</strong>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+                    </div>
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        $('body').append(toastHtml);
+        
+        // Auto remove after 3 seconds
+        setTimeout(() => {
+            $('.toast-container').remove();
+        }, 3000);
     }
 });
 </script>

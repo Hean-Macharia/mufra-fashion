@@ -7,23 +7,23 @@
     <!-- Page Header -->
     <div class="row mb-4">
         <div class="col-12">
-            <h1 class="mb-3">Browse Our Collection</h1>
-            <p class="text-muted">Discover trendy shoes and clothes for every occasion</p>
+            <h1 class="mb-3 fw-bold">Browse Our Collection</h1>
+            <p class="text-muted lead">Discover trendy shoes and clothes for every occasion</p>
         </div>
     </div>
 
     <div class="row">
         <!-- Sidebar Filters -->
         <div class="col-lg-3 mb-4">
-            <div class="card">
-                <div class="card-header bg-primary text-white">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white border-0 rounded-top">
                     <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filters</h5>
                 </div>
                 <div class="card-body">
                     <form method="GET" action="{{ url_for('categories') }}" id="filterForm">
                         <!-- Category Filter -->
                         <div class="mb-4">
-                            <h6 class="mb-3">Category</h6>
+                            <h6 class="mb-3 fw-bold"><i class="fas fa-tags me-2"></i>Category</h6>
                             <div class="form-check mb-2">
                                 <input class="form-check-input" type="radio" name="category" 
                                        id="categoryAll" value="" {% if not selected_category %}checked{% endif %}>
@@ -36,7 +36,14 @@
                                 <input class="form-check-input" type="radio" name="category" 
                                        id="category{{ cat.name }}" value="{{ cat.name }}"
                                        {% if selected_category == cat.name %}checked{% endif %}>
-                                <label class="form-check-label" for="category{{ cat.name }}">
+                                <label class="form-check-label d-flex align-items-center" for="category{{ cat.name }}">
+                                    {% if cat.name == 'Shoes' %}
+                                        <i class="fas fa-shoe-prints me-2 text-primary"></i>
+                                    {% elif cat.name == 'Clothes' %}
+                                        <i class="fas fa-tshirt me-2 text-primary"></i>
+                                    {% else %}
+                                        <i class="fas fa-tag me-2 text-primary"></i>
+                                    {% endif %}
                                     {{ cat.name }}
                                 </label>
                             </div>
@@ -45,7 +52,7 @@
 
                         <!-- Condition Filter -->
                         <div class="mb-4">
-                            <h6 class="mb-3">Condition</h6>
+                            <h6 class="mb-3 fw-bold"><i class="fas fa-certificate me-2"></i>Condition</h6>
                             <div class="form-check mb-2">
                                 <input class="form-check-input" type="radio" name="condition" 
                                        id="conditionAll" value="" {% if not selected_condition %}checked{% endif %}>
@@ -57,23 +64,23 @@
                                 <input class="form-check-input" type="radio" name="condition" 
                                        id="conditionNew" value="New"
                                        {% if selected_condition == 'New' %}checked{% endif %}>
-                                <label class="form-check-label" for="conditionNew">
-                                    New
+                                <label class="form-check-label text-success" for="conditionNew">
+                                    <i class="fas fa-star me-1"></i> New
                                 </label>
                             </div>
                             <div class="form-check mb-2">
                                 <input class="form-check-input" type="radio" name="condition" 
-                                       id="conditionSecondHand" value="Second Hand"
-                                       {% if selected_condition == 'Second Hand' %}checked{% endif %}>
-                                <label class="form-check-label" for="conditionSecondHand">
-                                    Second Hand
+                                       id="conditionUsed" value="Used"
+                                       {% if selected_condition == 'Used' %}checked{% endif %}>
+                                <label class="form-check-label text-warning" for="conditionUsed">
+                                    <i class="fas fa-recycle me-1"></i> Pre-Owned
                                 </label>
                             </div>
                         </div>
 
                         <!-- Price Range -->
                         <div class="mb-4">
-                            <h6 class="mb-3">Price Range (KES)</h6>
+                            <h6 class="mb-3 fw-bold"><i class="fas fa-money-bill-wave me-2"></i>Price Range (KES)</h6>
                             <div class="row mb-3">
                                 <div class="col-6">
                                     <input type="number" class="form-control form-control-sm" 
@@ -86,16 +93,44 @@
                                            value="{{ request.args.get('max_price', '') }}">
                                 </div>
                             </div>
+                            <div class="range-slider">
+                                <input type="range" class="form-range" min="0" max="100000" 
+                                       step="100" id="priceRange" value="0">
+                            </div>
+                        </div>
+
+                        <!-- Availability Filter -->
+                        <div class="mb-4">
+                            <h6 class="mb-3 fw-bold"><i class="fas fa-box me-2"></i>Availability</h6>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="inStockOnly" 
+                                       name="in_stock" {% if request.args.get('in_stock') %}checked{% endif %}>
+                                <label class="form-check-label" for="inStockOnly">
+                                    Show in-stock only
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Featured Filter -->
+                        <div class="mb-4">
+                            <h6 class="mb-3 fw-bold"><i class="fas fa-star me-2"></i>Featured</h6>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="featuredOnly" 
+                                       name="featured" {% if request.args.get('featured') %}checked{% endif %}>
+                                <label class="form-check-label" for="featuredOnly">
+                                    Featured products only
+                                </label>
+                            </div>
                         </div>
 
                         <!-- Action Buttons -->
-                        <div class="d-grid gap-2">
+                        <div class="d-grid gap-2 mt-4">
                             <button type="submit" class="btn btn-primary" id="applyFilters">
                                 <i class="fas fa-search me-2"></i> Apply Filters
                             </button>
-                            {% if selected_category or selected_condition or request.args.get('min_price') or request.args.get('max_price') %}
+                            {% if selected_category or selected_condition or request.args.get('min_price') or request.args.get('max_price') or request.args.get('in_stock') or request.args.get('featured') %}
                             <a href="{{ url_for('categories') }}" class="btn btn-outline-secondary">
-                                <i class="fas fa-redo me-2"></i> Clear Filters
+                                <i class="fas fa-redo me-2"></i> Clear All Filters
                             </a>
                             {% endif %}
                         </div>
@@ -104,33 +139,65 @@
             </div>
 
             <!-- Quick Stats -->
-            <div class="card mt-4">
+            <div class="card shadow-sm border-0 mt-4">
                 <div class="card-body">
-                    <h6 class="card-title mb-3">Quick Stats</h6>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Total Products:</span>
-                        <span class="fw-bold">{{ products|length }}</span>
+                    <h6 class="card-title mb-3 fw-bold"><i class="fas fa-chart-bar me-2"></i>Quick Stats</h6>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted">Total Products:</span>
+                        <span class="fw-bold text-primary">{{ products|length }}</span>
                     </div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Shoes:</span>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted">Shoes:</span>
                         <span class="fw-bold">
                             {% set shoes_count = products|selectattr('category', 'equalto', 'Shoes')|list|length %}
-                            {{ shoes_count }}
+                            <span class="badge bg-primary">{{ shoes_count }}</span>
                         </span>
                     </div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Clothes:</span>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted">Clothes:</span>
                         <span class="fw-bold">
                             {% set clothes_count = products|selectattr('category', 'equalto', 'Clothes')|list|length %}
-                            {{ clothes_count }}
+                            <span class="badge bg-primary">{{ clothes_count }}</span>
                         </span>
                     </div>
-                    <div class="d-flex justify-content-between">
-                        <span>New Items:</span>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted">New Items:</span>
                         <span class="fw-bold">
                             {% set new_count = products|selectattr('condition', 'equalto', 'New')|list|length %}
-                            {{ new_count }}
+                            <span class="badge bg-success">{{ new_count }}</span>
                         </span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted">Featured:</span>
+                        <span class="fw-bold">
+                            {% set featured_count = products|selectattr('featured', 'equalto', True)|list|length %}
+                            <span class="badge bg-warning">{{ featured_count }}</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Categories Quick Links -->
+            <div class="card shadow-sm border-0 mt-4">
+                <div class="card-body">
+                    <h6 class="card-title mb-3 fw-bold"><i class="fas fa-th-list me-2"></i>Categories</h6>
+                    <div class="list-group list-group-flush">
+                        <a href="{{ url_for('categories') }}?category=Shoes" 
+                           class="list-group-item list-group-item-action d-flex align-items-center {% if selected_category == 'Shoes' %}active{% endif %}">
+                            <i class="fas fa-shoe-prints me-3 text-primary"></i>
+                            Shoes
+                            <span class="badge bg-primary ms-auto">
+                                {{ products|selectattr('category', 'equalto', 'Shoes')|list|length }}
+                            </span>
+                        </a>
+                        <a href="{{ url_for('categories') }}?category=Clothes" 
+                           class="list-group-item list-group-item-action d-flex align-items-center {% if selected_category == 'Clothes' %}active{% endif %}">
+                            <i class="fas fa-tshirt me-3 text-primary"></i>
+                            Clothes
+                            <span class="badge bg-primary ms-auto">
+                                {{ products|selectattr('category', 'equalto', 'Clothes')|list|length }}
+                            </span>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -142,12 +209,14 @@
             <div class="row mb-4">
                 <div class="col-md-6 mb-3">
                     <a href="{{ url_for('categories') }}?category=Shoes" class="text-decoration-none">
-                        <div class="card border-primary h-100">
-                            <div class="card-body text-center">
-                                <i class="fas fa-shoe-prints fa-3x text-primary mb-3"></i>
+                        <div class="card border-0 shadow-sm bg-gradient-primary h-100">
+                            <div class="card-body text-center text-white p-4">
+                                <div class="category-icon mb-3">
+                                    <i class="fas fa-shoe-prints fa-3x"></i>
+                                </div>
                                 <h5 class="card-title">Shoes</h5>
-                                <p class="card-text text-muted">Sports, Casual, Formal footwear</p>
-                                <span class="badge bg-primary">
+                                <p class="card-text">Sports, Casual, Formal footwear</p>
+                                <span class="badge bg-white text-primary px-3 py-2">
                                     {% set shoes_count = products|selectattr('category', 'equalto', 'Shoes')|list|length %}
                                     {{ shoes_count }} items
                                 </span>
@@ -157,12 +226,14 @@
                 </div>
                 <div class="col-md-6 mb-3">
                     <a href="{{ url_for('categories') }}?category=Clothes" class="text-decoration-none">
-                        <div class="card border-primary h-100">
-                            <div class="card-body text-center">
-                                <i class="fas fa-tshirt fa-3x text-primary mb-3"></i>
+                        <div class="card border-0 shadow-sm bg-gradient-info h-100">
+                            <div class="card-body text-center text-white p-4">
+                                <div class="category-icon mb-3">
+                                    <i class="fas fa-tshirt fa-3x"></i>
+                                </div>
                                 <h5 class="card-title">Clothes</h5>
-                                <p class="card-text text-muted">Tops, Bottoms, and more</p>
-                                <span class="badge bg-primary">
+                                <p class="card-text">Tops, Bottoms, and more</p>
+                                <span class="badge bg-white text-primary px-3 py-2">
                                     {% set clothes_count = products|selectattr('category', 'equalto', 'Clothes')|list|length %}
                                     {{ clothes_count }} items
                                 </span>
@@ -174,28 +245,44 @@
 
             <!-- Products Header -->
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h3 class="mb-0">
-                    {% if selected_category %}
-                        {{ selected_category }}
-                        {% if selected_condition %}
-                            - {{ selected_condition }}
+                <div>
+                    <h3 class="mb-0 fw-bold">
+                        {% if selected_category %}
+                            <i class="fas fa-{{ 'shoe-prints' if selected_category == 'Shoes' else 'tshirt' }} me-2"></i>
+                            {{ selected_category }}
+                            {% if selected_condition %}
+                                - {{ selected_condition }}
+                            {% endif %}
+                        {% else %}
+                            <i class="fas fa-boxes me-2"></i>
+                            All Products
                         {% endif %}
-                    {% else %}
-                        All Products
-                    {% endif %}
-                </h3>
-                <div class="dropdown">
-                    <button class="btn btn-outline-primary dropdown-toggle" type="button" 
-                            data-bs-toggle="dropdown">
-                        <i class="fas fa-sort me-2"></i>Sort By
-                    </button>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="#" data-sort="latest">Latest</a></li>
-                        <li><a class="dropdown-item" href="#" data-sort="price_low">Price: Low to High</a></li>
-                        <li><a class="dropdown-item" href="#" data-sort="price_high">Price: High to Low</a></li>
-                        <li><a class="dropdown-item" href="#" data-sort="rating">Highest Rated</a></li>
-                        <li><a class="dropdown-item" href="#" data-sort="popular">Most Popular</a></li>
-                    </ul>
+                    </h3>
+                    <p class="text-muted mb-0">{{ products|length }} products found</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <div class="dropdown">
+                        <button class="btn btn-outline-primary dropdown-toggle" type="button" 
+                                data-bs-toggle="dropdown">
+                            <i class="fas fa-sort me-2"></i>Sort By
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" data-sort="latest"><i class="fas fa-clock me-2"></i>Latest</a></li>
+                            <li><a class="dropdown-item" href="#" data-sort="price_low"><i class="fas fa-arrow-up me-2"></i>Price: Low to High</a></li>
+                            <li><a class="dropdown-item" href="#" data-sort="price_high"><i class="fas fa-arrow-down me-2"></i>Price: High to Low</a></li>
+                            <li><a class="dropdown-item" href="#" data-sort="rating"><i class="fas fa-star me-2"></i>Highest Rated</a></li>
+                            <li><a class="dropdown-item" href="#" data-sort="popular"><i class="fas fa-fire me-2"></i>Most Popular</a></li>
+                            <li><a class="dropdown-item" href="#" data-sort="name"><i class="fas fa-sort-alpha-down me-2"></i>Name: A-Z</a></li>
+                        </ul>
+                    </div>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-secondary active" data-view="grid">
+                            <i class="fas fa-th"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" data-view="list">
+                            <i class="fas fa-list"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -205,39 +292,102 @@
                 {% for product in products %}
                 {% set product_id = safe_get(product, '_id', '')|string %}
                 <div class="col-xl-4 col-lg-4 col-md-6 mb-4 product-card">
-                    <div class="card h-100">
+                    <div class="card h-100 product-card-inner">
                         <div class="position-relative">
                             <a href="{{ url_for('product_details', product_id=product_id) if product_id else '#' }}">
-                                <!-- Updated image source using get_product_image -->
-                                <img src="{{ get_product_image(product) }}" 
+                                {% set product_images = get_product_images(product) %}
+                                {% if product_images|length > 1 %}
+                                <div class="position-relative product-image-container">
+                                    <!-- First image -->
+                                    <img src="{{ product_images[0].url }}" 
+                                         class="card-img-top product-image product-image-main" 
+                                         alt="{{ product.name }}"
+                                         onerror="this.src='https://via.placeholder.com/400x300?text=Product'">
+                                    <!-- Second image on hover -->
+                                    <img src="{{ product_images[1].url }}" 
+                                         class="card-img-top product-image product-image-hover" 
+                                         alt="{{ product.name }}"
+                                         onerror="this.src='https://via.placeholder.com/400x300?text=Product'">
+                                    
+                                    <!-- Image count badge -->
+                                    <div class="position-absolute top-0 end-0 m-2">
+                                        <span class="badge bg-dark bg-opacity-75">
+                                            <i class="fas fa-images me-1"></i>{{ product_images|length }}
+                                        </span>
+                                    </div>
+                                </div>
+                                {% else %}
+                                <img src="{{ get_main_product_image(product) }}" 
                                      class="card-img-top product-image" 
-                                     alt="{{ safe_get(product, 'name', 'Product') }}"
+                                     alt="{{ product.name }}"
                                      onerror="this.src='https://via.placeholder.com/400x300?text=Product'">
+                                {% endif %}
                             </a>
-                            <span class="badge bg-{{ 'success' if safe_get(product, 'condition', '') == 'New' else 'warning' }} category-badge">
-                                {{ safe_get(product, 'condition', 'N/A') }}
+                            
+                            <!-- Wishlist Button -->
+                            <button class="btn btn-light btn-sm position-absolute top-0 start-0 m-2 wishlist-btn" 
+                                    data-product-id="{{ product_id }}"
+                                    title="Add to wishlist">
+                                <i class="far fa-heart"></i>
+                            </button>
+                            
+                            <!-- Condition Badge -->
+                            {% set condition = safe_get(product, 'condition', '') %}
+                            {% if condition %}
+                            <span class="badge bg-{{ 'success' if condition == 'New' else 'warning text-dark' }} position-absolute bottom-0 start-0 m-2">
+                                {{ condition }}
                             </span>
-                            {% if safe_get(product, 'featured', False) %}
-                            <span class="badge bg-primary position-absolute top-0 start-0 m-2">Featured</span>
                             {% endif %}
+                            
+                            <!-- Discount Badge -->
+                            {% set discount = safe_get(product, 'discount', 0) %}
+                            {% if discount and discount > 0 %}
+                            <span class="badge bg-danger position-absolute top-0 end-0 m-2">
+                                <i class="fas fa-tag me-1"></i>{{ discount }}% OFF
+                            </span>
+                            {% endif %}
+                            
+                            <!-- Featured Badge -->
+                            {% if safe_get(product, 'featured', False) %}
+                            <span class="badge bg-primary position-absolute top-0 start-0 m-2">
+                                <i class="fas fa-star me-1"></i>Featured
+                            </span>
+                            {% endif %}
+                            
+                            <!-- Out of Stock Overlay -->
                             {% set stock = safe_get(product, 'stock', 0)|int %}
                             {% if stock == 0 %}
-                            <div class="position-absolute top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 d-flex align-items-center justify-content-center">
-                                <span class="badge bg-danger">Out of Stock</span>
+                            <div class="position-absolute top-0 start-0 w-100 h-100 bg-dark bg-opacity-75 d-flex align-items-center justify-content-center">
+                                <span class="badge bg-danger px-3 py-2">
+                                    <i class="fas fa-ban me-2"></i>Out of Stock
+                                </span>
                             </div>
                             {% endif %}
+                            
+                            <!-- Quick View Button -->
+                            <div class="position-absolute bottom-0 end-0 m-2">
+                                <button class="btn btn-primary btn-sm quick-view-btn" 
+                                        data-product-id="{{ product_id }}"
+                                        title="Quick View">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
                         </div>
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start mb-2">
                                 <h5 class="card-title mb-0">
                                     <a href="{{ url_for('product_details', product_id=product_id) if product_id else '#' }}" 
-                                       class="text-decoration-none text-dark">
-                                        {{ safe_get(product, 'name', 'Unnamed Product') }}
+                                       class="text-decoration-none text-dark fw-bold product-title">
+                                        {{ truncate_text(safe_get(product, 'name', 'Unnamed Product'), 40) }}
                                     </a>
                                 </h5>
-                                <span class="badge bg-primary">{{ safe_get(product, 'category', 'Uncategorized') }}</span>
+                                <span class="badge bg-light text-dark border">
+                                    {{ safe_get(product, 'category', 'Uncategorized') }}
+                                </span>
                             </div>
-                            <p class="card-text text-muted small mb-2">{{ truncate_text(safe_get(product, 'description', ''), 80) }}</p>
+                            <p class="card-text text-muted small mb-2">
+                                {{ truncate_text(safe_get(product, 'description', ''), 70) }}
+                            </p>
                             
                             <div class="rating mb-2">
                                 {% set product_rating = safe_get(product, 'rating', 0) %}
@@ -246,6 +396,8 @@
                                 {% for i in range(5) %}
                                     {% if i < product_rating|int %}
                                         <i class="fas fa-star text-warning"></i>
+                                    {% elif i < product_rating %}
+                                        <i class="fas fa-star-half-alt text-warning"></i>
                                     {% else %}
                                         <i class="far fa-star text-warning"></i>
                                     {% endif %}
@@ -255,13 +407,28 @@
                             
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h4 class="price mb-0">{{ format_price(safe_get(product, 'price', 0)) }}</h4>
-                                    <small class="text-muted">
-                                        {% set stock_status = get_product_stock_status(safe_get(product, 'stock', 0)) %}
-                                        <span class="text-{{ stock_status.color }}">
-                                            <i class="fas fa-{{ 'check-circle' if stock_status.color == 'success' else 'times-circle' }} me-1"></i>
-                                            {{ stock_status.text }}
-                                        </span>
+                                    {% set price = safe_get(product, 'price', 0) %}
+                                    {% if discount and discount > 0 %}
+                                        {% set discounted_price = price * (1 - discount/100) %}
+                                        <h4 class="price mb-0 text-primary fw-bold">{{ format_price(discounted_price) }}</h4>
+                                        <small class="text-muted text-decoration-line-through">{{ format_price(price) }}</small>
+                                    {% else %}
+                                        <h4 class="price mb-0 text-primary fw-bold">{{ format_price(price) }}</h4>
+                                    {% endif %}
+                                    <small class="text-muted d-block">
+                                        {% if stock > 10 %}
+                                            <span class="text-success">
+                                                <i class="fas fa-check-circle me-1"></i>In Stock
+                                            </span>
+                                        {% elif stock > 0 %}
+                                            <span class="text-warning">
+                                                <i class="fas fa-exclamation-circle me-1"></i>Only {{ stock }} left
+                                            </span>
+                                        {% else %}
+                                            <span class="text-danger">
+                                                <i class="fas fa-times-circle me-1"></i>Out of Stock
+                                            </span>
+                                        {% endif %}
                                     </small>
                                 </div>
                                 {% if stock > 0 and product_id %}
@@ -270,33 +437,33 @@
                                     <input type="hidden" name="size" value="{{ safe_get(product, 'sizes', ['M'])[0] }}">
                                     <input type="hidden" name="color" value="{{ safe_get(product, 'colors', ['Blue'])[0] }}">
                                     <input type="hidden" name="quantity" value="1">
-                                    <button type="submit" class="btn btn-primary btn-sm" title="Add to Cart">
-                                        <i class="fas fa-cart-plus"></i>
+                                    <button type="submit" class="btn btn-primary" title="Add to Cart">
+                                        <i class="fas fa-cart-plus me-1"></i> Add
                                     </button>
                                 </form>
                                 {% elif not product_id %}
-                                <button class="btn btn-secondary btn-sm" disabled title="Product unavailable">
+                                <button class="btn btn-secondary" disabled title="Product unavailable">
                                     <i class="fas fa-ban"></i>
                                 </button>
                                 {% else %}
-                                <button class="btn btn-danger btn-sm" disabled title="Out of Stock">
+                                <button class="btn btn-outline-secondary" disabled title="Out of Stock">
                                     <i class="fas fa-times"></i>
                                 </button>
                                 {% endif %}
                             </div>
                         </div>
-                        <div class="card-footer bg-white border-top-0 pt-0">
-                            <div class="d-flex justify-content-between">
+                        <div class="card-footer bg-white border-top">
+                            <div class="d-flex justify-content-between align-items-center">
                                 <small class="text-muted">
                                     {% set sizes = safe_get(product, 'sizes', []) %}
                                     {% if sizes %}
                                     <i class="fas fa-ruler me-1"></i>
-                                    {% for size in sizes[:3] %}
-                                        {{ size }}{% if not loop.last %}, {% endif %}
+                                    {% for size in sizes[:2] %}
+                                        <span class="badge bg-light text-dark border me-1">{{ size }}</span>
                                     {% endfor %}
-                                    {% if sizes|length > 3 %}...{% endif %}
-                                    {% else %}
-                                    <span class="text-muted">No sizes</span>
+                                    {% if sizes|length > 2 %}
+                                    <span class="badge bg-light text-dark border">+{{ sizes|length - 2 }}</span>
+                                    {% endif %}
                                     {% endif %}
                                 </small>
                                 <small class="text-muted">
@@ -304,11 +471,11 @@
                                     {% if colors %}
                                     <i class="fas fa-palette me-1"></i>
                                     {% for color in colors[:2] %}
-                                        {{ color }}{% if not loop.last %}, {% endif %}
+                                        <span class="color-dot me-1" style="background-color: {{ color }};" title="{{ color }}"></span>
                                     {% endfor %}
-                                    {% if colors|length > 2 %}...{% endif %}
-                                    {% else %}
-                                    <span class="text-muted">No colors</span>
+                                    {% if colors|length > 2 %}
+                                    <span class="badge bg-light text-dark border">+{{ colors|length - 2 }}</span>
+                                    {% endif %}
                                     {% endif %}
                                 </small>
                             </div>
@@ -318,22 +485,133 @@
                 {% endfor %}
             </div>
 
+            <!-- Products List View (Hidden by default) -->
+            <div class="row d-none" id="productsList">
+                {% for product in products %}
+                {% set product_id = safe_get(product, '_id', '')|string %}
+                <div class="col-12 mb-3 product-card-list">
+                    <div class="card">
+                        <div class="row g-0">
+                            <div class="col-md-3">
+                                {% set product_images = get_product_images(product) %}
+                                <img src="{{ get_main_product_image(product) }}" 
+                                     class="img-fluid rounded-start h-100 product-image-list" 
+                                     alt="{{ product.name }}"
+                                     style="object-fit: cover;"
+                                     onerror="this.src='https://via.placeholder.com/300x200?text=Product'">
+                            </div>
+                            <div class="col-md-9">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="flex-grow-1">
+                                            <h5 class="card-title">
+                                                <a href="{{ url_for('product_details', product_id=product_id) if product_id else '#' }}" 
+                                                   class="text-decoration-none text-dark fw-bold">
+                                                    {{ safe_get(product, 'name', 'Unnamed Product') }}
+                                                </a>
+                                            </h5>
+                                            <div class="mb-2">
+                                                <span class="badge bg-light text-dark border me-2">
+                                                    {{ safe_get(product, 'category', 'Uncategorized') }}
+                                                </span>
+                                                <span class="badge bg-{{ 'success' if safe_get(product, 'condition', '') == 'New' else 'warning text-dark' }}">
+                                                    {{ safe_get(product, 'condition', 'N/A') }}
+                                                </span>
+                                                {% if safe_get(product, 'featured', False) %}
+                                                <span class="badge bg-primary">
+                                                    <i class="fas fa-star me-1"></i>Featured
+                                                </span>
+                                                {% endif %}
+                                            </div>
+                                            <p class="card-text text-muted mb-2">
+                                                {{ safe_get(product, 'description', '') }}
+                                            </p>
+                                            <div class="rating mb-2">
+                                                {% set product_rating = safe_get(product, 'rating', 0) %}
+                                                {% for i in range(5) %}
+                                                    {% if i < product_rating|int %}
+                                                        <i class="fas fa-star text-warning"></i>
+                                                    {% else %}
+                                                        <i class="far fa-star text-warning"></i>
+                                                    {% endif %}
+                                                {% endfor %}
+                                                <small class="text-muted ms-2">({{ safe_get(product, 'reviews_count', 0) }})</small>
+                                            </div>
+                                            <div class="d-flex align-items-center gap-3">
+                                                <div>
+                                                    {% set price = safe_get(product, 'price', 0) %}
+                                                    {% set discount = safe_get(product, 'discount', 0) %}
+                                                    {% if discount and discount > 0 %}
+                                                        {% set discounted_price = price * (1 - discount/100) %}
+                                                        <h4 class="price mb-0 text-primary fw-bold">{{ format_price(discounted_price) }}</h4>
+                                                        <small class="text-muted text-decoration-line-through">{{ format_price(price) }}</small>
+                                                    {% else %}
+                                                        <h4 class="price mb-0 text-primary fw-bold">{{ format_price(price) }}</h4>
+                                                    {% endif %}
+                                                </div>
+                                                <div>
+                                                    {% set stock = safe_get(product, 'stock', 0)|int %}
+                                                    {% if stock > 0 %}
+                                                    <span class="badge bg-success">
+                                                        <i class="fas fa-check me-1"></i>In Stock
+                                                    </span>
+                                                    {% else %}
+                                                    <span class="badge bg-danger">
+                                                        <i class="fas fa-times me-1"></i>Out of Stock
+                                                    </span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex flex-column gap-2 ms-3">
+                                            {% if stock > 0 and product_id %}
+                                            <form action="{{ url_for('add_to_cart', product_id=product_id) }}" 
+                                                  method="POST" class="add-to-cart-form">
+                                                <input type="hidden" name="size" value="{{ safe_get(product, 'sizes', ['M'])[0] }}">
+                                                <input type="hidden" name="color" value="{{ safe_get(product, 'colors', ['Blue'])[0] }}">
+                                                <input type="hidden" name="quantity" value="1">
+                                                <button type="submit" class="btn btn-primary" title="Add to Cart">
+                                                    <i class="fas fa-cart-plus me-1"></i> Add to Cart
+                                                </button>
+                                            </form>
+                                            {% endif %}
+                                            <a href="{{ url_for('product_details', product_id=product_id) if product_id else '#' }}" 
+                                               class="btn btn-outline-primary">
+                                                <i class="fas fa-eye me-1"></i> View Details
+                                            </a>
+                                            <button class="btn btn-outline-secondary wishlist-btn" 
+                                                    data-product-id="{{ product_id }}">
+                                                <i class="far fa-heart me-1"></i> Wishlist
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
             {% if products|length > 12 %}
             <!-- Load More Button -->
-            <div class="text-center mt-4">
-                <button class="btn btn-outline-primary" id="loadMore">
+            <div class="text-center mt-5">
+                <button class="btn btn-primary px-5 py-2" id="loadMore">
                     <i class="fas fa-plus me-2"></i> Load More Products
+                    <span class="badge bg-white text-primary ms-2">{{ products|length - 12 }}</span>
                 </button>
             </div>
             {% endif %}
 
             {% else %}
             <!-- No Products Found -->
-            <div class="text-center py-5">
-                <i class="fas fa-search fa-3x text-muted mb-4"></i>
-                <h3>No products found</h3>
+            <div class="text-center py-5 my-5">
+                <div class="empty-state-icon mb-4">
+                    <i class="fas fa-search fa-4x text-muted"></i>
+                </div>
+                <h3 class="mb-3">No products found</h3>
                 <p class="text-muted mb-4">
-                    {% if selected_category or selected_condition %}
+                    {% if selected_category or selected_condition or request.args.get('min_price') or request.args.get('max_price') %}
                         No products match your current filters. Try adjusting your selection.
                     {% else %}
                         No products available at the moment. Please check back later.
@@ -341,7 +619,7 @@
                 </p>
                 <div class="d-grid gap-2 d-md-flex justify-content-center">
                     <a href="{{ url_for('categories') }}" class="btn btn-primary">
-                        <i class="fas fa-redo me-2"></i> Clear Filters
+                        <i class="fas fa-redo me-2"></i> Clear All Filters
                     </a>
                     <a href="{{ url_for('home') }}" class="btn btn-outline-primary">
                         <i class="fas fa-home me-2"></i> Back to Home
@@ -355,23 +633,36 @@
     <!-- Benefits Section -->
     <div class="row mt-5">
         <div class="col-12">
-            <div class="card bg-light border-0">
+            <div class="card border-0 shadow-sm">
                 <div class="card-body">
                     <div class="row text-center">
-                        <div class="col-md-4 mb-4 mb-md-0">
-                            <i class="fas fa-shipping-fast fa-2x text-primary mb-3"></i>
-                            <h5>Fast Delivery</h5>
-                            <p class="text-muted small">Free delivery within Embu for orders over KES 5000</p>
+                        <div class="col-md-3 mb-4 mb-md-0">
+                            <div class="benefit-icon mb-3">
+                                <i class="fas fa-shipping-fast fa-2x text-primary"></i>
+                            </div>
+                            <h5 class="fw-bold">Fast Delivery</h5>
+                            <p class="text-muted small mb-0">Free delivery within Embu for orders over KES 5,000</p>
                         </div>
-                        <div class="col-md-4 mb-4 mb-md-0">
-                            <i class="fas fa-shield-alt fa-2x text-primary mb-3"></i>
-                            <h5>Secure Shopping</h5>
-                            <p class="text-muted small">100% secure payment with Paystack integration</p>
+                        <div class="col-md-3 mb-4 mb-md-0">
+                            <div class="benefit-icon mb-3">
+                                <i class="fas fa-shield-alt fa-2x text-primary"></i>
+                            </div>
+                            <h5 class="fw-bold">Secure Shopping</h5>
+                            <p class="text-muted small mb-0">100% secure payment with Paystack integration</p>
                         </div>
-                        <div class="col-md-4">
-                            <i class="fas fa-undo fa-2x text-primary mb-3"></i>
-                            <h5>Easy Returns</h5>
-                            <p class="text-muted small">30-day return policy for all products</p>
+                        <div class="col-md-3 mb-4 mb-md-0">
+                            <div class="benefit-icon mb-3">
+                                <i class="fas fa-undo fa-2x text-primary"></i>
+                            </div>
+                            <h5 class="fw-bold">Easy Returns</h5>
+                            <p class="text-muted small mb-0">30-day return policy for all products</p>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="benefit-icon mb-3">
+                                <i class="fas fa-headset fa-2x text-primary"></i>
+                            </div>
+                            <h5 class="fw-bold">24/7 Support</h5>
+                            <p class="text-muted small mb-0">Customer support available round the clock</p>
                         </div>
                     </div>
                 </div>
@@ -379,6 +670,7 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -390,9 +682,9 @@
 }
 
 .category-icon {
-    width: 60px;
-    height: 60px;
-    background-color: #e3f2fd;
+    width: 80px;
+    height: 80px;
+    background-color: rgba(255, 255, 255, 0.2);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -401,12 +693,19 @@
 }
 
 .card {
-    transition: transform 0.3s, box-shadow 0.3s;
+    transition: all 0.3s ease;
+    border: 1px solid #eaeaea;
+    overflow: hidden;
 }
 
 .card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    transform: translateY(-8px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+    border-color: #0d6efd;
+}
+
+.card:hover .product-image-hover {
+    opacity: 1;
 }
 
 .form-check-input:checked {
@@ -415,18 +714,55 @@
 }
 
 .product-image {
-    height: 200px;
+    height: 250px;
     width: 100%;
     object-fit: cover;
+    transition: opacity 0.3s ease;
+}
+
+.product-image-main {
+    position: relative;
+    z-index: 1;
+}
+
+.product-image-hover {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    z-index: 2;
+    transition: opacity 0.3s ease;
+}
+
+.product-image-container {
+    height: 250px;
+    overflow: hidden;
+}
+
+.product-image-container:hover .product-image-main {
+    opacity: 0;
+}
+
+.product-image-list {
+    height: 200px;
 }
 
 .price {
     color: #0d6efd;
-    font-weight: bold;
 }
 
 .rating {
     color: #ffc107;
+}
+
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
+}
+
+.bg-gradient-info {
+    background: linear-gradient(135deg, #0dcaf0 0%, #0ba5ca 100%);
 }
 
 /* Loading animation */
@@ -439,7 +775,7 @@
     display: inline-block;
     width: 20px;
     height: 20px;
-    border: 3px solid rgba(255,255,255,.3);
+    border: 3px solid rgba(255, 255, 255, 0.3);
     border-radius: 50%;
     border-top-color: #fff;
     animation: spin 1s ease-in-out infinite;
@@ -455,6 +791,202 @@
 
 .toast {
     min-width: 300px;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+/* Color dots for color display */
+.color-dot {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    vertical-align: middle;
+}
+
+/* Wishlist button animation */
+.wishlist-btn.active {
+    color: #dc3545;
+}
+
+.wishlist-btn.active i {
+    font-weight: 900;
+}
+
+/* Quick view button */
+.quick-view-btn {
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.3s ease;
+}
+
+.card:hover .quick-view-btn {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* View toggle buttons */
+.btn-group .btn.active {
+    background-color: #0d6efd;
+    color: white;
+    border-color: #0d6efd;
+}
+
+/* Benefit icons */
+.benefit-icon {
+    width: 60px;
+    height: 60px;
+    background-color: #e3f2fd;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+}
+
+/* Empty state */
+.empty-state-icon {
+    width: 120px;
+    height: 120px;
+    background-color: #f8f9fa;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+}
+
+/* Product title hover effect */
+.product-title:hover {
+    color: #0d6efd !important;
+}
+
+/* Add to cart button animation */
+.add-to-cart-form button {
+    transition: all 0.2s ease;
+}
+
+.add-to-cart-form button:hover {
+    transform: scale(1.05);
+}
+
+.add-to-cart-form button:active {
+    transform: scale(0.95);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .product-image,
+    .product-image-container {
+        height: 200px;
+    }
+    
+    .product-image-list {
+        height: 150px;
+    }
+    
+    .card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .quick-view-btn {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Touch device improvements */
+@media (hover: none) and (pointer: coarse) {
+    .product-image-hover {
+        display: none;
+    }
+    
+    .card:hover {
+        transform: none;
+    }
+    
+    .quick-view-btn {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Print styles */
+@media print {
+    .card {
+        break-inside: avoid;
+        box-shadow: none !important;
+        border: 1px solid #ddd !important;
+    }
+    
+    .product-image-hover,
+    .quick-view-btn,
+    .wishlist-btn,
+    .btn-group {
+        display: none !important;
+    }
+}
+
+/* Custom scrollbar for product grid */
+#productsGrid::-webkit-scrollbar {
+    width: 8px;
+}
+
+#productsGrid::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+#productsGrid::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+#productsGrid::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Smooth transitions */
+.product-card-inner {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Filter card animations */
+.card-header {
+    transition: background-color 0.3s ease;
+}
+
+/* Range slider customization */
+.range-slider input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: #e9ecef;
+    outline: none;
+}
+
+.range-slider input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #0d6efd;
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.range-slider input[type="range"]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #0d6efd;
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 </style>
 {% endblock %}
@@ -467,6 +999,11 @@ $(document).ready(function() {
         const button = $('#applyFilters');
         const originalText = button.html();
         button.prop('disabled', true).html('<span class="loading me-2"></span>Applying...');
+        
+        // Add slight delay for better UX
+        setTimeout(() => {
+            button.prop('disabled', false).html(originalText);
+        }, 500);
     });
 
     // Sort functionality
@@ -478,7 +1015,22 @@ $(document).ready(function() {
         window.location.href = currentUrl.toString();
     });
 
-    // Price range validation
+    // View toggle (Grid/List)
+    $('[data-view]').click(function() {
+        const view = $(this).data('view');
+        $('[data-view]').removeClass('active');
+        $(this).addClass('active');
+        
+        if (view === 'grid') {
+            $('#productsGrid').removeClass('d-none');
+            $('#productsList').addClass('d-none');
+        } else {
+            $('#productsGrid').addClass('d-none');
+            $('#productsList').removeClass('d-none');
+        }
+    });
+
+    // Price range validation and real-time update
     $('input[name="min_price"], input[name="max_price"]').on('input', function() {
         const minPrice = $('input[name="min_price"]').val();
         const maxPrice = $('input[name="max_price"]').val();
@@ -489,7 +1041,16 @@ $(document).ready(function() {
         } else {
             $(this).removeClass('is-invalid');
         }
+        
+        // Update range slider
+        updatePriceRangeSlider();
     });
+    
+    function updatePriceRangeSlider() {
+        const minPrice = parseInt($('input[name="min_price"]').val()) || 0;
+        const maxPrice = parseInt($('input[name="max_price"]').val()) || 100000;
+        $('#priceRange').val(maxPrice);
+    }
 
     // Load more functionality
     let currentPage = 1;
@@ -535,6 +1096,8 @@ $(document).ready(function() {
                     showToast('Success', response.message, 'success');
                     // Update cart count in navbar
                     $('.cart-count-badge').text(response.cart_count || 0);
+                    // Animate cart icon
+                    animateCartIcon();
                 } else {
                     showToast('Error', response.message, 'danger');
                 }
@@ -544,6 +1107,72 @@ $(document).ready(function() {
             },
             complete: function() {
                 button.prop('disabled', false).html(originalHtml);
+            }
+        });
+    });
+
+    // Wishlist functionality
+    $('.wishlist-btn').click(function(e) {
+        e.preventDefault();
+        const button = $(this);
+        const productId = button.data('product-id');
+        
+        if (!productId) {
+            showToast('Error', 'Product not available', 'danger');
+            return;
+        }
+        
+        $.ajax({
+            type: 'POST',
+            url: '/add_to_wishlist/' + productId,
+            success: function(response) {
+                if (response.success) {
+                    if (response.action === 'added') {
+                        button.addClass('active');
+                        button.html('<i class="fas fa-heart"></i>');
+                        showToast('Success', 'Added to wishlist!', 'success');
+                    } else {
+                        button.removeClass('active');
+                        button.html('<i class="far fa-heart"></i>');
+                        showToast('Info', 'Removed from wishlist', 'info');
+                    }
+                } else {
+                    if (response.requires_login) {
+                        window.location.href = '/login';
+                    } else {
+                        showToast('Error', response.message, 'danger');
+                    }
+                }
+            },
+            error: function() {
+                showToast('Error', 'Network error. Please try again.', 'danger');
+            }
+        });
+    });
+
+    // Quick view functionality
+    $('.quick-view-btn').click(function(e) {
+        e.preventDefault();
+        const productId = $(this).data('product-id');
+        
+        if (!productId) {
+            showToast('Error', 'Product not available', 'danger');
+            return;
+        }
+        
+        // Load product details via AJAX
+        $.ajax({
+            type: 'GET',
+            url: '/quick_view/' + productId,
+            success: function(response) {
+                if (response.success) {
+                    showQuickViewModal(response.product);
+                } else {
+                    window.location.href = '/product/' + productId;
+                }
+            },
+            error: function() {
+                window.location.href = '/product/' + productId;
             }
         });
     });
@@ -571,10 +1200,143 @@ $(document).ready(function() {
         
         // Auto remove after 3 seconds
         setTimeout(() => {
-            $('.toast-container').remove();
+            $('.toast-container').fadeOut(300, function() {
+                $(this).remove();
+            });
         }, 3000);
     }
+    
+    // Cart icon animation
+    function animateCartIcon() {
+        const cartIcon = $('.cart-count-badge');
+        cartIcon.addClass('animate__animated animate__bounce');
+        setTimeout(() => {
+            cartIcon.removeClass('animate__animated animate__bounce');
+        }, 1000);
+    }
+    
+    // Quick view modal
+    function showQuickViewModal(product) {
+        const modalHtml = `
+            <div class="modal fade" id="quickViewModal" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">${product.name}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <img src="${product.image}" class="img-fluid rounded" alt="${product.name}">
+                                </div>
+                                <div class="col-md-6">
+                                    <h4 class="text-primary">${product.price}</h4>
+                                    <p>${product.description}</p>
+                                    <div class="mb-3">
+                                        <strong>Stock:</strong> ${product.stock > 0 ? 'In Stock' : 'Out of Stock'}
+                                    </div>
+                                    <div class="d-grid gap-2">
+                                        <a href="/product/${product._id}" class="btn btn-primary">
+                                            View Full Details
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        $('body').append(modalHtml);
+        const modal = new bootstrap.Modal(document.getElementById('quickViewModal'));
+        modal.show();
+        
+        // Remove modal on close
+        $('#quickViewModal').on('hidden.bs.modal', function() {
+            $(this).remove();
+        });
+    }
+
+    // Initialize range slider
+    updatePriceRangeSlider();
+    
+    // Update price inputs when slider changes
+    $('#priceRange').on('input', function() {
+        $('input[name="max_price"]').val($(this).val());
+    });
+
+    // Product image lazy loading
+    if ('IntersectionObserver' in window) {
+        const imageObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    const src = img.getAttribute('data-src');
+                    if (src) {
+                        img.src = src;
+                        img.removeAttribute('data-src');
+                    }
+                    observer.unobserve(img);
+                }
+            });
+        }, {
+            rootMargin: '50px 0px',
+            threshold: 0.1
+        });
+        
+        // Observe all product images
+        document.querySelectorAll('.product-image[data-src]').forEach(img => {
+            imageObserver.observe(img);
+        });
+    }
+
+    // Keyboard shortcuts
+    $(document).keydown(function(e) {
+        // Alt + F to focus search/filter
+        if (e.altKey && e.key === 'f') {
+            e.preventDefault();
+            $('input[name="min_price"]').focus();
+        }
+        // Escape to clear filters
+        if (e.key === 'Escape') {
+            if (window.location.search) {
+                window.location.href = window.location.pathname;
+            }
+        }
+    });
+
+    // Update product counts in real-time based on filters
+    function updateProductCounts() {
+        const visibleProducts = $('#productsGrid .product-card:visible').length;
+        const totalProducts = {{ products|length }};
+        $('.product-count').text(`${visibleProducts} of ${totalProducts} products`);
+    }
+
+    // Call update on load and when products change
+    updateProductCounts();
+    
+    // Debounce function for performance
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    // Debounced filter application for better performance
+    const debouncedFilter = debounce(function() {
+        $('#filterForm').submit();
+    }, 500);
+    
+    // Apply debounced filter on some inputs
+    $('input[type="radio"], input[type="checkbox"]').change(debouncedFilter);
 });
 </script>
-{% endblock %}
 {% endblock %}

@@ -1,439 +1,555 @@
-{% extends "base.html" %}
+{% extends "admin/base.html" %}
 
-{% block title %}Add Product - Admin{% endblock %}
+{% block title %}Add New Product - MUFRA FASHIONS{% endblock %}
+
+{% block page_title %}Add New Product{% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
+<div class="container-fluid">
     <div class="row">
-        <!-- Sidebar (same as dashboard) -->
-        <div class="col-md-3 col-lg-2 px-0">
-            <div class="admin-sidebar">
-                <div class="d-flex flex-column p-3">
-                    <h4 class="mb-4">Admin Panel</h4>
-                    <ul class="nav flex-column mb-auto">
-                        <li class="nav-item">
-                            <a class="admin-nav-link" href="{{ url_for('admin_dashboard') }}">
-                                <i class="fas fa-tachometer-alt me-2"></i> Dashboard
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="admin-nav-link" href="{{ url_for('admin_products') }}">
-                                <i class="fas fa-box me-2"></i> Products
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="admin-nav-link active" href="{{ url_for('add_product') }}">
-                                <i class="fas fa-plus me-2"></i> Add Product
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Main Content -->
-        <div class="col-md-9 col-lg-10">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1>Add New Product</h1>
-                <a href="{{ url_for('admin_products') }}" class="btn btn-outline-primary">
-                    <i class="fas fa-arrow-left me-2"></i> Back to Products
-                </a>
-            </div>
-            
+        <div class="col-md-8">
             <div class="card">
                 <div class="card-body">
-                    <form method="POST" action="{{ url_for('add_product') }}" enctype="multipart/form-data">
+                    <form method="POST" action="{{ url_for('add_product') }}" enctype="multipart/form-data" id="productForm">
                         <div class="row">
-                            <!-- Left Column -->
-                            <div class="col-lg-8">
-                                <div class="mb-3">
-                                    <label class="form-label">Product Name *</label>
-                                    <input type="text" class="form-control" name="name" required>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">Description *</label>
-                                    <textarea class="form-control" name="description" rows="4" required></textarea>
-                                </div>
-                                
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label class="form-label">Price (KES) *</label>
-                                        <input type="number" class="form-control" name="price" step="0.01" min="0" required>
+                            <div class="col-md-6 mb-3">
+                                <label for="name" class="form-label">Product Name *</label>
+                                <input type="text" class="form-control" id="name" name="name" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="price" class="form-label">Price (KES) *</label>
+                                <input type="number" class="form-control" id="price" name="price" min="0" step="0.01" required>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="category" class="form-label">Category *</label>
+                                <select class="form-control" id="category" name="category" required>
+                                    <option value="">Select Category</option>
+                                    {% for category in categories %}
+                                    <option value="{{ category.name }}">{{ category.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="subcategory" class="form-label">Subcategory</label>
+                                <input type="text" class="form-control" id="subcategory" name="subcategory">
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="condition" class="form-label">Condition *</label>
+                                <select class="form-control" id="condition" name="condition" required>
+                                    <option value="New">New</option>
+                                    <option value="Used">Used</option>
+                                    <option value="Refurbished">Refurbished</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="stock" class="form-label">Stock Quantity *</label>
+                                <input type="number" class="form-control" id="stock" name="stock" min="0" required>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Sizes (Optional)</label>
+                                <div class="d-flex flex-wrap gap-2">
+                                    {% for size in ['XS', 'S', 'M', 'L', 'XL', 'XXL', '28', '30', '32', '34', '36', '38', '40', '6', '7', '8', '9', '10', '11', '12'] %}
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="sizes[]" value="{{ size }}" id="size_{{ size }}">
+                                        <label class="form-check-label" for="size_{{ size }}">{{ size }}</label>
                                     </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">Stock Quantity *</label>
-                                        <input type="number" class="form-control" name="stock" min="0" required>
-                                    </div>
-                                </div>
-                                
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label class="form-label">Category *</label>
-                                        <select class="form-select" name="category" required>
-                                            <option value="">Select Category</option>
-                                            {% for category in categories %}
-                                            <option value="{{ category.name }}">{{ category.name }}</option>
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">Subcategory</label>
-                                        <input type="text" class="form-control" name="subcategory" 
-                                               placeholder="e.g., Sports, Casual, Formal">
-                                    </div>
-                                </div>
-                                
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label class="form-label">Condition *</label>
-                                        <select class="form-select" name="condition" required>
-                                            <option value="New">New</option>
-                                            <option value="Second Hand">Second Hand</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                
-                                <!-- Sizes -->
-                                <div class="mb-3">
-                                    <label class="form-label">Available Sizes</label>
-                                    <div class="row" id="sizes-container">
-                                        <div class="col-auto">
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="checkbox" name="sizes[]" value="S" id="sizeS">
-                                                <label class="form-check-label" for="sizeS">S</label>
-                                            </div>
-                                        </div>
-                                        <div class="col-auto">
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="checkbox" name="sizes[]" value="M" id="sizeM">
-                                                <label class="form-check-label" for="sizeM">M</label>
-                                            </div>
-                                        </div>
-                                        <div class="col-auto">
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="checkbox" name="sizes[]" value="L" id="sizeL">
-                                                <label class="form-check-label" for="sizeL">L</label>
-                                            </div>
-                                        </div>
-                                        <div class="col-auto">
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="checkbox" name="sizes[]" value="XL" id="sizeXL">
-                                                <label class="form-check-label" for="sizeXL">XL</label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="mt-2">
-                                        <small class="text-muted">Or add custom sizes:</small>
-                                        <div class="input-group mt-1">
-                                            <input type="text" class="form-control" id="custom-size" placeholder="e.g., 8, 9, 10">
-                                            <button type="button" class="btn btn-outline-secondary" onclick="addCustomSizes()">Add</button>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Colors -->
-                                <div class="mb-3">
-                                    <label class="form-label">Available Colors</label>
-                                    <div class="row" id="colors-container">
-                                        <div class="col-auto">
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="checkbox" name="colors[]" value="Blue" id="colorBlue">
-                                                <label class="form-check-label" for="colorBlue">Blue</label>
-                                            </div>
-                                        </div>
-                                        <div class="col-auto">
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="checkbox" name="colors[]" value="White" id="colorWhite">
-                                                <label class="form-check-label" for="colorWhite">White</label>
-                                            </div>
-                                        </div>
-                                        <div class="col-auto">
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="checkbox" name="colors[]" value="Black" id="colorBlack">
-                                                <label class="form-check-label" for="colorBlack">Black</label>
-                                            </div>
-                                        </div>
-                                        <div class="col-auto">
-                                            <div class="form-check form-check-inline">
-                                                <input class="form-check-input" type="checkbox" name="colors[]" value="Red" id="colorRed">
-                                                <label class="form-check-label" for="colorRed">Red</label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="mt-2">
-                                        <small class="text-muted">Or add custom colors:</small>
-                                        <div class="input-group mt-1">
-                                            <input type="text" class="form-control" id="custom-color" placeholder="e.g., Navy, Gray, Beige">
-                                            <button type="button" class="btn btn-outline-secondary" onclick="addCustomColors()">Add</button>
-                                        </div>
-                                    </div>
+                                    {% endfor %}
                                 </div>
                             </div>
-                            
-                            <!-- Right Column -->
-                            <div class="col-lg-4">
-                                <!-- Image Upload -->
-                                <div class="mb-4">
-                                    <label class="form-label">Product Image *</label>
-                                    <div class="border rounded p-3 text-center">
-                                        <img id="image-preview" src="https://via.placeholder.com/300x200?text=Product+Image" 
-                                             class="img-fluid mb-3" style="max-height: 200px;">
-                                        <input type="file" class="form-control image-upload" name="image" 
-                                               accept="image/*" onchange="previewImage(this)" required>
-                                        <small class="text-muted d-block mt-2">
-                                            Recommended: 800x600px, max 2MB
-                                        </small>
+                            <div class="col-md-6">
+                                <label class="form-label">Colors (Optional)</label>
+                                <div class="d-flex flex-wrap gap-2">
+                                    {% for color in ['Black', 'White', 'Blue', 'Red', 'Green', 'Yellow', 'Purple', 'Pink', 'Gray', 'Brown', 'Orange'] %}
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="colors[]" value="{{ color }}" id="color_{{ color }}">
+                                        <label class="form-check-label" for="color_{{ color }}">{{ color }}</label>
                                     </div>
-                                </div>
-                                
-                                <!-- Additional Settings -->
-                                <div class="card">
-                                    <div class="card-body">
-                                        <h6 class="card-title">Additional Settings</h6>
-                                        
-                                        <div class="form-check form-switch mb-3">
-                                            <input class="form-check-input" type="checkbox" name="featured" id="featured">
-                                            <label class="form-check-label" for="featured">
-                                                Featured Product
-                                            </label>
-                                        </div>
-                                        
-                                        <div class="mb-3">
-                                            <label class="form-label">Initial Rating</label>
-                                            <select class="form-select" name="rating">
-                                                <option value="0">No rating</option>
-                                                <option value="1">1 Star</option>
-                                                <option value="2">2 Stars</option>
-                                                <option value="3">3 Stars</option>
-                                                <option value="4" selected>4 Stars</option>
-                                                <option value="5">5 Stars</option>
-                                            </select>
-                                        </div>
-                                        
-                                        <div class="mb-3">
-                                            <label class="form-label">Initial Reviews Count</label>
-                                            <input type="number" class="form-control" name="reviews_count" value="0" min="0">
-                                        </div>
-                                    </div>
+                                    {% endfor %}
                                 </div>
                             </div>
                         </div>
                         
-                        <!-- Form Actions -->
-                        <div class="mt-4">
-                            <div class="d-flex justify-content-between">
-                                <button type="reset" class="btn btn-outline-secondary">
-                                    <i class="fas fa-redo me-2"></i> Reset
-                                </button>
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-save me-2"></i> Save Product
-                                </button>
+                        <!-- Enhanced Multiple Image Upload Section -->
+                        <div class="mb-3">
+                            <label class="form-label">Product Images *</label>
+                            <div class="image-upload-container border rounded p-3" style="background-color: #f8f9fa;">
+                                
+                                <!-- File Input -->
+                                <div class="file-input-wrapper mb-3">
+                                    <input type="file" class="form-control" id="images" name="images" 
+                                           multiple accept="image/*" style="display: none;">
+                                    <div class="d-flex align-items-center justify-content-center p-4 border-2 border-dashed rounded" 
+                                         id="dropZone" style="border-style: dashed !important; cursor: pointer;">
+                                        <div class="text-center">
+                                            <i class="fas fa-cloud-upload-alt fa-3x text-primary mb-3"></i>
+                                            <h6 class="mb-2">Drag & Drop Images Here</h6>
+                                            <p class="text-muted mb-2">or</p>
+                                            <button type="button" class="btn btn-primary" id="selectImagesBtn">
+                                                <i class="fas fa-folder-open me-2"></i>Browse Files
+                                            </button>
+                                            <p class="text-muted mt-2 mb-0">
+                                                <small>Supported formats: JPG, PNG, GIF (Max 5MB each)</small>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Image Preview Grid -->
+                                <div id="imagePreviewContainer" class="row g-3 mt-2" style="display: none;">
+                                    <div class="col-12">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <h6 class="mb-0">Selected Images</h6>
+                                            <span id="imageCount" class="badge bg-primary">0 images</span>
+                                        </div>
+                                    </div>
+                                    <div id="imagePreviewGrid" class="row g-2"></div>
+                                </div>
+                                
+                                <small class="text-muted mt-2 d-block">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    The first image will be used as the main product image. Drag to reorder.
+                                </small>
                             </div>
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="featured" name="featured">
+                            <label class="form-check-label" for="featured">
+                                Mark as Featured Product
+                            </label>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('admin_products') }}" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary" id="submitBtn">Add Product</button>
                         </div>
                     </form>
                 </div>
             </div>
         </div>
-    </div>{% extends "base.html" %}
-
-{% block title %}Edit Product - Admin{% endblock %}
-
-{% block content %}
-<div class="container-fluid py-4">
-    <div class="row">
-        <!-- Sidebar (same as dashboard) -->
-        <div class="col-md-3 col-lg-2 px-0">
-            <div class="admin-sidebar">
-                <div class="d-flex flex-column p-3">
-                    <h4 class="mb-4">Admin Panel</h4>
-                    <ul class="nav flex-column mb-auto">
-                        <li class="nav-item">
-                            <a class="admin-nav-link" href="{{ url_for('admin_dashboard') }}">
-                                <i class="fas fa-tachometer-alt me-2"></i> Dashboard
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="admin-nav-link" href="{{ url_for('admin_products') }}">
-                                <i class="fas fa-box me-2"></i> Products
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="admin-nav-link active" href="{{ url_for('add_product') }}">
-                                <i class="fas fa-plus me-2"></i> Add Product
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="admin-nav-link" href="{{ url_for('admin_orders') }}">
-                                <i class="fas fa-shopping-bag me-2"></i> Orders
-                            </a>
-                        </li>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="card-title">Tips</h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">✓ Use clear, descriptive product names</li>
+                        <li class="mb-2">✓ Upload high-quality images (minimum 800x800px)</li>
+                        <li class="mb-2">✓ Set accurate stock quantities</li>
+                        <li class="mb-2">✓ Featured products appear on homepage</li>
+                        <li class="mb-2">✓ Add sizes and colors for better filtering</li>
+                        <li class="mb-2">✓ You can select multiple images at once</li>
+                        <li class="mb-2">✓ Drag images to reorder them</li>
                     </ul>
                 </div>
             </div>
-        </div>
-        
-        <!-- Main Content -->
-        <div class="col-md-9 col-lg-10">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1>Edit Product</h1>
-                <a href="{{ url_for('admin_products') }}" class="btn btn-outline-primary">
-                    <i class="fas fa-arrow-left me-2"></i> Back to Products
-                </a>
-            </div>
             
-            <div class="card">
+            <div class="card mt-3">
                 <div class="card-body">
-                    <form method="POST" action="{{ url_for('edit_product', product_id=product._id) }}" enctype="multipart/form-data">
-                        <div class="row">
-                            <!-- Left Column -->
-                            <div class="col-lg-8">
-                                <div class="mb-3">
-                                    <label class="form-label">Product Name *</label>
-                                    <input type="text" class="form-control" name="name" 
-                                           value="{{ product.name }}" required>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">Description *</label>
-                                    <textarea class="form-control" name="description" rows="4" required>{{ product.description }}</textarea>
-                                </div>
-                                
-                                <!-- Similar to add_product.html with pre-filled values -->
-                                <!-- Add all other fields with {{ product.field_name }} values -->
-                                
-                            </div>
-                            
-                            <!-- Right Column -->
-                            <div class="col-lg-4">
-                                <!-- Image Upload with current image preview -->
-                                <div class="mb-4">
-                                    <label class="form-label">Product Image</label>
-                                    <div class="border rounded p-3 text-center">
-                                        {% if product.image %}
-                                        <img id="image-preview" 
-                                             src="{{ url_for('static', filename='uploads/' + product.image) }}" 
-                                             class="img-fluid mb-3" style="max-height: 200px;">
-                                        {% else %}
-                                        <img id="image-preview" 
-                                             src="https://via.placeholder.com/300x200?text=Product+Image" 
-                                             class="img-fluid mb-3" style="max-height: 200px;">
-                                        {% endif %}
-                                        <input type="file" class="form-control image-upload" name="image" 
-                                               accept="image/*" onchange="previewImage(this)">
-                                        <small class="text-muted d-block mt-2">
-                                            Leave empty to keep current image
-                                        </small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Form Actions -->
-                        <div class="mt-4">
-                            <div class="d-flex justify-content-between">
-                                <a href="{{ url_for('delete_product', product_id=product._id) }}" 
-                                   class="btn btn-danger"
-                                   onclick="return confirm('Are you sure you want to delete this product?')">
-                                    <i class="fas fa-trash me-2"></i> Delete
-                                </a>
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-save me-2"></i> Update Product
-                                </button>
-                            </div>
-                        </div>
-                    </form>
+                    <h6 class="card-title">Quick Stats</h6>
+                    <p class="mb-1">Total Products: {{ get_collection('products').count_documents({}) }}</p>
+                    <p class="mb-1">Active Products: {{ get_collection('products').count_documents({'status': 'active'}) }}</p>
+                    <p>Featured Products: {{ get_collection('products').count_documents({'featured': true}) }}</p>
                 </div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
 
-<!-- Include JavaScript from add_product.html -->
 {% block extra_js %}
 <script>
-function previewImage(input) {
-    if (input.files && input.files[0]) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            document.getElementById('image-preview').src = e.target.result;
+$(document).ready(function() {
+    let selectedFiles = [];
+    let imageOrder = [];
+    
+    // Trigger file input when select images button is clicked
+    $('#selectImagesBtn, #dropZone').click(function(e) {
+        if ($(e.target).is('button') || $(e.target).closest('button').length === 0) {
+            $('#images').trigger('click');
         }
-        reader.readAsDataURL(input.files[0]);
-    }
-}
-
-function addCustomSizes() {
-    const input = document.getElementById('custom-size');
-    const sizes = input.value.split(',').map(s => s.trim()).filter(s => s);
+    });
     
-    sizes.forEach(size => {
-        if (!size) return;
+    // Handle file selection
+    $('#images').on('change', function(e) {
+        const files = Array.from(e.target.files);
+        addFiles(files);
+    });
+    
+    // Drag and drop handlers
+    const dropZone = document.getElementById('dropZone');
+    
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('bg-light');
+        dropZone.style.borderColor = '#0d6efd';
+    });
+    
+    dropZone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('bg-light');
+        dropZone.style.borderColor = '#dee2e6';
+    });
+    
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('bg-light');
+        dropZone.style.borderColor = '#dee2e6';
         
-        const container = document.getElementById('sizes-container');
-        const col = document.createElement('div');
-        col.className = 'col-auto';
+        const files = Array.from(e.dataTransfer.files).filter(file => 
+            file.type.startsWith('image/')
+        );
+        addFiles(files);
+    });
+    
+    // Function to add files to the selection
+    function addFiles(files) {
+        // Filter for image files and limit size
+        const validFiles = files.filter(file => {
+            const isValidType = file.type.startsWith('image/');
+            const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB limit
+            if (!isValidSize) {
+                alert(`File "${file.name}" exceeds 5MB limit`);
+            }
+            return isValidType && isValidSize;
+        });
         
-        const checkId = 'size' + size.replace(/\s+/g, '');
-        col.innerHTML = `
-            <div class="form-check form-check-inline">
-                <input class="form-check-input" type="checkbox" name="sizes[]" value="${size}" id="${checkId}" checked>
-                <label class="form-check-label" for="${checkId}">${size}</label>
+        // Limit total images to 10
+        if (selectedFiles.length + validFiles.length > 10) {
+            alert('You can only upload up to 10 images per product');
+            return;
+        }
+        
+        // Add new files
+        validFiles.forEach(file => {
+            selectedFiles.push(file);
+            imageOrder.push(file.name);
+            
+            // Create preview
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                addImagePreview(file.name, e.target.result, selectedFiles.length - 1);
+            };
+            reader.readAsDataURL(file);
+        });
+        
+        // Update UI
+        updateFileInput();
+        updateImageCount();
+        $('#imagePreviewContainer').show();
+    }
+    
+    // Function to add image preview
+    function addImagePreview(filename, dataUrl, index) {
+        const isMain = index === 0;
+        const previewHtml = `
+            <div class="col-md-4 col-6" data-filename="${filename}" data-index="${index}">
+                <div class="card h-100 image-preview-card ${isMain ? 'border-primary' : ''}">
+                    <div class="position-relative">
+                        <img src="${dataUrl}" class="card-img-top" alt="Preview" 
+                             style="height: 150px; object-fit: cover;">
+                        ${isMain ? '<span class="position-absolute top-0 start-0 badge bg-primary m-2">Main Image</span>' : ''}
+                        <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-2 remove-image" 
+                                data-filename="${filename}" title="Remove image">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="card-body p-2">
+                        <div class="d-flex align-items-center">
+                            <small class="text-truncate flex-grow-1" title="${filename}">
+                                ${filename.length > 20 ? filename.substr(0, 20) + '...' : filename}
+                            </small>
+                            <small class="text-muted ms-1 drag-handle" style="cursor: move;">
+                                <i class="fas fa-grip-vertical"></i>
+                            </small>
+                        </div>
+                        ${!isMain ? `
+                            <button type="button" class="btn btn-sm btn-outline-primary w-100 mt-1 set-main" 
+                                    data-filename="${filename}">
+                                Set as Main
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
             </div>
         `;
         
-        container.appendChild(col);
-    });
-    
-    input.value = '';
-}
-
-function addCustomColors() {
-    const input = document.getElementById('custom-color');
-    const colors = input.value.split(',').map(c => c.trim()).filter(c => c);
-    
-    colors.forEach(color => {
-        if (!color) return;
-        
-        const container = document.getElementById('colors-container');
-        const col = document.createElement('div');
-        col.className = 'col-auto';
-        
-        const checkId = 'color' + color.replace(/\s+/g, '');
-        col.innerHTML = `
-            <div class="form-check form-check-inline">
-                <input class="form-check-input" type="checkbox" name="colors[]" value="${color}" id="${checkId}" checked>
-                <label class="form-check-label" for="${checkId}">${color}</label>
-            </div>
-        `;
-        
-        container.appendChild(col);
-    });
-    
-    input.value = '';
-}
-
-// Form validation
-document.querySelector('form').addEventListener('submit', function(e) {
-    const price = document.querySelector('input[name="price"]').value;
-    if (price <= 0) {
-        e.preventDefault();
-        alert('Price must be greater than 0');
-        return false;
+        $('#imagePreviewGrid').append(previewHtml);
+        makePreviewSortable();
     }
     
-    const stock = document.querySelector('input[name="stock"]').value;
-    if (stock < 0) {
-        e.preventDefault();
-        alert('Stock cannot be negative');
-        return false;
+    // Make preview grid sortable
+    function makePreviewSortable() {
+        if (typeof Sortable !== 'undefined') {
+            const grid = document.getElementById('imagePreviewGrid');
+            new Sortable(grid, {
+                animation: 150,
+                handle: '.drag-handle',
+                onEnd: function(evt) {
+                    // Update image order
+                    const items = Array.from(grid.children);
+                    imageOrder = items.map(item => $(item).data('filename'));
+                    
+                    // Update main image badge
+                    items.forEach((item, index) => {
+                        const filename = $(item).data('filename');
+                        const isMain = index === 0;
+                        
+                        // Update main image badge
+                        const badge = $(item).find('.badge.bg-primary');
+                        if (isMain) {
+                            if (badge.length === 0) {
+                                $(item).find('.position-relative').prepend(
+                                    '<span class="position-absolute top-0 start-0 badge bg-primary m-2">Main Image</span>'
+                                );
+                            }
+                            $(item).find('.set-main').remove();
+                        } else {
+                            badge.remove();
+                            if ($(item).find('.set-main').length === 0) {
+                                $(item).find('.card-body').append(
+                                    '<button type="button" class="btn btn-sm btn-outline-primary w-100 mt-1 set-main" ' +
+                                    `data-filename="${filename}">Set as Main</button>`
+                                );
+                            }
+                        }
+                        
+                        // Update border color
+                        $(item).find('.image-preview-card')
+                            .toggleClass('border-primary', isMain);
+                    });
+                }
+            });
+        }
     }
+    
+    // Remove image handler
+    $(document).on('click', '.remove-image', function() {
+        const filename = $(this).data('filename');
+        
+        // Remove from arrays
+        const index = selectedFiles.findIndex(f => f.name === filename);
+        if (index !== -1) {
+            selectedFiles.splice(index, 1);
+        }
+        
+        const orderIndex = imageOrder.indexOf(filename);
+        if (orderIndex !== -1) {
+            imageOrder.splice(orderIndex, 1);
+        }
+        
+        // Remove preview
+        $(`[data-filename="${filename}"]`).remove();
+        
+        // Update UI
+        updateFileInput();
+        updateImageCount();
+        
+        if (selectedFiles.length === 0) {
+            $('#imagePreviewContainer').hide();
+        } else {
+            // Update main image if needed
+            if (orderIndex === 0 && selectedFiles.length > 0) {
+                updateMainImage(selectedFiles[0].name);
+            }
+        }
+    });
+    
+    // Set main image handler
+    $(document).on('click', '.set-main', function() {
+        const filename = $(this).data('filename');
+        updateMainImage(filename);
+    });
+    
+    function updateMainImage(filename) {
+        // Update image order
+        const index = imageOrder.indexOf(filename);
+        if (index !== -1) {
+            imageOrder.splice(index, 1);
+            imageOrder.unshift(filename);
+        }
+        
+        // Reorder previews
+        const grid = $('#imagePreviewGrid');
+        const items = grid.children().toArray();
+        items.sort((a, b) => {
+            const aFilename = $(a).data('filename');
+            const bFilename = $(b).data('filename');
+            return imageOrder.indexOf(aFilename) - imageOrder.indexOf(bFilename);
+        });
+        
+        grid.empty();
+        items.forEach(item => grid.append(item));
+        
+        // Update badges
+        items.forEach((item, idx) => {
+            const isMain = idx === 0;
+            const $item = $(item);
+            
+            // Update main image badge
+            const badge = $item.find('.badge.bg-primary');
+            if (isMain) {
+                if (badge.length === 0) {
+                    $item.find('.position-relative').prepend(
+                        '<span class="position-absolute top-0 start-0 badge bg-primary m-2">Main Image</span>'
+                    );
+                }
+                $item.find('.set-main').remove();
+            } else {
+                badge.remove();
+                if ($item.find('.set-main').length === 0 && $item.find('.remove-image').length > 0) {
+                    $item.find('.card-body').append(
+                        '<button type="button" class="btn btn-sm btn-outline-primary w-100 mt-1 set-main" ' +
+                        `data-filename="${$item.data('filename')}">Set as Main</button>`
+                    );
+                }
+            }
+            
+            $item.find('.image-preview-card')
+                .toggleClass('border-primary', isMain);
+        });
+    }
+    
+    // Update file input with current files
+    function updateFileInput() {
+        const dataTransfer = new DataTransfer();
+        selectedFiles.forEach(file => {
+            dataTransfer.items.add(file);
+        });
+        $('#images')[0].files = dataTransfer.files;
+    }
+    
+    // Update image count display
+    function updateImageCount() {
+        $('#imageCount').text(`${selectedFiles.length} image${selectedFiles.length !== 1 ? 's' : ''}`);
+    }
+    
+    // Form validation
+    $('#productForm').on('submit', function(e) {
+        const name = $('#name').val().trim();
+        const price = $('#price').val();
+        const category = $('#category').val();
+        const stock = $('#stock').val();
+        const images = $('#images')[0].files;
+        
+        if (!name || !price || !category || !stock) {
+            e.preventDefault();
+            alert('Please fill in all required fields (*)');
+            return false;
+        }
+        
+        if (parseFloat(price) <= 0) {
+            e.preventDefault();
+            alert('Price must be greater than 0');
+            return false;
+        }
+        
+        if (parseInt(stock) < 0) {
+            e.preventDefault();
+            alert('Stock cannot be negative');
+            return false;
+        }
+        
+        if (images.length === 0) {
+            e.preventDefault();
+            alert('Please select at least one product image');
+            return false;
+        }
+        
+        return true;
+    });
+    
+    // Price formatting
+    $('#price').on('blur', function() {
+        const value = parseFloat($(this).val());
+        if (value && !isNaN(value)) {
+            $(this).val(value.toFixed(2));
+        }
+    });
 });
 </script>
 {% endblock %}
-{% endblock %}
-</div>
 
-{% block extra_js %}
+{% block extra_css %}
+<style>
+.border-dashed {
+    border-style: dashed !important;
+    border-width: 2px !important;
+    border-color: #dee2e6;
+    transition: all 0.3s ease;
+}
 
-{% endblock %}
+.border-dashed:hover {
+    border-color: #0d6efd;
+    background-color: #f8f9fa;
+}
+
+.image-preview-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.image-preview-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.image-preview-card.border-primary {
+    border-width: 2px !important;
+}
+
+.drag-handle {
+    opacity: 0.5;
+    transition: opacity 0.2s ease;
+}
+
+.image-preview-card:hover .drag-handle {
+    opacity: 1;
+}
+
+#dropZone {
+    min-height: 200px;
+    transition: all 0.3s ease;
+}
+
+#dropZone.bg-light {
+    background-color: #e9ecef !important;
+}
+
+.remove-image {
+    opacity: 0.9;
+    transition: all 0.2s ease;
+}
+
+.remove-image:hover {
+    transform: scale(1.1);
+    opacity: 1;
+}
+
+.set-main {
+    font-size: 0.75rem;
+}
+
+#imagePreviewContainer {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+</style>
 {% endblock %}

@@ -4,238 +4,451 @@
 
 {% block content %}
 <div class="container py-5">
-    <!-- Debug Info (remove in production) -->
-    {% if debug %}
-    <div class="alert alert-info">
-        <h6>Debug Info:</h6>
-        <p>Order exists: {{ order is defined }}</p>
-        <p>Order ID: {{ order.order_id|default('N/A') }}</p>
-        <p>Items exists: {{ 'items' in order }}</p>
-        <p>Items type: {{ order.items.__class__.__name__ if 'items' in order else 'N/A' }}</p>
-        <p>Items is list: {{ order.items is iterable and order.items is not string }}</p>
-    </div>
-    {% endif %}
-
     <!-- Order Confirmation Header -->
     <div class="text-center mb-5">
-        <div class="success-icon mb-4">
-            <i class="fas fa-check-circle fa-4x text-success"></i>
+        <div class="success-animation mb-4">
+            <div class="success-icon pulse-animation">
+                <i class="fas fa-check-circle fa-4x text-success"></i>
+            </div>
+            <div class="confetti">
+                <i class="fas fa-star confetti-star star-1"></i>
+                <i class="fas fa-star confetti-star star-2"></i>
+                <i class="fas fa-star confetti-star star-3"></i>
+                <i class="fas fa-star confetti-star star-4"></i>
+                <i class="fas fa-star confetti-star star-5"></i>
+            </div>
         </div>
-        <h1 class="mb-3">Order Confirmed!</h1>
+        <h1 class="mb-3 fw-bold">Order Confirmed!</h1>
         <p class="lead text-muted">Thank you for your purchase. Your order is being processed.</p>
         <div class="order-number-badge mt-3">
-            <span class="badge bg-primary fs-6 p-3">
+            <span class="badge bg-primary fs-5 px-4 py-2">
                 <i class="fas fa-receipt me-2"></i>Order #{{ order.order_id|default('N/A') }}
             </span>
+        </div>
+        <div class="mt-3">
+            <p class="text-muted">
+                <i class="fas fa-envelope me-1"></i>
+                A confirmation email has been sent to <strong>{{ order.shipping_address.email if order.shipping_address and order.shipping_address.email else 'your email' }}</strong>
+            </p>
         </div>
     </div>
 
     <div class="row justify-content-center">
         <div class="col-lg-10">
             {% if order %}
-            <!-- Order Summary Card -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-success text-white">
+            <!-- Order Timeline -->
+            <div class="card shadow-sm mb-4 border-0">
+                <div class="card-body">
+                    <div class="order-timeline">
+                        <div class="timeline-step step-completed">
+                            <div class="timeline-circle">
+                                <i class="fas fa-shopping-cart"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <h6 class="mb-1">Order Placed</h6>
+                                <p class="small text-muted mb-0">{{ format_date(order.created_at, '%b %d, %Y') }}</p>
+                            </div>
+                        </div>
+                        <div class="timeline-step {% if order.status == 'processing' or order.status == 'shipped' or order.status == 'delivered' %}step-completed{% endif %}">
+                            <div class="timeline-circle">
+                                <i class="fas fa-cog"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <h6 class="mb-1">Processing</h6>
+                                <p class="small text-muted mb-0">
+                                    {% if order.status == 'processing' %}
+                                    <span class="text-primary">In Progress</span>
+                                    {% elif order.status == 'shipped' or order.status == 'delivered' %}
+                                    {{ format_date(order.updated_at, '%b %d') }}
+                                    {% else %}
+                                    Upcoming
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="timeline-step {% if order.status == 'shipped' or order.status == 'delivered' %}step-completed{% endif %}">
+                            <div class="timeline-circle">
+                                <i class="fas fa-shipping-fast"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <h6 class="mb-1">Shipped</h6>
+                                <p class="small text-muted mb-0">
+                                    {% if order.status == 'shipped' %}
+                                    <span class="text-primary">On the way</span>
+                                    {% elif order.status == 'delivered' %}
+                                    {{ format_date(order.updated_at, '%b %d') }}
+                                    {% else %}
+                                    Upcoming
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="timeline-step {% if order.status == 'delivered' %}step-completed{% endif %}">
+                            <div class="timeline-circle">
+                                <i class="fas fa-check-double"></i>
+                            </div>
+                            <div class="timeline-content">
+                                <h6 class="mb-1">Delivered</h6>
+                                <p class="small text-muted mb-0">
+                                    {% if order.status == 'delivered' %}
+                                    <span class="text-success">Delivered</span>
+                                    {% else %}
+                                    Upcoming
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Order Summary -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-success text-white border-0 rounded-top">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h4 class="mb-0"><i class="fas fa-receipt me-2"></i>Order Summary</h4>
-                        <span class="badge bg-light text-dark fs-6">#{{ order.order_id }}</span>
+                        <h4 class="mb-0"><i class="fas fa-clipboard-list me-2"></i>Order Summary</h4>
+                        <span class="badge bg-light text-dark fs-5">{{ order.status|upper }}</span>
                     </div>
                 </div>
                 <div class="card-body">
-                    <!-- Order Status & Timeline -->
+                    <!-- Order Status Summary -->
                     <div class="row mb-4">
-                        <div class="col-md-6">
-                            <div class="d-flex align-items-center mb-3">
-                                <div class="status-icon me-3">
-                                    <i class="fas fa-clock fa-2x text-primary"></i>
-                                </div>
-                                <div>
-                                    <h6 class="mb-1">Order Status</h6>
-                                    <span class="badge bg-{{ get_order_status_badge(order.status) }} fs-6">
-                                        {{ order.status|title }}
-                                    </span>
-                                </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="status-card text-center p-3 bg-light rounded">
+                                <i class="fas fa-calendar-alt fa-2x text-primary mb-2"></i>
+                                <h6 class="mb-1">Order Date</h6>
+                                <p class="mb-0 fw-bold">{{ format_date(order.created_at, '%B %d, %Y') }}</p>
                             </div>
                         </div>
-                        <div class="col-md-6">
-                            <div class="d-flex align-items-center mb-3">
-                                <div class="status-icon me-3">
-                                    <i class="fas fa-calendar-alt fa-2x text-primary"></i>
-                                </div>
-                                <div>
-                                    <h6 class="mb-1">Order Date</h6>
-                                    <p class="mb-0">{{ format_date(order.created_at, '%B %d, %Y at %I:%M %p') }}</p>
-                                </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="status-card text-center p-3 bg-light rounded">
+                                <i class="fas fa-clock fa-2x text-primary mb-2"></i>
+                                <h6 class="mb-1">Order Time</h6>
+                                <p class="mb-0 fw-bold">{{ format_date(order.created_at, '%I:%M %p') }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="status-card text-center p-3 bg-light rounded">
+                                <i class="fas fa-credit-card fa-2x text-primary mb-2"></i>
+                                <h6 class="mb-1">Payment Method</h6>
+                                <p class="mb-0 fw-bold">{{ order.payment_method|title if order.payment_method else 'Paystack' }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="status-card text-center p-3 bg-light rounded">
+                                <i class="fas fa-box fa-2x text-primary mb-2"></i>
+                                <h6 class="mb-1">Items</h6>
+                                <p class="mb-0 fw-bold">{{ order.items|length }}</p>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Order Items -->
-                    <h5 class="mb-4 border-bottom pb-2">Order Items</h5>
+                    <!-- Order Items with Enhanced Display -->
+                    <h5 class="mb-4 pb-3 border-bottom">
+                        <i class="fas fa-box-open me-2"></i>Order Items ({{ order.items|length }})
+                    </h5>
+                    
                     {% set items_list = order.get('items', []) %}
                     {% if items_list and items_list|length > 0 %}
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Product</th>
-                                    <th>Size</th>
-                                    <th>Color</th>
-                                    <th class="text-end">Quantity</th>
-                                    <th class="text-end">Price</th>
-                                    <th class="text-end">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for item in items_list %}
-                                <tr>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <div class="me-3">
-                                                {% if item.image %}
-                                                    {% if item.image.startswith('http') or item.image.startswith('/static') %}
-                                                        <img src="{{ item.image }}" 
-                                                             class="order-item-image" 
-                                                             alt="{{ item.name }}"
-                                                             onerror="this.src='https://via.placeholder.com/60x60?text=Product'">
-                                                    {% else %}
-                                                        <img src="{{ url_for('static', filename='uploads/' + item.image) }}" 
-                                                             class="order-item-image" 
-                                                             alt="{{ item.name }}"
-                                                             onerror="this.src='https://via.placeholder.com/60x60?text=Product'">
-                                                    {% endif %}
-                                                {% else %}
-                                                    <img src="https://via.placeholder.com/60x60?text=Product" 
-                                                         class="order-item-image" 
-                                                         alt="{{ item.name }}">
-                                                {% endif %}
+                    <div class="order-items-list">
+                        {% for item in items_list %}
+                        <div class="order-item-card mb-4 p-4 border rounded">
+                            <div class="row align-items-center">
+                                <!-- Product Image with Multiple Views -->
+                                <div class="col-md-2 col-4 mb-3 mb-md-0">
+                                    <div class="position-relative">
+                                        {% set item_images = get_cart_item_images(item) %}
+                                        {% if item_images|length > 1 %}
+                                        <div id="orderImageCarousel{{ loop.index0 }}" class="carousel slide order-image-carousel" data-bs-ride="carousel">
+                                            <div class="carousel-inner">
+                                                {% for img in item_images %}
+                                                <div class="carousel-item {% if loop.first %}active{% endif %}">
+                                                    <img src="{{ img.url if img.url.startswith('http') else url_for('static', filename='uploads/' + img.url) }}" 
+                                                         class="img-fluid rounded order-item-image" 
+                                                         alt="{{ item.name }} - Image {{ loop.index }}"
+                                                         onerror="this.src='https://via.placeholder.com/120x120?text=Product'">
+                                                </div>
+                                                {% endfor %}
                                             </div>
-                                            <div>
-                                                <h6 class="mb-1">{{ item.name }}</h6>
-                                                <small class="text-muted">Product ID: {{ item.product_id[:8] if item.product_id else 'N/A' }}</small>
-                                            </div>
+                                            {% if item_images|length > 1 %}
+                                            <button class="carousel-control-prev" type="button" data-bs-target="#orderImageCarousel{{ loop.index0 }}" data-bs-slide="prev">
+                                                <span class="carousel-control-prev-icon"></span>
+                                            </button>
+                                            <button class="carousel-control-next" type="button" data-bs-target="#orderImageCarousel{{ loop.index0 }}" data-bs-slide="next">
+                                                <span class="carousel-control-next-icon"></span>
+                                            </button>
+                                            {% endif %}
                                         </div>
-                                    </td>
-                                    <td>{{ item.size if item.size else 'N/A' }}</td>
-                                    <td>{{ item.color if item.color else 'N/A' }}</td>
-                                    <td class="text-end">{{ item.quantity }}</td>
-                                    <td class="text-end">{{ format_price(item.price) }}</td>
-                                    <td class="text-end fw-bold">{{ format_price(item.price * item.quantity) }}</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                                        <span class="position-absolute top-0 end-0 badge bg-dark bg-opacity-75">
+                                            <i class="fas fa-images me-1"></i>{{ item_images|length }}
+                                        </span>
+                                        {% else %}
+                                        <img src="{{ get_cart_item_image(item) }}" 
+                                             class="img-fluid rounded order-item-image" 
+                                             alt="{{ item.name }}"
+                                             onerror="this.src='https://via.placeholder.com/120x120?text=Product'">
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <!-- Product Details -->
+                                <div class="col-md-6 col-8 mb-3 mb-md-0">
+                                    <h5 class="mb-2">
+                                        <a href="{{ url_for('product_details', product_id=item.product_id) if item.product_id else '#' }}" 
+                                           class="text-decoration-none text-dark">
+                                            {{ item.name }}
+                                        </a>
+                                    </h5>
+                                    
+                                    <div class="mb-3">
+                                        <span class="badge bg-light text-dark border me-2">
+                                            <i class="fas fa-hashtag me-1"></i>Qty: {{ item.quantity }}
+                                        </span>
+                                        {% if item.size %}
+                                        <span class="badge bg-light text-dark border me-2">
+                                            <i class="fas fa-ruler me-1"></i>{{ item.size }}
+                                        </span>
+                                        {% endif %}
+                                        {% if item.color %}
+                                        <span class="badge bg-light text-dark border">
+                                            <i class="fas fa-palette me-1"></i>{{ item.color }}
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="price-details">
+                                        <p class="mb-1">
+                                            <span class="text-muted">Unit Price:</span>
+                                            <span class="fw-bold ms-2">{{ format_price(item.price) }}</span>
+                                        </p>
+                                        <p class="mb-0">
+                                            <span class="text-muted">Total:</span>
+                                            <span class="fw-bold fs-5 text-primary ms-2">{{ format_price(item.price * item.quantity) }}</span>
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                <!-- Item Actions & Status -->
+                                <div class="col-md-4 col-12 text-md-end">
+                                    <div class="mb-3">
+                                        <span class="badge bg-{{ get_order_status_badge(item.status) if item.status else 'info' }}">
+                                            <i class="fas fa-{{ 'check-circle' if item.status == 'delivered' else 'clock' }} me-1"></i>
+                                            {{ item.status|title if item.status else 'Pending' }}
+                                        </span>
+                                    </div>
+                                    
+                                    <div class="btn-group" role="group">
+                                        <a href="{{ url_for('product_details', product_id=item.product_id) if item.product_id else '#' }}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye me-1"></i> View
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="window.print()">
+                                            <i class="fas fa-print me-1"></i> Print
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="mt-3">
+                                        <small class="text-muted">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            Product ID: {{ item.product_id[:8] if item.product_id else 'N/A' }}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Stock Status & Tracking -->
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <div class="alert alert-light d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <i class="fas fa-warehouse me-2 text-primary"></i>
+                                            <span>Stock Status:</span>
+                                            <span class="badge bg-{{ 'success' if item.stock > 0 else 'warning' }} ms-2">
+                                                {{ item.stock }} units available
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <a href="{{ url_for('account') }}" class="btn btn-sm btn-link text-decoration-none">
+                                                <i class="fas fa-history me-1"></i> View Order History
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
                     </div>
                     {% else %}
-                    <div class="text-center py-4">
-                        <i class="fas fa-exclamation-triangle fa-2x text-warning mb-3"></i>
+                    <div class="text-center py-5">
+                        <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                        <h4>No Items Found</h4>
                         <p class="text-muted">No items found in this order.</p>
                     </div>
                     {% endif %}
                 </div>
             </div>
 
-            <!-- Order Details & Shipping -->
+            <!-- Payment & Shipping Details -->
             <div class="row">
-                <!-- Order Totals -->
+                <!-- Payment Summary -->
                 <div class="col-md-6 mb-4">
-                    <div class="card shadow-sm h-100">
-                        <div class="card-header bg-light">
-                            <h5 class="mb-0"><i class="fas fa-money-bill-wave me-2"></i>Payment Details</h5>
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-header bg-light border-0">
+                            <h5 class="mb-0"><i class="fas fa-credit-card me-2"></i>Payment Summary</h5>
                         </div>
                         <div class="card-body">
-                            <div class="order-totals">
+                            <div class="payment-summary">
                                 <div class="d-flex justify-content-between mb-2">
-                                    <span class="text-muted">Subtotal:</span>
-                                    <span>{{ format_price(order.subtotal) }}</span>
+                                    <span class="text-muted">Subtotal ({{ order.items|length }} items):</span>
+                                    <span class="fw-bold">{{ format_price(order.subtotal) }}</span>
                                 </div>
+                                
                                 <div class="d-flex justify-content-between mb-2">
                                     <span class="text-muted">Delivery Fee:</span>
-                                    <span>{{ format_price(order.delivery_fee) }}</span>
+                                    <span class="fw-bold">{{ format_price(order.delivery_fee) }}</span>
                                 </div>
-                                {% if order.subtotal >= 5000 and 'embu' in order.shipping_address.county|lower %}
+                                
+                                {% set county = order.shipping_address.county|lower if order.shipping_address and order.shipping_address.county else '' %}
+                                {% if order.subtotal >= 5000 and 'embu' in county %}
                                 <div class="d-flex justify-content-between mb-2">
                                     <span class="text-muted">Shipping Discount:</span>
-                                    <span class="text-success">- {{ format_price(100) }}</span>
+                                    <span class="text-success fw-bold">- {{ format_price(order.delivery_fee) }}</span>
                                 </div>
                                 {% endif %}
-                                <hr>
-                                <div class="d-flex justify-content-between mb-3">
-                                    <strong>Total Amount:</strong>
-                                    <strong class="fs-5 text-primary">{{ format_price(order.total) }}</strong>
+                                
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="text-muted">Tax:</span>
+                                    <span>Included</span>
                                 </div>
-                                <div class="d-flex justify-content-between">
-                                    <span class="text-muted">Payment Method:</span>
-                                    <span class="badge bg-{{ get_payment_method_badge(order.payment_method) }}">
-                                        {{ order.payment_method|title if order.payment_method else 'N/A' }}
-                                    </span>
+                                
+                                <hr class="my-3">
+                                
+                                <div class="d-flex justify-content-between mb-4">
+                                    <span class="fs-5 fw-bold">Total Amount:</span>
+                                    <span class="fs-5 fw-bold text-primary">{{ format_price(order.total) }}</span>
                                 </div>
-                                <div class="d-flex justify-content-between mt-2">
-                                    <span class="text-muted">Payment Status:</span>
-                                    <span class="badge bg-{{ 'success' if order.payment_status == 'paid' else 'warning' }}">
-                                        {{ order.payment_status|title if order.payment_status else 'Pending' }}
-                                    </span>
+                                
+                                <!-- Payment Details -->
+                                <div class="payment-details">
+                                    <h6 class="mb-3">Payment Details</h6>
+                                    <div class="row">
+                                        <div class="col-6 mb-2">
+                                            <small class="text-muted">Method:</small>
+                                            <p class="mb-0 fw-bold">{{ order.payment_method|title if order.payment_method else 'Paystack' }}</p>
+                                        </div>
+                                        <div class="col-6 mb-2">
+                                            <small class="text-muted">Status:</small>
+                                            <p class="mb-0">
+                                                <span class="badge bg-{{ 'success' if order.payment_status == 'paid' else 'warning' }}">
+                                                    {{ order.payment_status|title if order.payment_status else 'Pending' }}
+                                                </span>
+                                            </p>
+                                        </div>
+                                        <div class="col-6">
+                                            <small class="text-muted">Transaction ID:</small>
+                                            <p class="mb-0">
+                                                <code class="small">{{ order.transaction_id[:12] if order.transaction_id else 'N/A' }}</code>
+                                            </p>
+                                        </div>
+                                        <div class="col-6">
+                                            <small class="text-muted">Payment Date:</small>
+                                            <p class="mb-0">{{ format_date(order.created_at, '%b %d, %Y') }}</p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Shipping Address -->
+                <!-- Shipping & Contact -->
                 <div class="col-md-6 mb-4">
-                    <div class="card shadow-sm h-100">
-                        <div class="card-header bg-light">
-                            <h5 class="mb-0"><i class="fas fa-truck me-2"></i>Shipping Information</h5>
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-header bg-light border-0">
+                            <h5 class="mb-0"><i class="fas fa-truck me-2"></i>Shipping & Contact</h5>
                         </div>
                         <div class="card-body">
                             {% if order.shipping_address %}
-                            <div class="shipping-address">
-                                <h6 class="mb-3">Delivery Address</h6>
-                                <div class="address-card bg-light p-3 rounded">
-                                    <p class="mb-2">
-                                        <i class="fas fa-user me-2"></i>
-                                        <strong>{{ order.shipping_address.get('name', 'Customer') }}</strong>
-                                    </p>
-                                    <p class="mb-2">
-                                        <i class="fas fa-map-marker-alt me-2"></i>
-                                        {{ order.shipping_address.street }}
-                                        {% if order.shipping_address.additional_info %}
-                                        <br>{{ order.shipping_address.additional_info }}
-                                        {% endif %}
-                                    </p>
-                                    <p class="mb-2">
-                                        <i class="fas fa-city me-2"></i>
-                                        {{ order.shipping_address.city }},
-                                        {{ order.shipping_address.county }}
-                                        {% if order.shipping_address.postal_code %}
-                                        - {{ order.shipping_address.postal_code }}
-                                        {% endif %}
-                                    </p>
-                                    <p class="mb-0">
-                                        <i class="fas fa-phone me-2"></i>
-                                        {{ order.shipping_address.phone if order.shipping_address.phone else 'N/A' }}
-                                    </p>
+                            <div class="shipping-contact">
+                                <!-- Shipping Address -->
+                                <div class="mb-4">
+                                    <h6 class="mb-3">Shipping Address</h6>
+                                    <div class="address-card bg-light p-3 rounded">
+                                        <div class="d-flex align-items-start mb-2">
+                                            <i class="fas fa-user text-primary me-3 mt-1"></i>
+                                            <div>
+                                                <p class="fw-bold mb-0">{{ order.shipping_address.get('name', 'Customer') }}</p>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex align-items-start mb-2">
+                                            <i class="fas fa-map-marker-alt text-primary me-3 mt-1"></i>
+                                            <div>
+                                                <p class="mb-0">{{ order.shipping_address.street }}</p>
+                                                {% if order.shipping_address.additional_info %}
+                                                <p class="mb-0 text-muted small">{{ order.shipping_address.additional_info }}</p>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        <div class="d-flex align-items-start mb-2">
+                                            <i class="fas fa-city text-primary me-3 mt-1"></i>
+                                            <div>
+                                                <p class="mb-0">
+                                                    {{ order.shipping_address.city }}, 
+                                                    {{ order.shipping_address.county }}
+                                                    {% if order.shipping_address.postal_code %}
+                                                    - {{ order.shipping_address.postal_code }}
+                                                    {% endif %}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex align-items-start">
+                                            <i class="fas fa-phone text-primary me-3 mt-1"></i>
+                                            <div>
+                                                <p class="mb-0">+254{{ order.shipping_address.phone if order.shipping_address.phone else ' N/A' }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 
-                                <div class="mt-4">
-                                    <h6 class="mb-3">Delivery Estimate</h6>
+                                <!-- Contact Information -->
+                                <div class="contact-info">
+                                    <h6 class="mb-3">Contact Information</h6>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-2">
+                                            <small class="text-muted">Email:</small>
+                                            <p class="mb-0">
+                                                <a href="mailto:{{ order.shipping_address.email if order.shipping_address.email else '#' }}" 
+                                                   class="text-decoration-none">
+                                                    {{ order.shipping_address.email if order.shipping_address.email else 'N/A' }}
+                                                </a>
+                                            </p>
+                                        </div>
+                                        <div class="col-md-6 mb-2">
+                                            <small class="text-muted">Phone:</small>
+                                            <p class="mb-0">+254{{ order.shipping_address.phone if order.shipping_address.phone else ' N/A' }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Delivery Estimate -->
+                                <div class="delivery-estimate mt-4">
+                                    <h6 class="mb-3">Delivery Information</h6>
                                     <div class="alert alert-info">
                                         <div class="d-flex">
                                             <i class="fas fa-info-circle fa-lg me-3"></i>
                                             <div>
-                                                <p class="mb-1">
-                                                    {% set county = order.shipping_address.county|lower if order.shipping_address.county else '' %}
+                                                <p class="mb-2 fw-bold">
                                                     {% if 'embu' in county %}
-                                                        <strong>Estimated Delivery:</strong> 1-2 business days
+                                                        Estimated Delivery: <span class="text-success">1-2 Business Days</span>
                                                         {% if order.subtotal >= 5000 %}
-                                                            <span class="badge bg-success ms-2">Free Shipping</span>
+                                                            <span class="badge bg-success ms-2">Free Shipping Applied</span>
                                                         {% endif %}
                                                     {% else %}
-                                                        <strong>Estimated Delivery:</strong> 3-5 business days
+                                                        Estimated Delivery: <span class="text-info">3-5 Business Days</span>
                                                     {% endif %}
                                                 </p>
                                                 <p class="small mb-0">
-                                                    You will receive tracking information once your order is shipped.
+                                                    You will receive tracking information via email and SMS once your order is shipped.
                                                 </p>
                                             </div>
                                         </div>
@@ -253,22 +466,22 @@
                 </div>
             </div>
 
-            <!-- Order Actions -->
-            <div class="card shadow-sm mt-4">
+            <!-- Action Buttons -->
+            <div class="card shadow-sm border-0 mt-4">
                 <div class="card-body">
                     <div class="row align-items-center">
-                        <div class="col-md-8">
-                            <h5 class="mb-2">What's Next?</h5>
+                        <div class="col-md-8 mb-4 mb-md-0">
+                            <h5 class="mb-2">What would you like to do next?</h5>
                             <p class="text-muted mb-0">
-                                You'll receive an order confirmation email shortly. We'll notify you when your order ships.
+                                Track your order, view order history, or continue shopping.
                             </p>
                         </div>
                         <div class="col-md-4">
                             <div class="d-grid gap-2">
-                                <a href="{{ url_for('account') }}" class="btn btn-outline-primary">
+                                <a href="{{ url_for('account') }}" class="btn btn-primary">
                                     <i class="fas fa-user-circle me-2"></i> View in Account
                                 </a>
-                                <button class="btn btn-outline-secondary" onclick="window.print()">
+                                <button class="btn btn-outline-primary" onclick="window.print()">
                                     <i class="fas fa-print me-2"></i> Print Receipt
                                 </button>
                             </div>
@@ -277,34 +490,62 @@
                 </div>
             </div>
 
-            <!-- Help Information -->
+            <!-- Customer Support -->
             <div class="row mt-4">
                 <div class="col-12">
                     <div class="card bg-light border-0">
                         <div class="card-body">
-                            <h5 class="mb-3"><i class="fas fa-question-circle me-2"></i>Need Help?</h5>
-                            <div class="row text-center">
-                                <div class="col-md-4 mb-3 mb-md-0">
-                                    <i class="fas fa-headset fa-2x text-primary mb-2"></i>
-                                    <h6>Customer Support</h6>
-                                    <p class="small text-muted mb-0">
-                                        Call: 0102850010 | WhatsApp: 0794025592<br>
-                                        Email: support@mufrafashions.com
-                                    </p>
+                            <h5 class="mb-4"><i class="fas fa-headset me-2"></i>Need Help With Your Order?</h5>
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <div class="support-card text-center p-3">
+                                        <i class="fas fa-phone fa-2x text-primary mb-3"></i>
+                                        <h6>Call Us</h6>
+                                        <p class="small text-muted mb-2">For immediate assistance</p>
+                                        <p class="fw-bold mb-0">0102850010</p>
+                                    </div>
                                 </div>
-                                <div class="col-md-4 mb-3 mb-md-0">
-                                    <i class="fas fa-shipping-fast fa-2x text-primary mb-2"></i>
-                                    <h6>Track Your Order</h6>
-                                    <p class="small text-muted mb-0">
-                                        Tracking information will be sent to your email once your order ships.
-                                    </p>
+                                <div class="col-md-4 mb-3">
+                                    <div class="support-card text-center p-3">
+                                        <i class="fab fa-whatsapp fa-2x text-success mb-3"></i>
+                                        <h6>WhatsApp</h6>
+                                        <p class="small text-muted mb-2">Chat with our team</p>
+                                        <p class="fw-bold mb-0">0794025592</p>
+                                    </div>
                                 </div>
-                                <div class="col-md-4">
-                                    <i class="fas fa-undo fa-2x text-primary mb-2"></i>
-                                    <h6>Returns & Refunds</h6>
-                                    <p class="small text-muted mb-0">
-                                        2-day return policy. Items must be in good condition as taken.
-                                    </p>
+                                <div class="col-md-4 mb-3">
+                                    <div class="support-card text-center p-3">
+                                        <i class="fas fa-envelope fa-2x text-info mb-3"></i>
+                                        <h6>Email</h6>
+                                        <p class="small text-muted mb-2">For detailed inquiries</p>
+                                        <p class="fw-bold mb-0">mufrafashions@gmail.com</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-md-4 mb-3">
+                                    <div class="support-card text-center p-3">
+                                        <i class="fas fa-shipping-fast fa-2x text-warning mb-3"></i>
+                                        <h6>Track Order</h6>
+                                        <p class="small text-muted mb-2">Get delivery updates</p>
+                                        <a href="{{ url_for('account') }}" class="btn btn-sm btn-outline-primary">Track Now</a>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <div class="support-card text-center p-3">
+                                        <i class="fas fa-undo fa-2x text-secondary mb-3"></i>
+                                        <h6>Returns & Refunds</h6>
+                                        <p class="small text-muted mb-2">2-day return policy</p>
+                                        <a href="#" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#returnPolicyModal">View Policy</a>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <div class="support-card text-center p-3">
+                                        <i class="fas fa-question-circle fa-2x text-danger mb-3"></i>
+                                        <h6>FAQ</h6>
+                                        <p class="small text-muted mb-2">Common questions</p>
+                                        <a href="{{ url_for('home') }}" class="btn btn-sm btn-outline-danger">View FAQ</a>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -314,14 +555,23 @@
 
             <!-- Continue Shopping -->
             <div class="text-center mt-5">
-                <a href="{{ url_for('categories') }}" class="btn btn-primary btn-lg">
-                    <i class="fas fa-shopping-bag me-2"></i> Continue Shopping
-                </a>
+                <div class="mb-4">
+                    <h4 class="mb-3">Discover More</h4>
+                    <p class="text-muted">Browse our latest collections and exclusive deals</p>
+                </div>
+                <div class="d-grid gap-2 d-md-flex justify-content-center">
+                    <a href="{{ url_for('categories') }}" class="btn btn-primary btn-lg px-5">
+                        <i class="fas fa-shopping-bag me-2"></i> Continue Shopping
+                    </a>
+                    <a href="{{ url_for('home') }}" class="btn btn-outline-primary btn-lg px-5">
+                        <i class="fas fa-home me-2"></i> Back to Home
+                    </a>
+                </div>
             </div>
 
             {% else %}
             <!-- Order Not Found -->
-            <div class="card shadow-sm">
+            <div class="card shadow-sm border-0">
                 <div class="card-body text-center py-5">
                     <div class="error-icon mb-4">
                         <i class="fas fa-exclamation-triangle fa-4x text-warning"></i>
@@ -331,10 +581,10 @@
                         We couldn't find the order you're looking for. It may have been canceled or the order ID is incorrect.
                     </p>
                     <div class="d-grid gap-2 d-md-flex justify-content-md-center">
-                        <a href="{{ url_for('account') }}" class="btn btn-primary">
+                        <a href="{{ url_for('account') }}" class="btn btn-primary btn-lg px-4">
                             <i class="fas fa-user-circle me-2"></i> View My Orders
                         </a>
-                        <a href="{{ url_for('home') }}" class="btn btn-outline-primary">
+                        <a href="{{ url_for('home') }}" class="btn btn-outline-primary btn-lg px-4">
                             <i class="fas fa-home me-2"></i> Back to Home
                         </a>
                     </div>
@@ -345,11 +595,44 @@
     </div>
 </div>
 
+<!-- Return Policy Modal -->
+<div class="modal fade" id="returnPolicyModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-undo me-2"></i>Return Policy</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <h6 class="mb-3">Our Return Policy</h6>
+                <ul class="mb-4">
+                    <li class="mb-2">2-day return window from delivery date</li>
+                    <li class="mb-2">Items must be unworn, unused with original tags</li>
+                    <li class="mb-2">Original packaging must be intact</li>
+                    <li class="mb-2">Refunds processed within 7-14 business days</li>
+                    <li>Free return shipping for defective items</li>
+                </ul>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    To initiate a return, please contact our customer support team.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% block extra_css %}
 <style>
+.success-animation {
+    position: relative;
+}
+
 .success-icon {
-    width: 100px;
-    height: 100px;
+    width: 120px;
+    height: 120px;
     background-color: rgba(25, 135, 84, 0.1);
     border-radius: 50%;
     display: flex;
@@ -358,60 +641,254 @@
     margin: 0 auto;
 }
 
-.error-icon {
-    width: 100px;
-    height: 100px;
-    background-color: rgba(255, 193, 7, 0.1);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto;
+.pulse-animation {
+    animation: pulse 2s infinite;
 }
 
-.status-icon {
-    width: 50px;
-    height: 50px;
-    background-color: #e3f2fd;
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.confetti {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+}
+
+.confetti-star {
+    position: absolute;
+    color: #ffc107;
+    font-size: 1.2rem;
+    opacity: 0;
+    animation: confetti-fall 2s ease-out infinite;
+}
+
+.confetti-star.star-1 { left: 20%; animation-delay: 0s; }
+.confetti-star.star-2 { left: 35%; animation-delay: 0.2s; }
+.confetti-star.star-3 { left: 50%; animation-delay: 0.4s; }
+.confetti-star.star-4 { left: 65%; animation-delay: 0.6s; }
+.confetti-star.star-5 { left: 80%; animation-delay: 0.8s; }
+
+@keyframes confetti-fall {
+    0% { transform: translateY(-50px) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(100px) rotate(360deg); opacity: 0; }
+}
+
+.order-timeline {
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+    padding: 20px 0;
+}
+
+.order-timeline::before {
+    content: '';
+    position: absolute;
+    top: 40px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background-color: #dee2e6;
+    z-index: 1;
+}
+
+.timeline-step {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    flex: 1;
+}
+
+.timeline-circle {
+    width: 80px;
+    height: 80px;
     border-radius: 50%;
+    background-color: #dee2e6;
+    color: #6c757d;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #0d6efd;
+    font-size: 1.5rem;
+    margin: 0 auto 15px;
+    border: 6px solid white;
+    transition: all 0.3s ease;
+}
+
+.step-completed .timeline-circle {
+    background-color: #198754;
+    color: white;
+}
+
+.timeline-step.active .timeline-circle {
+    background-color: #0d6efd;
+    color: white;
+    transform: scale(1.1);
+    box-shadow: 0 0 0 6px rgba(13, 110, 253, 0.2);
+}
+
+.timeline-content h6 {
+    font-size: 0.9rem;
+    font-weight: 600;
 }
 
 .order-item-image {
-    width: 60px;
-    height: 60px;
+    width: 120px;
+    height: 120px;
     object-fit: cover;
-    border-radius: 5px;
+    border-radius: 8px;
+}
+
+.order-item-card {
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.order-item-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.order-image-carousel {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.order-image-carousel .carousel-control-prev,
+.order-image-carousel .carousel-control-next {
+    width: 30px;
+    height: 30px;
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 50%;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.order-image-carousel:hover .carousel-control-prev,
+.order-image-carousel:hover .carousel-control-next {
+    opacity: 1;
+}
+
+.status-card {
+    transition: all 0.3s ease;
+}
+
+.status-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.support-card {
+    background: white;
+    border-radius: 10px;
+    border: 1px solid #eaeaea;
+    transition: all 0.3s ease;
+}
+
+.support-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
 }
 
 .address-card {
     border-left: 4px solid #0d6efd;
+    background: linear-gradient(to right, rgba(13, 110, 253, 0.05), transparent);
 }
 
 .card {
-    border: none;
-    transition: transform 0.3s;
+    border-radius: 15px;
+    overflow: hidden;
 }
 
-.card:hover {
-    transform: translateY(-5px);
-}
-
+/* Print styles */
 @media print {
-    .btn, .text-center.mt-5, .bg-light.border-0 {
+    .btn, .text-center.mt-5, .bg-light.border-0, .modal,
+    .order-timeline::before, .confetti, .carousel-control-prev,
+    .carousel-control-next {
         display: none !important;
     }
     
     .container {
         max-width: 100% !important;
+        padding: 0 !important;
     }
     
     .card {
         border: 1px solid #dee2e6 !important;
         box-shadow: none !important;
+        margin-bottom: 20px !important;
+        break-inside: avoid;
+    }
+    
+    .success-icon {
+        width: 80px !important;
+        height: 80px !important;
+    }
+    
+    .timeline-circle {
+        width: 60px !important;
+        height: 60px !important;
+        font-size: 1rem !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .order-timeline {
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .order-timeline::before {
+        display: none;
+    }
+    
+    .timeline-step {
+        display: flex;
+        align-items: center;
+        text-align: left;
+        margin-bottom: 20px;
+    }
+    
+    .timeline-circle {
+        width: 60px;
+        height: 60px;
+        font-size: 1.2rem;
+        margin: 0 15px 0 0;
+    }
+    
+    .order-item-image {
+        width: 80px;
+        height: 80px;
+    }
+    
+    .timeline-content {
+        flex-grow: 1;
+    }
+}
+
+@media (max-width: 576px) {
+    .success-icon {
+        width: 80px;
+        height: 80px;
+    }
+    
+    .success-icon i {
+        font-size: 2.5rem;
+    }
+    
+    .order-item-card {
+        padding: 20px !important;
+    }
+    
+    .d-grid.gap-2.d-md-flex {
+        flex-direction: column;
+        gap: 10px !important;
     }
 }
 </style>
@@ -420,9 +897,21 @@
 {% block extra_js %}
 <script>
 $(document).ready(function() {
+    // Initialize carousels
+    $('.carousel').each(function() {
+        new bootstrap.Carousel(this, {
+            interval: 4000,
+            pause: 'hover',
+            wrap: true,
+            touch: true
+        });
+    });
+    
     // Print receipt functionality
-    $('.btn-outline-secondary').click(function() {
-        window.print();
+    $('.btn-outline-primary').click(function() {
+        if ($(this).text().includes('Print')) {
+            window.print();
+        }
     });
     
     // Copy order ID to clipboard
@@ -433,15 +922,20 @@ $(document).ready(function() {
         });
     });
     
-    // Toast notification
-    function showToast(title, message, type) {
+    // Toast notification function
+    function showToast(title, message, type = 'info') {
         // Remove existing toasts
         $('.toast-container').remove();
+        
+        const icon = type === 'success' ? 'check-circle' : 
+                    type === 'error' ? 'times-circle' : 
+                    type === 'warning' ? 'exclamation-triangle' : 'info-circle';
         
         const toastHtml = `
             <div class="toast-container position-fixed top-0 end-0 p-3">
                 <div class="toast show" role="alert">
                     <div class="toast-header bg-${type} text-white">
+                        <i class="fas fa-${icon} me-2"></i>
                         <strong class="me-auto">${title}</strong>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
                     </div>
@@ -454,16 +948,69 @@ $(document).ready(function() {
         
         $('body').append(toastHtml);
         
-        // Auto remove after 3 seconds
+        // Auto remove after 5 seconds
         setTimeout(() => {
-            $('.toast-container').remove();
-        }, 3000);
+            $('.toast-container').fadeOut(300, function() {
+                $(this).remove();
+            });
+        }, 5000);
     }
     
     // Auto-hide success alert after 5 seconds
     setTimeout(() => {
         $('.alert-success').fadeOut('slow');
     }, 5000);
+    
+    // Add animation to success icon
+    setTimeout(() => {
+        $('.success-icon').addClass('pulse-animation');
+    }, 500);
+    
+    // Save order details for offline viewing
+    if (order && order.order_id) {
+        const orderData = {
+            id: order.order_id,
+            date: new Date().toISOString(),
+            items: order.items || [],
+            total: order.total || 0,
+            status: order.status || 'pending'
+        };
+        
+        // Save to localStorage (limited to last 5 orders)
+        let savedOrders = JSON.parse(localStorage.getItem('mufra_orders') || '[]');
+        savedOrders = savedOrders.filter(o => o.id !== orderData.id);
+        savedOrders.unshift(orderData);
+        savedOrders = savedOrders.slice(0, 5);
+        localStorage.setItem('mufra_orders', JSON.stringify(savedOrders));
+    }
+    
+    // Keyboard shortcuts
+    $(document).keydown(function(e) {
+        // Ctrl/Cmd + P to print
+        if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+            e.preventDefault();
+            window.print();
+        }
+        // Escape to go back
+        if (e.key === 'Escape') {
+            window.history.back();
+        }
+    });
+    
+    // Share order functionality
+    $('.btn-outline-secondary').click(function() {
+        if (navigator.share) {
+            navigator.share({
+                title: 'My MUFRA FASHIONS Order',
+                text: `I just ordered from MUFRA FASHIONS! Order #${order.order_id}`,
+                url: window.location.href
+            });
+        } else {
+            navigator.clipboard.writeText(window.location.href).then(() => {
+                showToast('Link Copied', 'Order link copied to clipboard!', 'success');
+            });
+        }
+    });
 });
 </script>
 {% endblock %}

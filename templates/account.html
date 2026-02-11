@@ -346,6 +346,52 @@
                                                 </div>
                                             </div>
                                         </div>
+                                        
+                                        <!-- Order Items (Updated Section) -->
+                                        <div class="mt-3 border-top pt-3">
+                                            <h6 class="mb-2">Order Items:</h6>
+                                            {% for item in order.items %}
+                                            <div class="d-flex align-items-center mb-2">
+                                                <!-- Product Image -->
+                                                {% set item_image = get_cart_item_image(item) %}
+                                                <div class="flex-shrink-0">
+                                                    <img src="{{ item_image }}" 
+                                                         class="img-fluid rounded" 
+                                                         style="width: 50px; height: 50px; object-fit: cover;"
+                                                         alt="{{ item.name }}"
+                                                         onerror="this.src='https://via.placeholder.com/50x50?text=Product'">
+                                                </div>
+                                                
+                                                <div class="flex-grow-1 ms-3">
+                                                    <small class="d-block fw-medium">{{ item.name }}</small>
+                                                    <small class="text-muted">
+                                                        {% if item.size %}Size: {{ item.size }} | {% endif %}
+                                                        {% if item.color %}Color: {{ item.color }} | {% endif %}
+                                                        Quantity: {{ item.quantity }} | 
+                                                        Price: KES {{ item.price|int }}
+                                                    </small>
+                                                </div>
+                                                <div class="text-end">
+                                                    <small class="fw-bold">KES {{ (item.price * item.quantity)|int }}</small>
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                            
+                                            <!-- Order Summary -->
+                                            <div class="row mt-3 pt-3 border-top">
+                                                <div class="col-md-8">
+                                                    <small class="text-muted">
+                                                        <i class="fas fa-map-marker-alt me-1"></i>
+                                                        Delivery to: {{ order.shipping_address.address[:30] }}...
+                                                    </small>
+                                                </div>
+                                                <div class="col-md-4 text-end">
+                                                    <small class="d-block">Subtotal: KES {{ order.subtotal|int }}</small>
+                                                    <small class="d-block">Delivery: KES {{ order.delivery_fee|int }}</small>
+                                                    <strong class="d-block mt-1">Total: KES {{ order.total|int }}</strong>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 {% endfor %}
@@ -386,16 +432,12 @@
                                             <div class="card-body">
                                                 <div class="row align-items-center">
                                                     <div class="col-md-2">
-                                                        {% if item.image %}
-                                                            <img src="{{ item.image }}" 
-                                                                 class="img-fluid rounded" 
-                                                                 alt="{{ item.name }}"
-                                                                 style="width: 80px; height: 80px; object-fit: cover;">
-                                                        {% else %}
-                                                            <img src="https://via.placeholder.com/80x80?text=Product" 
-                                                                 class="img-fluid rounded" 
-                                                                 alt="{{ item.name }}">
-                                                        {% endif %}
+                                                        {% set item_image = get_cart_item_image(item) %}
+                                                        <img src="{{ item_image }}" 
+                                                             class="img-fluid rounded" 
+                                                             style="width: 80px; height: 80px; object-fit: cover;"
+                                                             alt="{{ item.name }}"
+                                                             onerror="this.src='https://via.placeholder.com/80x80?text=Product'">
                                                     </div>
                                                     <div class="col-md-4">
                                                         <h6 class="mb-1">{{ item.name }}</h6>
@@ -511,17 +553,12 @@
                                 <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
                                     <div class="card h-100 product-card">
                                         <div class="position-relative">
-                                            {% if product.image %}
-                                                <img src="{{ product.image }}" 
-                                                     class="card-img-top product-image" 
-                                                     alt="{{ product.name }}"
-                                                     style="height: 200px; object-fit: cover;">
-                                            {% else %}
-                                                <img src="https://via.placeholder.com/300x200?text=Product" 
-                                                     class="card-img-top product-image" 
-                                                     alt="{{ product.name }}"
-                                                     style="height: 200px; object-fit: cover;">
-                                            {% endif %}
+                                            {% set item_image = get_cart_item_image(product) %}
+                                            <img src="{{ item_image }}" 
+                                                 class="card-img-top product-image" 
+                                                 alt="{{ product.name }}"
+                                                 style="height: 200px; object-fit: cover;"
+                                                 onerror="this.src='https://via.placeholder.com/300x200?text=Product'">
                                         </div>
                                         <div class="card-body">
                                             <h6 class="card-title mb-2">
@@ -722,6 +759,10 @@
     box-shadow: 0 10px 20px rgba(0,0,0,0.1);
 }
 
+.cart-item:hover {
+    background-color: #f8f9fa;
+}
+
 @media (max-width: 768px) {
     .stat-card {
         min-height: 120px;
@@ -729,6 +770,15 @@
     
     .order-card .row > div {
         margin-bottom: 1rem;
+    }
+    
+    .order-card .order-status-icon {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .order-card .order-status-icon i {
+        font-size: 1.5rem;
     }
 }
 </style>
@@ -794,6 +844,14 @@ $(document).ready(function() {
                 showToast('Error', xhr.responseJSON?.message || 'Password change failed', 'danger');
             }
         });
+    });
+    
+    // Image error handling
+    $('img').on('error', function() {
+        const altText = $(this).attr('alt') || 'Product';
+        const size = $(this).width() || 50;
+        const placeholder = `https://via.placeholder.com/${size}x${size}?text=${encodeURIComponent(altText)}`;
+        $(this).attr('src', placeholder);
     });
     
     // Toast notification

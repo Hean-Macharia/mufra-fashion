@@ -7,8 +7,8 @@
     <!-- Page Header -->
     <div class="row mb-4">
         <div class="col-12">
-            <h1 class="mb-3"><i class="fas fa-shopping-bag me-2"></i>Checkout</h1>
-            <p class="text-muted">Complete your purchase securely</p>
+            <h1 class="mb-2 fw-bold"><i class="fas fa-shopping-bag me-2"></i>Secure Checkout</h1>
+            <p class="text-muted lead">Complete your purchase with confidence</p>
         </div>
     </div>
 
@@ -18,19 +18,31 @@
             <div class="progress-steps">
                 <div class="step completed">
                     <div class="step-circle">1</div>
-                    <div class="step-label">Cart</div>
+                    <div class="step-label">
+                        <i class="fas fa-shopping-cart d-md-none mb-1"></i>
+                        <span class="d-none d-md-inline">Cart</span>
+                    </div>
                 </div>
                 <div class="step active">
                     <div class="step-circle">2</div>
-                    <div class="step-label">Details</div>
+                    <div class="step-label">
+                        <i class="fas fa-user d-md-none mb-1"></i>
+                        <span class="d-none d-md-inline">Details</span>
+                    </div>
                 </div>
                 <div class="step">
                     <div class="step-circle">3</div>
-                    <div class="step-label">Payment</div>
+                    <div class="step-label">
+                        <i class="fas fa-credit-card d-md-none mb-1"></i>
+                        <span class="d-none d-md-inline">Payment</span>
+                    </div>
                 </div>
                 <div class="step">
                     <div class="step-circle">4</div>
-                    <div class="step-label">Confirm</div>
+                    <div class="step-label">
+                        <i class="fas fa-check d-md-none mb-1"></i>
+                        <span class="d-none d-md-inline">Confirm</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -39,108 +51,153 @@
     <div class="row">
         <!-- Order Summary -->
         <div class="col-lg-4 mb-4">
-            <div class="card shadow-sm sticky-top" style="top: 20px;">
-                <div class="card-header bg-primary text-white">
+            <div class="card shadow-sm border-0 sticky-summary">
+                <div class="card-header bg-primary text-white border-0 rounded-top">
                     <h5 class="mb-0"><i class="fas fa-receipt me-2"></i>Order Summary</h5>
                 </div>
                 <div class="card-body">
                     <!-- Cart Items -->
-                    <div class="cart-items mb-3">
+                    <div class="cart-items mb-4">
+                        <h6 class="mb-3 fw-bold">Order Items ({{ get_cart_count() }})</h6>
                         {% for item in cart_items %}
                         <div class="d-flex mb-3 pb-3 {% if not loop.last %}border-bottom{% endif %}">
-                            <div class="flex-shrink-0">
-                                {% if item.image %}
-                                    {% if item.image.startswith('http') or item.image.startswith('/static') %}
-                                        <img src="{{ item.image }}" 
-                                             class="rounded checkout-item-image" 
-                                             alt="{{ item.name }}"
-                                             onerror="this.src='https://via.placeholder.com/60x60?text=Product'">
-                                    {% else %}
-                                        <img src="{{ url_for('static', filename='uploads/' + item.image) }}" 
-                                             class="rounded checkout-item-image" 
-                                             alt="{{ item.name }}"
-                                             onerror="this.src='https://via.placeholder.com/60x60?text=Product'">
-                                    {% endif %}
+                            <!-- Product Image with Carousel Support -->
+                            <div class="flex-shrink-0 position-relative">
+                                {% set item_images = get_cart_item_images(item) %}
+                                {% if item_images|length > 1 %}
+                                <div id="checkoutImageCarousel{{ loop.index0 }}" class="carousel slide" style="width: 60px; height: 60px;">
+                                    <div class="carousel-inner rounded">
+                                        {% for img in item_images %}
+                                        <div class="carousel-item {% if loop.first %}active{% endif %}">
+                                            <img src="{{ img.url if img.url.startswith('http') else url_for('static', filename='uploads/' + img.url) }}" 
+                                                 class="checkout-item-image" 
+                                                 alt="{{ item.name }} - Image {{ loop.index }}"
+                                                 onerror="this.src='https://via.placeholder.com/60x60?text=Product'">
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    <!-- Image Count Badge -->
+                                    <span class="position-absolute top-0 end-0 badge bg-dark bg-opacity-75 small">
+                                        {{ item_images|length }}
+                                    </span>
+                                </div>
                                 {% else %}
-                                    <img src="https://via.placeholder.com/60x60?text=Product" 
-                                         class="rounded checkout-item-image" 
-                                         alt="{{ item.name }}">
+                                <img src="{{ get_cart_item_image(item) }}" 
+                                     class="rounded checkout-item-image" 
+                                     alt="{{ item.name }}"
+                                     onerror="this.src='https://via.placeholder.com/60x60?text=Product'">
                                 {% endif %}
                             </div>
+                            
                             <div class="flex-grow-1 ms-3">
-                                <h6 class="mb-1">{{ item.name }}</h6>
+                                <h6 class="mb-1 fw-bold">{{ item.name }}</h6>
                                 <div class="text-muted small mb-1">
-                                    <span class="me-2">Qty: {{ item.quantity }}</span>
-                                    {% if item.size %}<span class="me-2">Size: {{ item.size }}</span>{% endif %}
-                                    {% if item.color %}<span>Color: {{ item.color }}</span>{% endif %}
+                                    <div class="d-flex flex-wrap gap-2">
+                                        <span class="badge bg-light text-dark border">
+                                            <i class="fas fa-hashtag me-1"></i>Qty: {{ item.quantity }}
+                                        </span>
+                                        {% if item.size %}
+                                        <span class="badge bg-light text-dark border">
+                                            <i class="fas fa-ruler me-1"></i>{{ item.size }}
+                                        </span>
+                                        {% endif %}
+                                        {% if item.color %}
+                                        <span class="badge bg-light text-dark border">
+                                            <i class="fas fa-palette me-1"></i>{{ item.color }}
+                                        </span>
+                                        {% endif %}
+                                    </div>
                                 </div>
-                                <p class="mb-0 fw-bold">{{ format_price(item.price * item.quantity) }}</p>
+                                <p class="mb-0 fw-bold text-primary">{{ format_price(item.price * item.quantity) }}</p>
                                 <small class="text-muted">{{ format_price(item.price) }} each</small>
+                                
+                                <!-- Stock Status -->
+                                {% set stock_status = get_product_stock_status(item.stock) %}
+                                <div class="mt-1">
+                                    <span class="badge bg-{{ stock_status.color }} small">
+                                        <i class="fas fa-{{ 'check-circle' if stock_status.color == 'success' else 'exclamation-circle' }} me-1"></i>
+                                        {{ stock_status.text }}
+                                    </span>
+                                </div>
                             </div>
                         </div>
                         {% endfor %}
                     </div>
 
-                    <!-- Order Summary -->
-                    <div class="order-summary-details">
-                        <div class="d-flex justify-content-between mb-2">
-                            <span class="text-muted">Subtotal:</span>
+                    <!-- Order Summary Details -->
+                    <div class="order-summary-details mb-4">
+                        <h6 class="mb-3 fw-bold">Price Details</h6>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted">Subtotal ({{ get_cart_count() }} items):</span>
                             <span class="fw-bold">{{ format_price(subtotal) }}</span>
                         </div>
                         
-                        <div class="d-flex justify-content-between mb-2">
-                            <span class="text-muted">Shipping:</span>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted">Delivery:</span>
                             <span class="fw-bold" id="deliveryFee">{{ format_price(200) }}</span>
                         </div>
                         
-                        <div class="d-flex justify-content-between mb-2">
+                        <div class="d-flex justify-content-between align-items-center mb-2" id="discountRow" style="display: none;">
                             <span class="text-muted">Discount:</span>
-                            <span class="text-success">- {{ format_price(0) }}</span>
+                            <span class="text-success fw-bold" id="discountAmount">- {{ format_price(0) }}</span>
                         </div>
 
                         <hr class="my-3">
                         
-                        <div class="d-flex justify-content-between mb-4">
-                            <span class="fw-bold fs-5">Total:</span>
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <span class="fw-bold fs-5">Total Amount:</span>
                             <span class="fw-bold fs-5 text-primary" id="totalAmount">{{ format_price(subtotal + 200) }}</span>
                         </div>
-                    </div>
-
-                    <!-- Payment Info -->
-                    <div class="alert alert-info">
-                        <div class="d-flex">
-                            <i class="fas fa-shield-alt fa-lg me-3"></i>
-                            <div>
-                                <h6 class="mb-1">Secure Payment</h6>
-                                <p class="small mb-0">
-                                    • Pay with card or bank transfer<br>
-                                    • 100% secure SSL encrypted<br>
-                                    • Instant payment confirmation
-                                </p>
-                            </div>
+                        
+                        <div class="alert alert-success small mb-0">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Free shipping</strong> on orders over KES 5,000
                         </div>
                     </div>
 
-                    <!-- Shipping Info -->
-                    <div class="alert alert-light">
-                        <div class="d-flex">
-                            <i class="fas fa-shipping-fast fa-lg me-3"></i>
-                            <div>
-                                <h6 class="mb-1">Delivery Information</h6>
-                                <p class="small mb-0">
-                                    • KES 100 shipping within Embu | KES 200 outside Embu<br>
-                                    • Free shipping for orders above KES 5,000<br>
-                                    • Fast delivery in 1-2 days
-                                </p>
+                    <!-- Security Badges -->
+                    <div class="security-badges text-center pt-3 border-top">
+                        <div class="row g-2">
+                            <div class="col-4">
+                                <div class="p-2 bg-light rounded">
+                                    <i class="fas fa-shield-alt text-primary mb-1"></i>
+                                    <p class="small mb-0">100% Secure</p>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="p-2 bg-light rounded">
+                                    <i class="fas fa-lock text-primary mb-1"></i>
+                                    <p class="small mb-0">SSL Encrypted</p>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="p-2 bg-light rounded">
+                                    <i class="fas fa-undo text-primary mb-1"></i>
+                                    <p class="small mb-0">Easy Returns</p>
+                                </div>
                             </div>
                         </div>
                     </div>
-
-                    <!-- Continue Shopping -->
-                    <div class="text-center">
-                        <a href="{{ url_for('categories') }}" class="text-decoration-none">
-                            <i class="fas fa-plus-circle me-1"></i> Add more items
-                        </a>
+                </div>
+            </div>
+            
+            <!-- Need Help? -->
+            <div class="card shadow-sm border-0 mt-4">
+                <div class="card-body">
+                    <h6 class="mb-3 fw-bold"><i class="fas fa-headset me-2"></i>Need Help?</h6>
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="fas fa-phone text-primary me-3"></i>
+                        <div>
+                            <p class="small mb-0">Call us</p>
+                            <p class="mb-0 fw-bold">+254 712 345 678</p>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-envelope text-primary me-3"></i>
+                        <div>
+                            <p class="small mb-0">Email us</p>
+                            <p class="mb-0 fw-bold">support@mufrafashions.com</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -148,152 +205,246 @@
 
         <!-- Checkout Form -->
         <div class="col-lg-8">
-            <div class="card shadow-sm">
+            <div class="card shadow-sm border-0">
                 <div class="card-body">
                     <form id="checkoutForm" method="POST" action="{{ url_for('process_checkout') }}">
                         <!-- Contact Information -->
                         <div class="mb-5">
-                            <h4 class="mb-4 border-bottom pb-2">
-                                <i class="fas fa-user me-2"></i>Contact Information
+                            <h4 class="mb-4 border-bottom pb-3">
+                                <i class="fas fa-user-circle me-2"></i>Contact Information
                             </h4>
                             
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label class="form-label fw-bold">Full Name *</label>
+                            <div class="row mb-4">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">Full Name <span class="text-danger">*</span></label>
                                     <input type="text" class="form-control" name="name" 
                                            value="{{ user.name if user else '' }}" required
                                            placeholder="John Doe">
+                                    <div class="form-text">As it appears on your ID</div>
                                 </div>
-                                <div class="col-md-6">
-                                    <label class="form-label fw-bold">Email Address *</label>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">Email Address <span class="text-danger">*</span></label>
                                     <input type="email" class="form-control" name="email" 
                                            value="{{ user.email if user else '' }}" required
                                            placeholder="john@example.com">
+                                    <div class="form-text">Order confirmation will be sent here</div>
                                 </div>
                             </div>
                             
                             <div class="mb-3">
-                                <label class="form-label fw-bold">Phone Number *</label>
+                                <label class="form-label fw-bold">Phone Number <span class="text-danger">*</span></label>
                                 <div class="input-group">
-                                    <span class="input-group-text">+254</span>
+                                    <span class="input-group-text bg-light border-end-0">+254</span>
                                     <input type="tel" class="form-control" name="phone" 
                                            value="{{ user.phone if user else '' }}" required
                                            placeholder="712345678" maxlength="9" minlength="9"
                                            pattern="[0-9]{9}">
                                 </div>
-                                <small class="text-muted">Enter 9 digits without the leading 0</small>
+                                <div class="form-text">Enter 9 digits without the leading 0. We'll send SMS updates.</div>
                             </div>
                         </div>
 
                         <!-- Shipping Address -->
                         <div class="mb-5">
-                            <h4 class="mb-4 border-bottom pb-2">
+                            <h4 class="mb-4 border-bottom pb-3">
                                 <i class="fas fa-map-marker-alt me-2"></i>Shipping Address
                             </h4>
                             
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label class="form-label fw-bold">County *</label>
-                                   <select class="form-select" id="county" name="county" required>
-    <option value="">Select your county</option>
-    <option value="Baringo">Baringo</option>
-    <option value="Bomet">Bomet</option>
-    <option value="Bungoma">Bungoma</option>
-    <option value="Busia">Busia</option>
-    <option value="Embu">Embu</option>
-    <option value="Garissa">Garissa</option>
-    <option value="Homa Bay">Homa Bay</option>
-    <option value="Isiolo">Isiolo</option>
-    <option value="Kajiado">Kajiado</option>
-    <option value="Kakamega">Kakamega</option>
-    <option value="Kericho">Kericho</option>
-    <option value="Kiambu">Kiambu</option>
-    <option value="Kilifi">Kilifi</option>
-    <option value="Kirinyaga">Kirinyaga</option>
-    <option value="Kisii">Kisii</option>
-    <option value="Kisumu">Kisumu</option>
-    <option value="Kitui">Kitui</option>
-    <option value="Kwale">Kwale</option>
-    <option value="Laikipia">Laikipia</option>
-    <option value="Lamu">Lamu</option>
-    <option value="Machakos">Machakos</option>
-    <option value="Makueni">Makueni</option>
-    <option value="Mandera">Mandera</option>
-    <option value="Marsabit">Marsabit</option>
-    <option value="Meru">Meru</option>
-    <option value="Migori">Migori</option>
-    <option value="Mombasa">Mombasa</option>
-    <option value="Murang'a">Murang'a</option>
-    <option value="Nairobi">Nairobi</option>
-    <option value="Naivasha">Naivasha</option>
-    <option value="Nakuru">Nakuru</option>
-    <option value="Nandi">Nandi</option>
-    <option value="Narok">Narok</option>
-    <option value="Nyamira">Nyamira</option>
-    <option value="Nyandarua">Nyandarua</option>
-    <option value="Nyeri">Nyeri</option>
-    <option value="Samburu">Samburu</option>
-    <option value="Siaya">Siaya</option>
-    <option value="Taita Taveta">Taita Taveta</option>
-    <option value="Tana River">Tana River</option>
-    <option value="Thurston">Thurston</option>
-    <option value="Trans Nzoia">Trans Nzoia</option>
-    <option value="Turkana">Turkana</option>
-    <option value="Uasin Gishu">Uasin Gishu</option>
-    <option value="Vihiga">Vihiga</option>
-    <option value="Wajir">Wajir</option>
-    <option value="West Pokot">West Pokot</option>
-</select>
+                            <div class="row mb-4">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">County <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="county" name="county" required>
+                                        <option value="">Select your county</option>
+                                        <option value="Baringo">Baringo</option>
+                                        <option value="Bomet">Bomet</option>
+                                        <option value="Bungoma">Bungoma</option>
+                                        <option value="Busia">Busia</option>
+                                        <option value="Embu" selected>Embu</option>
+                                        <option value="Garissa">Garissa</option>
+                                        <option value="Homa Bay">Homa Bay</option>
+                                        <option value="Isiolo">Isiolo</option>
+                                        <option value="Kajiado">Kajiado</option>
+                                        <option value="Kakamega">Kakamega</option>
+                                        <option value="Kericho">Kericho</option>
+                                        <option value="Kiambu">Kiambu</option>
+                                        <option value="Kilifi">Kilifi</option>
+                                        <option value="Kirinyaga">Kirinyaga</option>
+                                        <option value="Kisii">Kisii</option>
+                                        <option value="Kisumu">Kisumu</option>
+                                        <option value="Kitui">Kitui</option>
+                                        <option value="Kwale">Kwale</option>
+                                        <option value="Laikipia">Laikipia</option>
+                                        <option value="Lamu">Lamu</option>
+                                        <option value="Machakos">Machakos</option>
+                                        <option value="Makueni">Makueni</option>
+                                        <option value="Mandera">Mandera</option>
+                                        <option value="Marsabit">Marsabit</option>
+                                        <option value="Meru">Meru</option>
+                                        <option value="Migori">Migori</option>
+                                        <option value="Mombasa">Mombasa</option>
+                                        <option value="Murang'a">Murang'a</option>
+                                        <option value="Nairobi">Nairobi</option>
+                                        <option value="Nakuru">Nakuru</option>
+                                        <option value="Nandi">Nandi</option>
+                                        <option value="Narok">Narok</option>
+                                        <option value="Nyamira">Nyamira</option>
+                                        <option value="Nyandarua">Nyandarua</option>
+                                        <option value="Nyeri">Nyeri</option>
+                                        <option value="Samburu">Samburu</option>
+                                        <option value="Siaya">Siaya</option>
+                                        <option value="Taita Taveta">Taita Taveta</option>
+                                        <option value="Tana River">Tana River</option>
+                                        <option value="Trans Nzoia">Trans Nzoia</option>
+                                        <option value="Turkana">Turkana</option>
+                                        <option value="Uasin Gishu">Uasin Gishu</option>
+                                        <option value="Vihiga">Vihiga</option>
+                                        <option value="Wajir">Wajir</option>
+                                        <option value="West Pokot">West Pokot</option>
+                                    </select>
                                 </div>
-                                <div class="col-md-6">
-                                    <label class="form-label fw-bold">City/Town *</label>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">City/Town <span class="text-danger">*</span></label>
                                     <input type="text" class="form-control" name="city" required
-                                           placeholder="e.g., Embu Town, Nairobi CBD">
+                                           placeholder="e.g., Embu Town, Nairobi CBD" id="cityInput">
+                                    <div class="form-text">Nearest town or city center</div>
                                 </div>
                             </div>
                             
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">Street Address *</label>
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">Street Address <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" name="street" required
                                        placeholder="House number, building, street">
+                                <div class="form-text">Where your order will be delivered</div>
                             </div>
                             
                             <div class="row">
                                 <div class="col-md-6 mb-3">
-                                    <label class="form-label">Postal Code</label>
+                                    <label class="form-label">Postal Code (Optional)</label>
                                     <input type="text" class="form-control" name="postal_code"
-                                           placeholder="Optional">
+                                           placeholder="e.g., 60100">
                                 </div>
                                 <div class="col-md-6 mb-3">
-                                    <label class="form-label">Additional Info</label>
+                                    <label class="form-label">Additional Information (Optional)</label>
                                     <input type="text" class="form-control" name="additional_info"
-                                           placeholder="Apartment, suite, floor">
+                                           placeholder="Apartment, suite, floor, landmark">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Delivery Information -->
+                        <div class="mb-5">
+                            <h4 class="mb-4 border-bottom pb-3">
+                                <i class="fas fa-truck me-2"></i>Delivery Information
+                            </h4>
+                            
+                            <div class="delivery-info mb-4">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <div class="card border-primary">
+                                            <div class="card-body">
+                                                <div class="d-flex align-items-start">
+                                                    <i class="fas fa-shipping-fast fa-2x text-primary me-3"></i>
+                                                    <div>
+                                                        <h6 class="fw-bold mb-2">Standard Delivery</h6>
+                                                        <p class="small mb-1">2-5 business days</p>
+                                                        <p class="small mb-0 text-success" id="deliveryCost">KES 200</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="card border-light">
+                                            <div class="card-body">
+                                                <div class="d-flex align-items-start">
+                                                    <i class="fas fa-bolt fa-2x text-warning me-3"></i>
+                                                    <div>
+                                                        <h6 class="fw-bold mb-2">Express Delivery</h6>
+                                                        <p class="small mb-1">1-2 business days</p>
+                                                        <p class="small mb-0 text-muted">KES 500</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="alert alert-info">
+                                    <div class="d-flex">
+                                        <i class="fas fa-info-circle fa-lg me-3 mt-1"></i>
+                                        <div>
+                                            <h6 class="mb-2">Delivery Notes</h6>
+                                            <ul class="mb-0 small">
+                                                <li>Free delivery on orders over KES 5,000</li>
+                                                <li>Same-day delivery available in Embu (order before 2 PM)</li>
+                                                <li>Delivery times may vary during holidays</li>
+                                                <li>You'll receive SMS tracking updates</li>
+                                            </ul>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Payment Method -->
                         <div class="mb-5">
-                            <h4 class="mb-4 border-bottom pb-2">
+                            <h4 class="mb-4 border-bottom pb-3">
                                 <i class="fas fa-credit-card me-2"></i>Payment Method
                             </h4>
                             
-                            <div class="payment-method">
-                                <div class="form-check mb-3">
-                                    <input class="form-check-input" type="radio" name="payment_method" 
-                                           id="paystack" value="paystack" checked required>
-                                    <label class="form-check-label" for="paystack">
-                                        <div class="d-flex align-items-center">
-                                            <i class="fas fa-credit-card fa-2x text-primary me-3"></i>
-                                            <div>
-                                                <h6 class="mb-1">Paystack Secure Payment</h6>
-                                                <p class="text-muted small mb-0">
-                                                    Pay with card, mobile money, bank transfer, or USSD
-                                                </p>
+                            <div class="payment-methods">
+                                <div class="payment-option mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="payment_method" 
+                                               id="paystack" value="paystack" checked required>
+                                        <label class="form-check-label w-100" for="paystack">
+                                            <div class="d-flex align-items-center justify-content-between">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="payment-icon bg-primary text-white me-3">
+                                                        <i class="fas fa-credit-card"></i>
+                                                    </div>
+                                                    <div>
+                                                        <h6 class="mb-1 fw-bold">Paystack Secure Payment</h6>
+                                                        <p class="text-muted small mb-0">
+                                                            Card, mobile money, bank transfer, USSD
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div class="payment-security">
+                                                    <span class="badge bg-success">
+                                                        <i class="fas fa-lock me-1"></i>Secure
+                                                    </span>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </label>
+                                        </label>
+                                    </div>
                                 </div>
+                                
+                                <!-- Payment Icons -->
+                                <div class="payment-icons mt-3 text-center">
+                                    <p class="small text-muted mb-2">We accept:</p>
+                                    <div class="d-flex justify-content-center gap-3 flex-wrap">
+                                        <i class="fab fa-cc-visa fa-2x text-primary" title="Visa"></i>
+                                        <i class="fab fa-cc-mastercard fa-2x text-danger" title="Mastercard"></i>
+                                        <i class="fas fa-mobile-alt fa-2x text-success" title="Mobile Money"></i>
+                                        <i class="fas fa-university fa-2x text-info" title="Bank Transfer"></i>
+                                        <i class="fas fa-phone-alt fa-2x text-warning" title="USSD"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Order Notes -->
+                        <div class="mb-5">
+                            <h4 class="mb-3 border-bottom pb-3">
+                                <i class="fas fa-sticky-note me-2"></i>Order Notes (Optional)
+                            </h4>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Special Instructions</label>
+                                <textarea class="form-control" name="order_notes" rows="3" 
+                                          placeholder="Any special instructions for delivery, preferred delivery time, etc."></textarea>
+                                <div class="form-text">Maximum 200 characters</div>
                             </div>
                         </div>
 
@@ -302,42 +453,59 @@
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="terms" required>
                                 <label class="form-check-label" for="terms">
-                                    I agree to the <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal">Terms and Conditions</a> 
+                                    I agree to the <a href="#" class="text-decoration-none" data-bs-toggle="modal" data-bs-target="#termsModal">Terms and Conditions</a> 
                                     and confirm that my shipping information is correct. *
+                                </label>
+                            </div>
+                            
+                            <div class="form-check mt-3">
+                                <input class="form-check-input" type="checkbox" id="newsletter" name="newsletter" checked>
+                                <label class="form-check-label" for="newsletter">
+                                    Send me updates about new products, promotions, and special offers.
                                 </label>
                             </div>
                         </div>
 
                         <!-- Action Buttons -->
                         <div class="d-flex justify-content-between pt-4 border-top">
-                            <a href="{{ url_for('cart') }}" class="btn btn-outline-primary">
+                            <a href="{{ url_for('cart') }}" class="btn btn-outline-primary btn-lg">
                                 <i class="fas fa-arrow-left me-2"></i> Back to Cart
                             </a>
                             <button type="submit" class="btn btn-primary btn-lg px-5" id="placeOrderBtn">
-                                <i class="fas fa-lock me-2"></i> Pay with Paystack
+                                <i class="fas fa-lock me-2"></i> Pay Now
                             </button>
                         </div>
                     </form>
                 </div>
             </div>
             
-            <!-- Security Badges -->
+            <!-- Customer Testimonials -->
             <div class="row mt-4">
                 <div class="col-12">
-                    <div class="card bg-light border-0">
-                        <div class="card-body text-center py-3">
-                            <div class="row align-items-center">
-                                <div class="col-md-4 mb-3 mb-md-0">
-                                    <i class="fas fa-shield-alt fa-2x text-primary me-2"></i>
-                                    <span class="fw-bold">100% Secure</span>
+                    <div class="card border-0 bg-light">
+                        <div class="card-body text-center">
+                            <h6 class="mb-3 fw-bold">What Our Customers Say</h6>
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <div class="testimonial">
+                                        <i class="fas fa-quote-left text-primary mb-2"></i>
+                                        <p class="small mb-2">"Fast delivery and great quality products!"</p>
+                                        <p class="small fw-bold mb-0">- Sarah K., Embu</p>
+                                    </div>
                                 </div>
-                                <div class="col-md-4 mb-3 mb-md-0">
-                                    <i class="fas fa-lock fa-2x text-primary me-2"></i>
-                                    <span class="fw-bold">SSL Encrypted</span>
+                                <div class="col-md-4 mb-3">
+                                    <div class="testimonial">
+                                        <i class="fas fa-quote-left text-primary mb-2"></i>
+                                        <p class="small mb-2">"Secure checkout process and excellent support."</p>
+                                        <p class="small fw-bold mb-0">- James M., Nairobi</p>
+                                    </div>
                                 </div>
                                 <div class="col-md-4">
-                                    <i class="fas fa-undo fa-2x text-primary me-2"></i>
-                                    <span class="fw-bold">30-Day Returns</span>
+                                    <div class="testimonial">
+                                        <i class="fas fa-quote-left text-primary mb-2"></i>
+                                        <p class="small mb-2">"Easy returns and friendly customer service."</p>
+                                        <p class="small fw-bold mb-0">- Mercy W., Meru</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -350,7 +518,7 @@
 
 <!-- Terms Modal -->
 <div class="modal fade" id="termsModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title"><i class="fas fa-file-contract me-2"></i>Terms and Conditions</h5>
@@ -381,9 +549,17 @@
                     <h6 class="fw-bold mb-3">5. Privacy Policy</h6>
                     <p class="text-muted">We respect your privacy. Your personal information is used only for order processing and delivery. We never share your information with third parties.</p>
                 </div>
+                
+                <div class="mb-4">
+                    <h6 class="fw-bold mb-3">6. Contact Information</h6>
+                    <p class="text-muted">MUFRA FASHIONS<br>
+                    Email: support@mufrafashions.com<br>
+                    Phone: +254 712 345 678<br>
+                    Address: Embu Town, Kenya</p>
+                </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">I Understand</button>
             </div>
         </div>
     </div>
@@ -393,22 +569,26 @@
 <div class="modal fade" id="paymentProcessingModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header">
+            <div class="modal-header border-0">
                 <h5 class="modal-title">Processing Payment</h5>
             </div>
             <div class="modal-body text-center">
                 <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
                     <span class="visually-hidden">Loading...</span>
                 </div>
-                <p class="mb-3">Please wait while we redirect you to secure payment...</p>
-                <div class="progress">
+                <p class="mb-3 fw-bold">Redirecting to secure payment...</p>
+                <div class="progress mb-3">
                     <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" 
                          style="width: 100%"></div>
                 </div>
+                <p class="small text-muted mb-0">
+                    <i class="fas fa-shield-alt me-1"></i>Your payment information is secure
+                </p>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -416,15 +596,16 @@
     display: flex;
     justify-content: space-between;
     position: relative;
+    padding: 20px 0;
 }
 
 .progress-steps::before {
     content: '';
     position: absolute;
-    top: 20px;
+    top: 24px;
     left: 0;
     right: 0;
-    height: 3px;
+    height: 2px;
     background-color: #dee2e6;
     z-index: 1;
 }
@@ -437,8 +618,8 @@
 }
 
 .step-circle {
-    width: 40px;
-    height: 40px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     background-color: #dee2e6;
     color: #6c757d;
@@ -446,13 +627,17 @@
     align-items: center;
     justify-content: center;
     font-weight: bold;
-    margin: 0 auto 10px;
-    border: 3px solid white;
+    font-size: 1.1rem;
+    margin: 0 auto 8px;
+    border: 4px solid white;
+    transition: all 0.3s ease;
 }
 
 .step.active .step-circle {
     background-color: #0d6efd;
     color: white;
+    transform: scale(1.1);
+    box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.2);
 }
 
 .step.completed .step-circle {
@@ -463,45 +648,118 @@
 .step-label {
     font-size: 0.9rem;
     font-weight: 500;
+    color: #6c757d;
+}
+
+.step.active .step-label {
+    color: #0d6efd;
+    font-weight: 600;
 }
 
 .checkout-item-image {
     width: 60px;
     height: 60px;
     object-fit: cover;
+    border-radius: 8px;
 }
 
-.sticky-top {
-    position: -webkit-sticky;
+.sticky-summary {
     position: sticky;
     top: 20px;
 }
 
-.form-check-input:checked {
-    background-color: #0d6efd;
-    border-color: #0d6efd;
-}
-
-.payment-method .form-check {
+.payment-option {
     border: 2px solid #e9ecef;
     border-radius: 10px;
     padding: 15px;
     transition: all 0.3s;
 }
 
-.payment-method .form-check:hover {
+.payment-option:hover {
     border-color: #0d6efd;
     background-color: rgba(13, 110, 253, 0.05);
 }
 
-.payment-method .form-check-input:checked ~ label {
+.payment-option .form-check-input:checked ~ label {
     border-color: #0d6efd;
+    background-color: rgba(13, 110, 253, 0.05);
+}
+
+.payment-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.testimonial {
+    background: white;
+    padding: 15px;
+    border-radius: 10px;
+    border: 1px solid #eaeaea;
+}
+
+.delivery-info .card {
+    transition: all 0.3s;
+    cursor: pointer;
+}
+
+.delivery-info .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.delivery-info .card.border-primary {
+    background-color: rgba(13, 110, 253, 0.05);
+}
+
+#checkoutForm input:focus,
+#checkoutForm select:focus,
+#checkoutForm textarea:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
 }
 
 @media (max-width: 768px) {
     .progress-steps {
+        padding: 15px 0;
+    }
+    
+    .step-circle {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+    }
+    
+    .progress-steps::before {
+        top: 20px;
+    }
+    
+    .checkout-item-image {
+        width: 50px;
+        height: 50px;
+    }
+    
+    #placeOrderBtn {
+        width: 100%;
+        margin-top: 15px;
+    }
+    
+    .d-flex.justify-content-between.pt-4.border-top {
         flex-direction: column;
-        align-items: flex-start;
+    }
+    
+    .btn-outline-primary.btn-lg {
+        width: 100%;
+    }
+}
+
+@media (max-width: 576px) {
+    .progress-steps {
+        flex-direction: column;
+        gap: 20px;
     }
     
     .progress-steps::before {
@@ -511,8 +769,7 @@
     .step {
         display: flex;
         align-items: center;
-        margin-bottom: 15px;
-        width: 100%;
+        text-align: left;
     }
     
     .step-circle {
@@ -520,8 +777,86 @@
         flex-shrink: 0;
     }
     
-    #placeOrderBtn {
-        width: 100%;
+    .step-label {
+        flex-grow: 1;
+    }
+    
+    .payment-option {
+        padding: 12px;
+    }
+    
+    .payment-icon {
+        width: 35px;
+        height: 35px;
+    }
+}
+
+/* Custom animations */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.pulse-animation {
+    animation: pulse 2s infinite;
+}
+
+/* Form validation styles */
+.was-validated .form-control:valid {
+    border-color: #198754;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%23198754' d='M2.3 6.73.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e");
+}
+
+.was-validated .form-control:invalid {
+    border-color: #dc3545;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+}
+
+/* Toast notifications */
+.toast-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+}
+
+.toast {
+    min-width: 300px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+/* Loading overlay */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    display: none;
+}
+
+/* Print styles */
+@media print {
+    .progress-steps,
+    .btn,
+    .modal,
+    .toast-container,
+    .loading-overlay {
+        display: none !important;
+    }
+    
+    .card {
+        break-inside: avoid;
+        box-shadow: none !important;
+        border: 1px solid #ddd !important;
     }
 }
 </style>
@@ -530,16 +865,29 @@
 {% block extra_js %}
 <script>
 $(document).ready(function() {
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
     // Initialize delivery fee calculation
     calculateDeliveryFee();
     
-    // County change for delivery fee
+    // County change for delivery fee and auto-fill city
     $('#county').change(function() {
         calculateDeliveryFee();
+        
         // Auto-fill city based on county
         const county = $(this).val();
+        const cityInput = $('#cityInput');
+        
         if (county && county !== 'Other') {
-            $('input[name="city"]').val(county + ' Town');
+            cityInput.val(county + ' Town');
+            
+            // Trigger validation
+            cityInput.removeClass('is-invalid');
+            cityInput.addClass('is-valid');
         }
     });
     
@@ -548,22 +896,36 @@ $(document).ready(function() {
         const county = $('#county').val();
         let deliveryFee = 200; // Default outside Embu
         
+        // Check if county is Embu for reduced fee
         if (county && county.toLowerCase().includes('embu')) {
             deliveryFee = 100;
-            // Check for free shipping
-            const subtotal = {{ subtotal }};
-            if (subtotal >= 5000) {
-                deliveryFee = 0;
-            }
         }
         
+        // Check for free shipping (orders over 5000)
+        const subtotal = {{ subtotal }};
+        if (subtotal >= 5000) {
+            deliveryFee = 0;
+        }
+        
+        // Update delivery fee display
         const formattedFee = 'KES ' + deliveryFee.toLocaleString();
         $('#deliveryFee').text(formattedFee);
+        $('#deliveryCost').text(deliveryFee === 0 ? 'FREE' : formattedFee);
         
-        // Calculate total
-        const total = {{ subtotal }} + deliveryFee;
+        // Calculate and update total
+        const total = subtotal + deliveryFee;
         const formattedTotal = 'KES ' + total.toLocaleString();
         $('#totalAmount').text(formattedTotal);
+        
+        // Update free shipping message
+        if (deliveryFee === 0) {
+            $('.alert-success').show();
+        } else if (subtotal >= 5000) {
+            $('.alert-success').show().html('<i class="fas fa-check-circle me-2"></i>Congratulations! You qualify for free shipping!');
+        } else {
+            const remaining = 5000 - subtotal;
+            $('.alert-success').show().html(`<i class="fas fa-info-circle me-2"></i>Add KES ${remaining.toLocaleString()} more to get free shipping!`);
+        }
         
         return deliveryFee;
     }
@@ -582,6 +944,15 @@ $(document).ready(function() {
         
         if (!$('#terms').is(':checked')) {
             showToast('Error', 'Please accept the terms and conditions', 'danger');
+            $('#terms').focus();
+            return false;
+        }
+        
+        // Validate phone number
+        const phone = $('input[name="phone"]').val();
+        if (!phone || phone.length !== 9 || !/^\d+$/.test(phone)) {
+            showToast('Error', 'Please enter a valid 9-digit phone number', 'danger');
+            $('input[name="phone"]').focus();
             return false;
         }
         
@@ -589,7 +960,7 @@ $(document).ready(function() {
         const processingModal = new bootstrap.Modal(document.getElementById('paymentProcessingModal'));
         processingModal.show();
         
-        // Show processing button
+        // Update button state
         const button = $('#placeOrderBtn');
         const originalText = button.html();
         button.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>Processing...');
@@ -605,8 +976,10 @@ $(document).ready(function() {
                 if (response.success) {
                     // Redirect to Paystack payment
                     if (response.authorization_url) {
-                        processingModal.hide();
-                        window.location.href = response.authorization_url;
+                        setTimeout(() => {
+                            processingModal.hide();
+                            window.location.href = response.authorization_url;
+                        }, 1000);
                     } else if (response.message === 'Redirecting to secure payment...') {
                         // Wait a moment then redirect
                         setTimeout(() => {
@@ -622,26 +995,72 @@ $(document).ready(function() {
                     }
                 } else {
                     processingModal.hide();
-                    showToast('Error', response.message || 'Checkout failed', 'danger');
+                    showToast('Error', response.message || 'Checkout failed. Please try again.', 'danger');
                     button.prop('disabled', false).html(originalText);
+                    
+                    // Highlight invalid fields
+                    if (response.errors) {
+                        response.errors.forEach(error => {
+                            $(`[name="${error.field}"]`).addClass('is-invalid');
+                        });
+                    }
                 }
             },
             error: function(xhr, status, error) {
                 processingModal.hide();
                 console.error('Checkout error:', xhr.responseText);
-                showToast('Error', 'Network error. Please try again.', 'danger');
+                showToast('Error', 'Network error. Please check your connection and try again.', 'danger');
                 button.prop('disabled', false).html(originalText);
             }
         });
     });
     
-    // Phone number formatting
+    // Phone number formatting and validation
     $('input[name="phone"]').on('input', function() {
         let value = $(this).val().replace(/\D/g, '');
         if (value.length > 9) {
             value = value.substring(0, 9);
         }
         $(this).val(value);
+        
+        // Real-time validation
+        if (value.length === 9 && /^\d+$/.test(value)) {
+            $(this).removeClass('is-invalid').addClass('is-valid');
+        } else if (value.length > 0) {
+            $(this).removeClass('is-valid').addClass('is-invalid');
+        } else {
+            $(this).removeClass('is-valid is-invalid');
+        }
+    });
+    
+    // Real-time form validation
+    $('input[required], select[required]').on('blur', function() {
+        if ($(this).val()) {
+            $(this).removeClass('is-invalid').addClass('is-valid');
+        } else {
+            $(this).removeClass('is-valid').addClass('is-invalid');
+        }
+    });
+    
+    // Character counter for order notes
+    $('textarea[name="order_notes"]').on('input', function() {
+        const maxLength = 200;
+        const currentLength = $(this).val().length;
+        const counter = $(this).next('.form-text');
+        
+        if (counter.length === 0) {
+            $(this).after(`<div class="form-text text-end"><span id="charCount">${currentLength}</span>/${maxLength} characters</div>`);
+        } else {
+            $('#charCount').text(currentLength);
+        }
+        
+        if (currentLength > maxLength) {
+            $(this).addClass('is-invalid');
+            $('#charCount').addClass('text-danger');
+        } else {
+            $(this).removeClass('is-invalid');
+            $('#charCount').removeClass('text-danger');
+        }
     });
     
     // Toast notification function
@@ -649,10 +1068,15 @@ $(document).ready(function() {
         // Remove existing toasts
         $('.toast-container').remove();
         
+        const icon = type === 'success' ? 'check-circle' : 
+                    type === 'error' ? 'times-circle' : 
+                    type === 'warning' ? 'exclamation-triangle' : 'info-circle';
+        
         const toastHtml = `
-            <div class="toast-container position-fixed bottom-0 end-0 p-3">
+            <div class="toast-container">
                 <div class="toast show" role="alert">
                     <div class="toast-header bg-${type} text-white">
+                        <i class="fas fa-${icon} me-2"></i>
                         <strong class="me-auto">${title}</strong>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
                     </div>
@@ -667,5487 +1091,73 @@ $(document).ready(function() {
         
         // Auto remove after 5 seconds
         setTimeout(() => {
-            $('.toast-container').remove();
+            $('.toast-container').fadeOut(300, function() {
+                $(this).remove();
+            });
         }, 5000);
     }
     
-    // Check if we have a payment status from URL
+    // Initialize checkout image carousels
+    $('.carousel').each(function() {
+        const carousel = new bootstrap.Carousel(this, {
+            interval: 3000,
+            pause: 'hover',
+            wrap: true,
+            touch: true
+        });
+    });
+    
+    // Check for payment status from URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     const paymentStatus = urlParams.get('payment');
+    const reference = urlParams.get('reference');
     
     if (paymentStatus === 'success') {
-        showToast('Success', 'Payment completed successfully!', 'success');
+        showToast('Success', 'Payment completed successfully! Your order is being processed.', 'success');
+        
+        // Remove payment parameters from URL
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
     } else if (paymentStatus === 'failed') {
-        showToast('Error', 'Payment failed. Please try again.', 'danger');
+        showToast('Error', 'Payment failed. Please try again or contact support.', 'danger');
+        window.history.replaceState({}, document.title, window.location.pathname);
     } else if (paymentStatus === 'cancelled') {
-        showToast('Info', 'Payment was cancelled. You can try again.', 'warning');
+        showToast('Warning', 'Payment was cancelled. You can try again when ready.', 'warning');
+        window.history.replaceState({}, document.title, window.location.pathname);
     }
+    
+    // Save form data to localStorage for recovery
+    $('#checkoutForm input, #checkoutForm select, #checkoutForm textarea').on('change input', function() {
+        const formData = $('#checkoutForm').serializeArray();
+        localStorage.setItem('checkoutFormData', JSON.stringify(formData));
+    });
+    
+    // Load saved form data
+    const savedFormData = localStorage.getItem('checkoutFormData');
+    if (savedFormData) {
+        const formData = JSON.parse(savedFormData);
+        formData.forEach(field => {
+            $(`[name="${field.name}"]`).val(field.value);
+        });
+    }
+    
+    // Clear saved form data on successful submission
+    $('#checkoutForm').on('submit', function() {
+        localStorage.removeItem('checkoutFormData');
+    });
+    
+    // Keyboard shortcuts
+    $(document).keydown(function(e) {
+        // Alt + S to submit form
+        if (e.altKey && e.key === 's') {
+            e.preventDefault();
+            $('#placeOrderBtn').click();
+        }
+        // Escape to go back
+        if (e.key === 'Escape') {
+            window.history.back();
+        }
+    });
 });
 </script>
 {% endblock %}
-{% endblock %}<h6 class="mb-1">Delivery Information</h6>
-<p class="small mb-0">
-    • KES 100 shipping within Embu | KES 200 outside Embu<br>
-    • Free shipping for orders above KES 5,000<br>
-    • Fast delivery in 1-2 days
-</p>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div

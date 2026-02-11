@@ -224,4 +224,4 @@ function showToast(title, message, type = 'info') {
     toast.on('hidden.bs.toast', function() {
         $(this).remove();
     });
-}
+} 

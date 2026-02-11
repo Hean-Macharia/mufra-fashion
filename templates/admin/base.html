@@ -11,99 +11,424 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
+    
+    <!-- Select2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    
+    <!-- Summernote CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-bs5.min.css" rel="stylesheet">
+    
+    <!-- Custom Admin CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+    
     {% block extra_css %}{% endblock %}
 </head>
-<body>
+<body class="admin-layout">
     <!-- Main Container -->
-    <div class="container-fluid">
-        <div class="row">
+    <div class="container-fluid g-0">
+        <div class="row g-0">
             <!-- Sidebar -->
-            <div class="col-md-3 col-lg-2 px-0">
+            <div class="col-md-3 col-lg-2 d-none d-md-block">
                 <div class="admin-sidebar">
-                    <div class="d-flex flex-column p-3">
-                        <h4 class="mb-4">Admin Panel</h4>
-                        <ul class="nav flex-column mb-auto">
-                            <li class="nav-item">
-                                <a class="admin-nav-link {% if request.endpoint == 'admin_dashboard' %}active{% endif %}" href="{{ url_for('admin_dashboard') }}">
-                                    <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+                    <div class="d-flex flex-column h-100">
+                        <!-- Logo -->
+                        <div class="sidebar-header p-4 border-bottom">
+                            <div class="d-flex align-items-center">
+                                <div class="logo-icon bg-primary rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
+                                    <i class="fas fa-crown text-white"></i>
+                                </div>
+                                <div>
+                                    <h5 class="mb-0 text-white">MUFRA FASHIONS</h5>
+                                    <small class="text-light">Admin Panel</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Navigation -->
+                        <div class="sidebar-nav flex-grow-1 p-3">
+                            <ul class="nav flex-column">
+                                <!-- Dashboard -->
+                                <li class="nav-item mb-2">
+                                    <a class="nav-link {% if request.endpoint == 'admin_dashboard' %}active{% endif %}" href="{{ url_for('admin_dashboard') }}">
+                                        <i class="fas fa-tachometer-alt me-2"></i>
+                                        <span>Dashboard</span>
+                                        <span class="badge bg-info float-end d-none">New</span>
+                                    </a>
+                                </li>
+                                
+                                <!-- Products -->
+                                <li class="nav-item mb-2">
+                                    <a class="nav-link has-submenu {% if request.endpoint in ['admin_products', 'add_product', 'edit_product'] %}active{% endif %}" 
+                                       href="#" data-bs-toggle="collapse" data-bs-target="#productsSubmenu">
+                                        <i class="fas fa-box me-2"></i>
+                                        <span>Products</span>
+                                        <i class="fas fa-chevron-down ms-auto"></i>
+                                    </a>
+                                    <div class="collapse {% if request.endpoint in ['admin_products', 'add_product', 'edit_product'] %}show{% endif %}" id="productsSubmenu">
+                                        <ul class="nav flex-column sub-menu ms-4 mt-2">
+                                            <li class="nav-item mb-1">
+                                                <a class="nav-link {% if request.endpoint == 'admin_products' %}active{% endif %}" 
+                                                   href="{{ url_for('admin_products') }}">
+                                                    <i class="fas fa-list me-2"></i>
+                                                    All Products
+                                                    <span class="badge bg-secondary float-end">{{ get_collection('products').count_documents({}) }}</span>
+                                                </a>
+                                            </li>
+                                            <li class="nav-item mb-1">
+                                                <a class="nav-link {% if request.endpoint == 'add_product' %}active{% endif %}" 
+                                                   href="{{ url_for('add_product') }}">
+                                                    <i class="fas fa-plus-circle me-2"></i>
+                                                    Add New
+                                                </a>
+                                            </li>
+                                            <li class="nav-item mb-1">
+                                                <a class="nav-link" href="#">
+                                                    <i class="fas fa-star me-2"></i>
+                                                    Featured
+                                                </a>
+                                            </li>
+                                            <li class="nav-item mb-1">
+                                                <a class="nav-link" href="#">
+                                                    <i class="fas fa-tags me-2"></i>
+                                                    Categories
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </li>
+                                
+                                <!-- Orders -->
+                                <li class="nav-item mb-2">
+                                    <a class="nav-link has-submenu {% if request.endpoint == 'admin_orders' %}active{% endif %}" 
+                                       href="#" data-bs-toggle="collapse" data-bs-target="#ordersSubmenu">
+                                        <i class="fas fa-shopping-bag me-2"></i>
+                                        <span>Orders</span>
+                                        <i class="fas fa-chevron-down ms-auto"></i>
+                                        <span class="badge bg-danger float-end">
+                                            {% set pending_orders = get_collection('orders').count_documents({'status': 'pending'}) %}
+                                            {{ pending_orders if pending_orders > 0 else '' }}
+                                        </span>
+                                    </a>
+                                    <div class="collapse {% if request.endpoint == 'admin_orders' %}show{% endif %}" id="ordersSubmenu">
+                                        <ul class="nav flex-column sub-menu ms-4 mt-2">
+                                            <li class="nav-item mb-1">
+                                                <a class="nav-link" href="{{ url_for('admin_orders') }}">
+                                                    <i class="fas fa-list me-2"></i>
+                                                    All Orders
+                                                    <span class="badge bg-secondary float-end">{{ get_collection('orders').count_documents({}) }}</span>
+                                                </a>
+                                            </li>
+                                            <li class="nav-item mb-1">
+                                                <a class="nav-link" href="#">
+                                                    <i class="fas fa-clock me-2"></i>
+                                                    Pending
+                                                    <span class="badge bg-warning float-end">{{ pending_orders }}</span>
+                                                </a>
+                                            </li>
+                                            <li class="nav-item mb-1">
+                                                <a class="nav-link" href="#">
+                                                    <i class="fas fa-check-circle me-2"></i>
+                                                    Completed
+                                                </a>
+                                            </li>
+                                            <li class="nav-item mb-1">
+                                                <a class="nav-link" href="#">
+                                                    <i class="fas fa-times-circle me-2"></i>
+                                                    Cancelled
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </li>
+                                
+                                <!-- Users -->
+                                <li class="nav-item mb-2">
+                                    <a class="nav-link {% if request.endpoint == 'admin_users' %}active{% endif %}" href="{{ url_for('admin_users') }}">
+                                        <i class="fas fa-users me-2"></i>
+                                        <span>Users</span>
+                                        <span class="badge bg-info float-end">{{ get_collection('users').count_documents({'role': 'customer'}) }}</span>
+                                    </a>
+                                </li>
+                                
+                                <!-- Reviews -->
+                                <li class="nav-item mb-2">
+                                    <a class="nav-link" href="#">
+                                        <i class="fas fa-star me-2"></i>
+                                        <span>Reviews</span>
+                                        <span class="badge bg-warning float-end">{{ get_collection('reviews').count_documents({}) }}</span>
+                                    </a>
+                                </li>
+                                
+                                <!-- Analytics -->
+                                <li class="nav-item mb-2">
+                                    <a class="nav-link" href="#">
+                                        <i class="fas fa-chart-bar me-2"></i>
+                                        <span>Analytics</span>
+                                    </a>
+                                </li>
+                                
+                                <!-- Content Management -->
+                                <li class="nav-item mb-2">
+                                    <a class="nav-link" href="#">
+                                        <i class="fas fa-file-alt me-2"></i>
+                                        <span>Content</span>
+                                    </a>
+                                </li>
+                                
+                                <!-- Settings -->
+                                <li class="nav-item mb-2">
+                                    <a class="nav-link" href="#">
+                                        <i class="fas fa-cog me-2"></i>
+                                        <span>Settings</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                        
+                        <!-- User Profile & Logout -->
+                        <div class="sidebar-footer p-3 border-top">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="user-avatar rounded-circle bg-primary d-flex align-items-center justify-content-center me-2" 
+                                     style="width: 40px; height: 40px;">
+                                    <i class="fas fa-user text-white"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0 text-white">{{ session.get('user_name', 'Admin') }}</h6>
+                                    <small class="text-light">Administrator</small>
+                                </div>
+                            </div>
+                            <div class="d-grid">
+                                <a class="btn btn-outline-light btn-sm" href="{{ url_for('home') }}" target="_blank">
+                                    <i class="fas fa-external-link-alt me-1"></i> View Store
                                 </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="admin-nav-link {% if request.endpoint in ['admin_products', 'add_product', 'edit_product'] %}active{% endif %}" href="{{ url_for('admin_products') }}">
-                                    <i class="fas fa-box me-2"></i> Products
+                                <a class="btn btn-danger btn-sm mt-2" href="{{ url_for('logout') }}">
+                                    <i class="fas fa-sign-out-alt me-1"></i> Logout
                                 </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="admin-nav-link {% if request.endpoint == 'admin_orders' %}active{% endif %}" href="{{ url_for('admin_orders') }}">
-                                    <i class="fas fa-shopping-bag me-2"></i> Orders
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="admin-nav-link {% if request.endpoint == 'admin_users' %}active{% endif %}" href="{{ url_for('admin_users') }}">
-                                    <i class="fas fa-users me-2"></i> Users
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="admin-nav-link" href="#">
-                                    <i class="fas fa-chart-bar me-2"></i> Analytics
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="admin-nav-link" href="#">
-                                    <i class="fas fa-cog me-2"></i> Settings
-                                </a>
-                            </li>
-                            <li class="nav-item mt-4">
-                                <a class="admin-nav-link text-danger" href="{{ url_for('logout') }}">
-                                    <i class="fas fa-sign-out-alt me-2"></i> Logout
-                                </a>
-                            </li>
-                        </ul>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
             
-            <!-- Main Content -->
-            <div class="col-md-9 col-lg-10">
+            <!-- Main Content Area -->
+            <div class="col-md-9 col-lg-10 offset-md-3 offset-lg-2">
                 <!-- Top Navigation Bar -->
-                <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom py-3">
+                <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm py-2">
                     <div class="container-fluid">
-                        <div class="d-flex justify-content-between w-100 align-items-center">
-                            <div>
-                                <h4 class="mb-0">{% block page_title %}{% endblock %}</h4>
+                        <!-- Mobile Toggle Button -->
+                        <button class="navbar-toggler d-md-none" type="button" data-bs-toggle="collapse" data-bs-target="#mobileSidebar">
+                            <span class="navbar-toggler-icon"></span>
+                        </button>
+                        
+                        <!-- Page Title -->
+                        <div class="d-flex align-items-center">
+                            <h4 class="mb-0 text-dark fw-bold">
+                                <i class="fas fa-home me-2 text-primary"></i>
+                                {% block page_title %}Dashboard{% endblock %}
+                            </h4>
+                            {% block breadcrumb %}
+                            <nav aria-label="breadcrumb" class="ms-3">
+                                <ol class="breadcrumb mb-0">
+                                    <li class="breadcrumb-item"><a href="{{ url_for('admin_dashboard') }}">Home</a></li>
+                                    <li class="breadcrumb-item active" aria-current="page">{% block breadcrumb_page %}{% endblock %}</li>
+                                </ol>
+                            </nav>
+                            {% endblock %}
+                        </div>
+                        
+                        <!-- Right Side Actions -->
+                        <div class="d-flex align-items-center">
+                            <!-- Notifications -->
+                            <div class="dropdown me-3">
+                                <a href="#" class="nav-link position-relative" data-bs-toggle="dropdown">
+                                    <i class="fas fa-bell fa-lg text-muted"></i>
+                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                        3
+                                        <span class="visually-hidden">unread notifications</span>
+                                    </span>
+                                </a>
+                                <div class="dropdown-menu dropdown-menu-end shadow-lg border-0" style="min-width: 300px;">
+                                    <div class="dropdown-header bg-primary text-white">
+                                        <h6 class="mb-0">Notifications</h6>
+                                        <small>You have 3 new notifications</small>
+                                    </div>
+                                    <div class="dropdown-body p-0">
+                                        <a href="#" class="dropdown-item d-flex align-items-center py-3 border-bottom">
+                                            <div class="flex-shrink-0">
+                                                <div class="rounded-circle bg-info d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                                    <i class="fas fa-shopping-cart text-white"></i>
+                                                </div>
+                                            </div>
+                                            <div class="flex-grow-1 ms-3">
+                                                <h6 class="mb-0">New Order Received</h6>
+                                                <small class="text-muted">2 minutes ago</small>
+                                            </div>
+                                        </a>
+                                        <a href="#" class="dropdown-item d-flex align-items-center py-3 border-bottom">
+                                            <div class="flex-shrink-0">
+                                                <div class="rounded-circle bg-success d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                                    <i class="fas fa-user text-white"></i>
+                                                </div>
+                                            </div>
+                                            <div class="flex-grow-1 ms-3">
+                                                <h6 class="mb-0">New User Registered</h6>
+                                                <small class="text-muted">15 minutes ago</small>
+                                            </div>
+                                        </a>
+                                        <a href="#" class="dropdown-item d-flex align-items-center py-3">
+                                            <div class="flex-shrink-0">
+                                                <div class="rounded-circle bg-warning d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                                    <i class="fas fa-exclamation-triangle text-white"></i>
+                                                </div>
+                                            </div>
+                                            <div class="flex-grow-1 ms-3">
+                                                <h6 class="mb-0">Low Stock Alert</h6>
+                                                <small class="text-muted">1 hour ago</small>
+                                            </div>
+                                        </a>
+                                    </div>
+                                    <div class="dropdown-footer text-center py-2">
+                                        <a href="#" class="text-primary">View all notifications</a>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="d-flex align-items-center">
-                                <span class="me-3 text-muted">
-                                    <i class="fas fa-user-circle me-1"></i> {{ session.get('user_name', 'Admin') }}
-                                </span>
-                                <span class="badge bg-primary">
-                                    <i class="fas fa-shield-alt me-1"></i> Admin
-                                </span>
+                            
+                            <!-- User Menu -->
+                            <div class="dropdown">
+                                <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle" data-bs-toggle="dropdown">
+                                    <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center me-2" 
+                                         style="width: 36px; height: 36px;">
+                                        <i class="fas fa-user text-white"></i>
+                                    </div>
+                                    <div class="d-none d-md-block">
+                                        <h6 class="mb-0 text-dark">{{ session.get('user_name', 'Admin') }}</h6>
+                                        <small class="text-muted">Administrator</small>
+                                    </div>
+                                </a>
+                                <div class="dropdown-menu dropdown-menu-end shadow-lg border-0">
+                                    <div class="dropdown-header">
+                                        <h6 class="mb-0">{{ session.get('user_name', 'Admin') }}</h6>
+                                        <small class="text-muted">{{ session.get('user_email', 'admin@mufra.com') }}</small>
+                                    </div>
+                                    <div class="dropdown-divider"></div>
+                                    <a class="dropdown-item" href="{{ url_for('account') }}">
+                                        <i class="fas fa-user-circle me-2"></i> My Profile
+                                    </a>
+                                    <a class="dropdown-item" href="#">
+                                        <i class="fas fa-cog me-2"></i> Settings
+                                    </a>
+                                    <a class="dropdown-item" href="#">
+                                        <i class="fas fa-question-circle me-2"></i> Help & Support
+                                    </a>
+                                    <div class="dropdown-divider"></div>
+                                    <a class="dropdown-item text-danger" href="{{ url_for('logout') }}">
+                                        <i class="fas fa-sign-out-alt me-2"></i> Logout
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </nav>
                 
+                <!-- Mobile Sidebar (Hidden on desktop) -->
+                <div class="collapse d-md-none" id="mobileSidebar">
+                    <div class="bg-dark text-white p-3">
+                        <ul class="nav flex-column">
+                            <li class="nav-item">
+                                <a class="nav-link text-white" href="{{ url_for('admin_dashboard') }}">
+                                    <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-white" href="{{ url_for('admin_products') }}">
+                                    <i class="fas fa-box me-2"></i> Products
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-white" href="{{ url_for('admin_orders') }}">
+                                    <i class="fas fa-shopping-bag me-2"></i> Orders
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-white" href="{{ url_for('admin_users') }}">
+                                    <i class="fas fa-users me-2"></i> Users
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                
                 <!-- Content Area -->
-                <div class="p-4">
+                <main class="p-4">
                     <!-- Flash Messages -->
                     {% with messages = get_flashed_messages(with_categories=true) %}
                         {% if messages %}
-                            {% for category, message in messages %}
-                                <div class="alert alert-{{ category }} alert-dismissible fade show mb-4" role="alert">
-                                    {{ message }}
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                                </div>
-                            {% endfor %}
+                            <div class="flash-messages mb-4">
+                                {% for category, message in messages %}
+                                    <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
+                                        <div class="d-flex align-items-center">
+                                            {% if category == 'success' %}
+                                                <i class="fas fa-check-circle me-2"></i>
+                                            {% elif category == 'danger' %}
+                                                <i class="fas fa-exclamation-circle me-2"></i>
+                                            {% elif category == 'warning' %}
+                                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                            {% elif category == 'info' %}
+                                                <i class="fas fa-info-circle me-2"></i>
+                                            {% endif %}
+                                            <span>{{ message }}</span>
+                                        </div>
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>
+                                {% endfor %}
+                            </div>
                         {% endif %}
                     {% endwith %}
                     
+                    <!-- Page Header Actions -->
+                    {% block page_actions %}
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h1 class="h3 mb-0 text-dark">{% block page_header %}{% endblock %}</h1>
+                            <p class="text-muted mb-0">{% block page_description %}{% endblock %}</p>
+                        </div>
+                        <div>
+                            {% block page_buttons %}{% endblock %}
+                        </div>
+                    </div>
+                    {% endblock %}
+                    
                     <!-- Main Content Block -->
                     {% block content %}{% endblock %}
-                </div>
+                </main>
+                
+                <!-- Footer -->
+                <footer class="bg-light border-top py-4 px-4">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <p class="mb-0 text-muted">
+                                &copy; {{ get_current_year() }} MUFRA FASHIONS. All rights reserved.
+                                <span class="badge bg-primary ms-2">v1.0.0</span>
+                            </p>
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            <small class="text-muted">
+                                <i class="fas fa-database me-1"></i>
+                                {{ get_collection('products').count_documents({}) }} Products • 
+                                {{ get_collection('users').count_documents({}) }} Users • 
+                                {{ get_collection('orders').count_documents({}) }} Orders
+                            </small>
+                        </div>
+                    </div>
+                </footer>
             </div>
         </div>
     </div>
@@ -111,82 +436,356 @@
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     
-    <!-- Custom JS -->
-    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+    
+    <!-- Select2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    
+    <!-- Summernote JS -->
+    <script src="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-bs5.min.js"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Custom Admin JS -->
+    <script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+    
+    <!-- Initialize Admin Components -->
+    <script>
+    $(document).ready(function() {
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+        
+        // Initialize DataTables
+        $('.data-table').DataTable({
+            "language": {
+                "search": "Search:",
+                "lengthMenu": "Show _MENU_ entries",
+                "info": "Showing _START_ to _END_ of _TOTAL_ entries",
+                "paginate": {
+                    "previous": "Previous",
+                    "next": "Next"
+                }
+            },
+            "responsive": true,
+            "order": [[0, 'desc']]
+        });
+        
+        // Initialize Select2
+        $('.select2').select2({
+            theme: 'bootstrap-5',
+            placeholder: "Select an option",
+            allowClear: true
+        });
+        
+        // Initialize Summernote
+        $('.summernote').summernote({
+            height: 200,
+            toolbar: [
+                ['style', ['style']],
+                ['font', ['bold', 'italic', 'underline', 'clear']],
+                ['para', ['ul', 'ol', 'paragraph']],
+                ['insert', ['link', 'picture', 'video']],
+                ['view', ['fullscreen', 'codeview', 'help']]
+            ]
+        });
+        
+        // Auto-dismiss alerts after 5 seconds
+        setTimeout(function() {
+            $('.alert:not(.alert-permanent)').alert('close');
+        }, 5000);
+        
+        // Toggle sidebar submenus
+        $('.has-submenu').on('click', function(e) {
+            if ($(this).attr('href') === '#') {
+                e.preventDefault();
+            }
+        });
+        
+        // Update notification badge
+        function updateNotificationBadge() {
+            $.ajax({
+                url: '/admin/api/notifications/count',
+                method: 'GET',
+                success: function(data) {
+                    if (data.count > 0) {
+                        $('.notification-badge').text(data.count).show();
+                    } else {
+                        $('.notification-badge').hide();
+                    }
+                }
+            });
+        }
+        
+        // Update notification count every 30 seconds
+        setInterval(updateNotificationBadge, 30000);
+    });
+    </script>
+    <!-- Add this before your admin.js -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     {% block extra_js %}{% endblock %}
     
     <style>
-    /* Admin Sidebar Styles */
+    /* Admin Layout Styles */
+    .admin-layout {
+        background-color: #f8f9fa;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    /* Sidebar Styles */
     .admin-sidebar {
-        background: linear-gradient(135deg, #2c3e50, #34495e);
-        color: white;
-        min-height: 100vh;
+        background: linear-gradient(180deg, #2c3e50 0%, #1a252f 100%);
+        color: #fff;
+        height: 100vh;
+        position: fixed;
+        width: 16.666667%;
+        overflow-y: auto;
+        box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        z-index: 1000;
+    }
+    
+    .sidebar-header {
+        background: rgba(255, 255, 255, 0.05);
+    }
+    
+    .logo-icon {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .sidebar-nav .nav-link {
+        color: #bdc3c7;
+        padding: 12px 15px;
+        border-radius: 8px;
+        margin-bottom: 5px;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+    }
+    
+    .sidebar-nav .nav-link:hover,
+    .sidebar-nav .nav-link.active {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.1);
+        transform: translateX(5px);
+    }
+    
+    .sidebar-nav .nav-link.active {
+        background: linear-gradient(90deg, rgba(52, 152, 219, 0.2) 0%, rgba(52, 152, 219, 0.1) 100%);
+        border-left: 3px solid #3498db;
+    }
+    
+    .sidebar-nav .sub-menu .nav-link {
+        padding: 8px 15px;
+        font-size: 0.9rem;
+    }
+    
+    .sidebar-nav .nav-link i.fa-chevron-down {
+        transition: transform 0.3s ease;
+    }
+    
+    .sidebar-nav .nav-link[aria-expanded="true"] i.fa-chevron-down {
+        transform: rotate(180deg);
+    }
+    
+    .user-avatar {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    /* Top Navbar */
+    .navbar {
+        background: #fff;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         position: sticky;
         top: 0;
+        z-index: 999;
     }
     
-    .admin-nav-link {
-        color: #bdc3c7;
-        padding: 10px 15px;
-        margin-bottom: 5px;
-        border-radius: 5px;
-        text-decoration: none;
-        display: block;
-        transition: all 0.3s;
+    /* Content Area */
+    main {
+        min-height: calc(100vh - 200px);
+        background-color: #f8f9fa;
     }
     
-    .admin-nav-link:hover {
-        color: white;
-        background: rgba(255, 255, 255, 0.1);
+    /* Alert Styles */
+    .alert {
+        border: none;
+        border-left: 4px solid transparent;
+        border-radius: 8px;
     }
     
-    .admin-nav-link.active {
-        color: white;
-        background: rgba(255, 255, 255, 0.2);
-        font-weight: bold;
+    .alert-success {
+        border-left-color: #2ecc71;
+        background-color: #d5f4e6;
     }
     
-    /* Stats Cards */
+    .alert-danger {
+        border-left-color: #e74c3c;
+        background-color: #fadbd8;
+    }
+    
+    .alert-warning {
+        border-left-color: #f39c12;
+        background-color: #fef5e7;
+    }
+    
+    .alert-info {
+        border-left-color: #3498db;
+        background-color: #d6eaf8;
+    }
+    
+    /* Card Styles */
     .stat-card {
         background: white;
-        border-radius: 10px;
-        padding: 20px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        transition: transform 0.3s;
+        border-radius: 12px;
+        padding: 25px;
+        box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+        transition: all 0.3s ease;
+        border: none;
+        position: relative;
+        overflow: hidden;
     }
     
     .stat-card:hover {
         transform: translateY(-5px);
+        box-shadow: 0 5px 25px rgba(0,0,0,0.15);
     }
     
-    .stat-card.orders {
-        border-top: 4px solid #3498db;
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 5px;
+        height: 100%;
     }
     
-    .stat-card.revenue {
-        border-top: 4px solid #2ecc71;
+    .stat-card.orders::before { background: linear-gradient(180deg, #3498db 0%, #2980b9 100%); }
+    .stat-card.revenue::before { background: linear-gradient(180deg, #2ecc71 0%, #27ae60 100%); }
+    .stat-card.users::before { background: linear-gradient(180deg, #e74c3c 0%, #c0392b 100%); }
+    .stat-card.products::before { background: linear-gradient(180deg, #f39c12 0%, #d35400 100%); }
+    
+    .stat-card .stat-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 20px;
+        color: white;
+        font-size: 24px;
     }
     
-    .stat-card.users {
-        border-top: 4px solid #e74c3c;
-    }
-    
-    .stat-card.products {
-        border-top: 4px solid #f39c12;
-    }
-    
-    .stat-card h6 {
-        color: #7f8c8d;
-        font-size: 0.9rem;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
+    .stat-card.orders .stat-icon { background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); }
+    .stat-card.revenue .stat-icon { background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%); }
+    .stat-card.users .stat-icon { background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); }
+    .stat-card.products .stat-icon { background: linear-gradient(135deg, #f39c12 0%, #d35400 100%); }
     
     .stat-card h2 {
+        font-weight: 700;
         color: #2c3e50;
-        font-weight: bold;
         margin: 10px 0;
+    }
+    
+    .stat-card .stat-change {
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+    }
+    
+    .stat-card .stat-change.positive {
+        color: #2ecc71;
+    }
+    
+    .stat-card .stat-change.negative {
+        color: #e74c3c;
+    }
+    
+    /* Table Styles */
+    .data-table-wrapper {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+    }
+    
+    .dataTables_wrapper .dataTables_filter input {
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        padding: 8px 12px;
+    }
+    
+    .dataTables_wrapper .dataTables_length select {
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        padding: 4px 8px;
+    }
+    
+    /* Button Styles */
+    .btn-action {
+        border-radius: 6px;
+        padding: 6px 12px;
+        font-size: 0.875rem;
+    }
+    
+    .btn-action-sm {
+        width: 32px;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+    }
+    
+    /* Badge Styles */
+    .badge {
+        font-weight: 500;
+        padding: 4px 8px;
+        border-radius: 6px;
+    }
+    
+    /* Dropdown Styles */
+    .dropdown-menu {
+        border: none;
+        box-shadow: 0 5px 25px rgba(0,0,0,0.15);
+        border-radius: 10px;
+        margin-top: 10px;
+    }
+    
+    .dropdown-item {
+        padding: 10px 15px;
+        border-radius: 6px;
+        margin: 2px 8px;
+        width: calc(100% - 16px);
+    }
+    
+    .dropdown-item:hover {
+        background-color: #f8f9fa;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .admin-sidebar {
+            position: relative;
+            width: 100%;
+            height: auto;
+        }
+        
+        main {
+            padding: 15px;
+        }
+        
+        .stat-card {
+            margin-bottom: 15px;
+        }
     }
     </style>
 </body>

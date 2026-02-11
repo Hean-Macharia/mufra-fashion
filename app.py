@@ -1,3 +1,4 @@
+from itertools import product
 import os
 import json
 import random
@@ -371,7 +372,7 @@ def initialize_sample_data():
             categories_collection.insert_many(categories)
             print("✓ Categories created successfully")
         
-        # Create sample products if none exist
+        # Create sample products if none exist - UPDATED FOR MULTIPLE IMAGES
         if products_collection.count_documents({}) == 0:
             products = [
                 {
@@ -384,7 +385,18 @@ def initialize_sample_data():
                     'sizes': ['8', '9', '10', '11'],
                     'colors': ['Blue', 'White', 'Black'],
                     'stock': 50,
-                    'image': 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+                    'images': [
+                        {
+                            'url': 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+                            'filename': 'running_shoes_1.jpg',
+                            'is_main': True
+                        },
+                        {
+                            'url': 'https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=60',
+                            'filename': 'running_shoes_2.jpg',
+                            'is_main': False
+                        }
+                    ],
                     'featured': True,
                     'rating': 4.5,
                     'reviews_count': 23,
@@ -400,7 +412,18 @@ def initialize_sample_data():
                     'sizes': ['7', '8', '9', '10'],
                     'colors': ['White', 'Gray', 'Navy'],
                     'stock': 30,
-                    'image': 'https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+                    'images': [
+                        {
+                            'url': 'https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+                            'filename': 'sneakers_1.jpg',
+                            'is_main': True
+                        },
+                        {
+                            'url': 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=60',
+                            'filename': 'sneakers_2.jpg',
+                            'is_main': False
+                        }
+                    ],
                     'featured': True,
                     'rating': 4.2,
                     'reviews_count': 15,
@@ -416,7 +439,23 @@ def initialize_sample_data():
                     'sizes': ['S', 'M', 'L', 'XL'],
                     'colors': ['Blue', 'White', 'Black'],
                     'stock': 100,
-                    'image': 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+                    'images': [
+                        {
+                            'url': 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+                            'filename': 'tshirt_1.jpg',
+                            'is_main': True
+                        },
+                        {
+                            'url': 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=60',
+                            'filename': 'tshirt_2.jpg',
+                            'is_main': False
+                        },
+                        {
+                            'url': 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=40',
+                            'filename': 'tshirt_3.jpg',
+                            'is_main': False
+                        }
+                    ],
                     'featured': True,
                     'rating': 4.7,
                     'reviews_count': 42,
@@ -432,7 +471,18 @@ def initialize_sample_data():
                     'sizes': ['30', '32', '34', '36'],
                     'colors': ['Blue'],
                     'stock': 25,
-                    'image': 'https://images.unsplash.com/photo-1542272604-787c3835535d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+                    'images': [
+                        {
+                            'url': 'https://images.unsplash.com/photo-1542272604-787c3835535d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+                            'filename': 'jeans_1.jpg',
+                            'is_main': True
+                        },
+                        {
+                            'url': 'https://images.unsplash.com/photo-1542272604-787c3835535d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=60',
+                            'filename': 'jeans_2.jpg',
+                            'is_main': False
+                        }
+                    ],
                     'featured': True,
                     'rating': 4.3,
                     'reviews_count': 18,
@@ -440,7 +490,7 @@ def initialize_sample_data():
                 }
             ]
             products_collection.insert_many(products)
-            print("✓ Products created successfully")
+            print("✓ Products created successfully with multiple images")
         
         # Create admin user if not exists
         if users_collection.count_documents({'email': 'admin@mufra.com'}) == 0:
@@ -466,7 +516,6 @@ def initialize_sample_data():
         
     except Exception as e:
         print(f"⚠ Warning during database initialization: {e}")
-
 @app.route('/paystack/callback')
 def paystack_callback():
     """Handle Paystack callback after payment"""
@@ -683,10 +732,42 @@ def home():
         
         # Get featured products with default values
         featured_products = list(products_collection.find({'featured': True}).limit(8))
+        
+        # Process each product to ensure proper image structure
         for product in featured_products:
             product.setdefault('rating', 0)
             product.setdefault('reviews_count', 0)
-            product.setdefault('image', 'https://via.placeholder.com/400x300?text=Product+Image')
+            
+            # Ensure images field exists and is properly formatted
+            if 'images' not in product or not product['images']:
+                # Convert single image to images array if needed
+                if 'image' in product and product['image']:
+                    product['images'] = [{
+                        'url': product['image'],
+                        'filename': product['image'].split('/')[-1] if '/' in product['image'] else product['image'],
+                        'is_main': True
+                    }]
+                else:
+                    product['images'] = [{
+                        'url': 'https://via.placeholder.com/400x300?text=Product+Image',
+                        'filename': 'placeholder.jpg',
+                        'is_main': True
+                    }]
+            else:
+                # Ensure each image has required fields
+                for i, img in enumerate(product['images']):
+                    if isinstance(img, str):
+                        # Convert string to dict
+                        product['images'][i] = {
+                            'url': img,
+                            'filename': img.split('/')[-1] if '/' in img else img,
+                            'is_main': i == 0
+                        }
+                    elif isinstance(img, dict):
+                        # Ensure dict has all required fields
+                        img.setdefault('url', img.get('url', 'https://via.placeholder.com/400x300?text=Product+Image'))
+                        img.setdefault('filename', img.get('filename', img['url'].split('/')[-1]))
+                        img.setdefault('is_main', img.get('is_main', i == 0))
         
         # Get categories for navigation
         categories = list(categories_collection.find({}))
@@ -709,10 +790,23 @@ def home():
                         '_id': {'$nin': user.get('viewed_products', [])}
                     }).limit(4))
                     
+                    # Process recommended products images
                     for product in recommended_products:
                         product.setdefault('rating', 0)
                         product.setdefault('reviews_count', 0)
-                        product.setdefault('image', 'https://via.placeholder.com/400x300?text=Product+Image')
+                        if 'images' not in product or not product['images']:
+                            if 'image' in product and product['image']:
+                                product['images'] = [{
+                                    'url': product['image'],
+                                    'filename': product['image'].split('/')[-1] if '/' in product['image'] else product['image'],
+                                    'is_main': True
+                                }]
+                            else:
+                                product['images'] = [{
+                                    'url': 'https://via.placeholder.com/400x300?text=Product+Image',
+                                    'filename': 'placeholder.jpg',
+                                    'is_main': True
+                                }]
         
         return render_template('index.html', 
                              featured_products=featured_products,
@@ -724,6 +818,68 @@ def home():
                              featured_products=[],
                              categories=[],
                              recommended_products=[])
+    
+
+@app.route('/migrate-products-images')
+@admin_required
+def migrate_products_images():
+    """Migrate existing products to use images array"""
+    try:
+        products_collection = get_collection('products')
+        updated_count = 0
+        
+        # Find all products that don't have images array or have old image field
+        products = list(products_collection.find({
+            '$or': [
+                {'images': {'$exists': False}},
+                {'image': {'$exists': True}},
+                {'images': {'$size': 0}}
+            ]
+        }))
+        
+        for product in products:
+            update_data = {}
+            
+            # If product has image field but no images array
+            if 'image' in product and product['image'] and ('images' not in product or not product['images']):
+                update_data['images'] = [{
+                    'url': product['image'],
+                    'filename': product['image'].split('/')[-1] if '/' in product['image'] else product['image'],
+                    'is_main': True
+                }]
+                update_data['main_image'] = product['image']
+                # Optionally remove the old image field
+                update_data['$unset'] = {'image': ''}
+            
+            # If images array exists but is empty or malformed
+            elif 'images' in product and (not product['images'] or isinstance(product['images'][0], str)):
+                if product['images'] and isinstance(product['images'][0], str):
+                    # Convert string array to object array
+                    new_images = []
+                    for i, img_url in enumerate(product['images']):
+                        new_images.append({
+                            'url': img_url,
+                            'filename': img_url.split('/')[-1] if '/' in img_url else img_url,
+                            'is_main': i == 0
+                        })
+                    update_data['images'] = new_images
+                    update_data['main_image'] = new_images[0]['url'] if new_images else ''
+            
+            if update_data:
+                products_collection.update_one(
+                    {'_id': product['_id']},
+                    {'$set': update_data}
+                )
+                updated_count += 1
+                print(f"Updated product: {product.get('name', 'Unknown')}")
+        
+        return f"""
+        <h2>Migration Complete!</h2>
+        <p>Updated {updated_count} out of {len(products)} products</p>
+        <p><a href="/">Go to Home</a></p>
+        """
+    except Exception as e:
+        return f"<h2>Error:</h2><p>{str(e)}</p>"
 
 @app.route('/categories')
 def categories():
@@ -1942,39 +2098,61 @@ def admin_products():
 @app.route('/admin/add-product', methods=['GET', 'POST'])
 @admin_required
 def add_product():
-    """Add new product"""
+    """Add new product with multiple images - SIMPLIFIED VERSION"""
     try:
         if request.method == 'POST':
             # Get form data
             name = request.form.get('name', '').strip()
             description = request.form.get('description', '').strip()
-            price = float(request.form.get('price', 0))
+            price = request.form.get('price', '0')
             category = request.form.get('category', '')
             subcategory = request.form.get('subcategory', '').strip()
             condition = request.form.get('condition', 'New')
-            stock = int(request.form.get('stock', 0))
+            stock = request.form.get('stock', '0')
+            
+            # Validate required fields
+            if not name or not price or not category:
+                flash('Please fill in all required fields', 'danger')
+                return redirect(url_for('add_product'))
+            
+            try:
+                price = float(price)
+                stock = int(stock)
+            except ValueError:
+                flash('Invalid price or stock value', 'danger')
+                return redirect(url_for('add_product'))
             
             # Get sizes and colors
             sizes = request.form.getlist('sizes[]')
             colors = request.form.getlist('colors[]')
             
-            # Handle image upload
-            image_url = ''
-            if 'image' in request.files:
-                file = request.files['image']
-                if file and allowed_file(file.filename):
-                    filename = secure_filename(file.filename)
-                    # Save file
-                    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                    file.save(file_path)
-                    # Create URL for the image
-                    image_url = f"/static/uploads/{filename}"
-                elif request.form.get('image_url'):  # Allow URL input as alternative
-                    image_url = request.form.get('image_url', '').strip()
+            # Handle image uploads
+            images = []
+            if 'images' in request.files:
+                files = request.files.getlist('images')
+                for file in files:
+                    if file and file.filename != '' and allowed_file(file.filename):
+                        # Generate unique filename
+                        filename = secure_filename(file.filename)
+                        unique_filename = f"{uuid.uuid4().hex}_{filename}"
+                        
+                        # Save file
+                        file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+                        file.save(file_path)
+                        
+                        images.append({
+                            'filename': unique_filename,
+                            'url': f"/static/uploads/{unique_filename}",
+                            'is_main': len(images) == 0
+                        })
             
-            # If no image uploaded, use a placeholder
-            if not image_url:
-                image_url = 'https://via.placeholder.com/400x300?text=Product+Image'
+            # If no images uploaded, use placeholder
+            if not images:
+                images.append({
+                    'filename': 'placeholder.jpg',
+                    'url': 'https://via.placeholder.com/400x300?text=Product+Image',
+                    'is_main': True
+                })
             
             # Create product
             products_collection = get_collection('products')
@@ -1988,29 +2166,34 @@ def add_product():
                 'stock': stock,
                 'sizes': sizes,
                 'colors': colors,
-                'image': image_url,  # Use full URL/path
-                'featured': bool(request.form.get('featured')),
+                'images': images,
+                'main_image': images[0]['url'] if images else '',
+                'featured': 'featured' in request.form,
+                'status': 'active',
                 'rating': 0,
                 'reviews_count': 0,
-                'created_at': datetime.utcnow()
+                'created_at': datetime.utcnow(),
+                'updated_at': datetime.utcnow()
             }
             
             products_collection.insert_one(product)
-            flash('Product added successfully', 'success')
+            flash('Product added successfully!', 'success')
             return redirect(url_for('admin_products'))
         
+        # GET request - show form
         categories_collection = get_collection('categories')
         categories = list(categories_collection.find({}))
         return render_template('admin/add_product.html', categories=categories)
+        
     except Exception as e:
         print(f"Error in add_product: {e}")
-        flash('Error adding product', 'danger')
+        flash('Error adding product: ' + str(e), 'danger')
         return redirect(url_for('admin_products'))
 
 @app.route('/admin/edit-product/<product_id>', methods=['GET', 'POST'])
 @admin_required
 def edit_product(product_id):
-    """Edit product"""
+    """Edit product with multiple images"""
     try:
         products_collection = get_collection('products')
         product = products_collection.find_one({'_id': ObjectId(product_id)})
@@ -2018,6 +2201,38 @@ def edit_product(product_id):
         if not product:
             flash('Product not found', 'danger')
             return redirect(url_for('admin_products'))
+        
+        # Ensure images field exists and is properly formatted
+        if 'images' not in product or not product['images']:
+            # Convert single image to images array if needed
+            if 'image' in product and product['image']:
+                product['images'] = [{
+                    'url': product['image'],
+                    'filename': product['image'].split('/')[-1] if '/' in product['image'] else product['image'],
+                    'is_main': True
+                }]
+            else:
+                product['images'] = [{
+                    'url': 'https://via.placeholder.com/400x300?text=Product+Image',
+                    'filename': 'placeholder.jpg',
+                    'is_main': True
+                }]
+        else:
+            # Ensure each image has required fields
+            for img in product['images']:
+                if isinstance(img, str):
+                    # If image is just a URL string
+                    idx = product['images'].index(img)
+                    product['images'][idx] = {
+                        'url': img,
+                        'filename': img.split('/')[-1] if '/' in img else img,
+                        'is_main': idx == 0
+                    }
+                elif isinstance(img, dict):
+                    # Ensure dict has all required fields
+                    img.setdefault('filename', img.get('url', '').split('/')[-1])
+                    img.setdefault('url', img.get('url', 'https://via.placeholder.com/400x300?text=Product+Image'))
+                    img.setdefault('is_main', idx == 0)
         
         if request.method == 'POST':
             # Get updated data
@@ -2035,17 +2250,53 @@ def edit_product(product_id):
                 'updated_at': datetime.utcnow()
             }
             
-            # Handle image upload or URL
-            if 'image' in request.files:
-                file = request.files['image']
-                if file and allowed_file(file.filename):
-                    filename = secure_filename(file.filename)
-                    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                    file.save(file_path)
-                    update_data['image'] = f"/static/uploads/{filename}"
-            elif request.form.get('image_url'):  # Allow URL input
-                update_data['image'] = request.form.get('image_url', '').strip()
+            # Handle existing images
+            existing_images = []
+            existing_image_filenames = request.form.getlist('existing_images[]')
             
+            # Keep existing images
+            for img in product.get('images', []):
+                img_filename = img.get('filename', '')
+                if img_filename in existing_image_filenames:
+                    existing_images.append(img)
+            
+            # Handle new image uploads
+            new_images = []
+            if 'images' in request.files:
+                files = request.files.getlist('images')
+                for file in files:
+                    if file and file.filename != '' and allowed_file(file.filename):
+                        # Generate unique filename
+                        filename = secure_filename(file.filename)
+                        unique_filename = f"{uuid.uuid4().hex}_{filename}"
+                        
+                        # Save file
+                        file_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+                        file.save(file_path)
+                        
+                        # Add to images list
+                        new_images.append({
+                            'filename': unique_filename,
+                            'url': f"/static/uploads/{unique_filename}",
+                            'is_main': len(existing_images) + len(new_images) == 0  # First image is main
+                        })
+            
+            # Combine existing and new images
+            all_images = existing_images + new_images
+            
+            # Ensure at least one image
+            if not all_images:
+                all_images = [{
+                    'filename': 'placeholder.jpg',
+                    'url': 'https://via.placeholder.com/400x300?text=Product+Image',
+                    'is_main': True
+                }]
+            
+            # Update images in database
+            update_data['images'] = all_images
+            update_data['main_image'] = all_images[0]['url'] if all_images else ''
+            
+            # Update product in database
             products_collection.update_one(
                 {'_id': ObjectId(product_id)},
                 {'$set': update_data}
@@ -2061,9 +2312,10 @@ def edit_product(product_id):
                              categories=categories)
     except Exception as e:
         print(f"Error in edit_product: {e}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
         flash('Error updating product', 'danger')
         return redirect(url_for('admin_products'))
-
 @app.route('/admin/delete-product/<product_id>')
 @admin_required
 def delete_product(product_id):
@@ -2227,7 +2479,7 @@ def internal_error(error):
 
 @app.context_processor
 def utility_processor():
-    """Make utility functions available in templates"""
+    """Make utility functions available in templates - UPDATED FOR MULTIPLE IMAGES"""
     
     def safe_get(obj, key, default=None):
         """Safely get a value from a dictionary or object"""
@@ -2237,21 +2489,82 @@ def utility_processor():
             return getattr(obj, key, default)
         return default
     
-    def get_product_image(product):
-        """Get product image URL, with fallback"""
+    def get_product_images(product):
+        """Get product images with fallback to single image - HANDLES BOTH FORMATS"""
         if not product:
-            return 'https://via.placeholder.com/400x300?text=Product+Image'
+            return [{
+                'url': 'https://via.placeholder.com/400x300?text=Product+Image', 
+                'filename': 'placeholder.jpg',
+                'is_main': True
+            }]
         
-        image = safe_get(product, 'image', '')
-        if not image:
-            return 'https://via.placeholder.com/400x300?text=Product+Image'
+        # Check if product has images array
+        if 'images' in product and product['images']:
+            images = []
+            # Ensure all images are properly formatted
+            for i, img in enumerate(product['images']):
+                if isinstance(img, str):
+                    # String URL - convert to dict
+                    images.append({
+                        'url': img,
+                        'filename': img.split('/')[-1] if '/' in img else img,
+                        'is_main': i == 0
+                    })
+                elif isinstance(img, dict):
+                    # Already a dict - ensure all fields
+                    img_copy = dict(img)
+                    img_copy.setdefault('url', img.get('url', 'https://via.placeholder.com/400x300?text=Product+Image'))
+                    img_copy.setdefault('filename', img.get('filename', img_copy['url'].split('/')[-1]))
+                    img_copy.setdefault('is_main', img.get('is_main', i == 0))
+                    images.append(img_copy)
+                else:
+                    # Unknown format - skip
+                    continue
+            
+            # Ensure at least one image
+            if not images:
+                images.append({
+                    'url': 'https://via.placeholder.com/400x300?text=Product+Image',
+                    'filename': 'placeholder.jpg',
+                    'is_main': True
+                })
+            
+            # Ensure first image is marked as main
+            if images:
+                images[0]['is_main'] = True
+            
+            return images
         
-        # If it's already a full URL or starts with /static, return as is
-        if image.startswith('http') or image.startswith('/static'):
-            return image
+        # Fallback to old image field
+        elif 'image' in product and product['image']:
+            return [{
+                'url': product['image'],
+                'filename': product['image'].split('/')[-1] if '/' in product['image'] else product['image'],
+                'is_main': True
+            }]
         
-        # Otherwise, assume it's in uploads folder
-        return f"/static/uploads/{image}"
+        # No images found
+        else:
+            return [{
+                'url': 'https://via.placeholder.com/400x300?text=Product+Image',
+                'filename': 'placeholder.jpg',
+                'is_main': True
+            }]
+    
+    def get_main_product_image(product):
+        """Get main product image"""
+        images = get_product_images(product)
+        if images:
+            # Find the main image or use first
+            for img in images:
+                if img.get('is_main', False):
+                    return img['url']
+            return images[0]['url']
+        return 'https://via.placeholder.com/400x300?text=Product+Image'
+    
+    def get_product_image(product):
+        """Get product image URL, with fallback (legacy compatibility)"""
+        return get_main_product_image(product)
     
     def get_user_by_id(user_id):
         """Get user by ID - for use in templates"""
@@ -2463,21 +2776,61 @@ def utility_processor():
         except:
             return []
     
-    def get_featured_products(limit=4):
-        """Get featured products"""
+    def get_featured_products(limit=8):
+        """Get featured products with proper image handling"""
         try:
             products_collection = get_collection('products')
             products = list(products_collection.find(
                 {'featured': True}
             ).limit(limit))
             
+            # Process each product to ensure proper image structure
             for product in products:
                 product.setdefault('rating', 0)
                 product.setdefault('reviews_count', 0)
-                product.setdefault('image', 'https://via.placeholder.com/400x300?text=Product+Image')
+                product.setdefault('stock', 0)
+                product.setdefault('sizes', [])
+                product.setdefault('colors', [])
+                product.setdefault('featured', False)
+                
+                # Ensure images are properly formatted
+                if 'images' not in product or not product['images']:
+                    if 'image' in product and product['image']:
+                        product['images'] = [{
+                            'url': product['image'],
+                            'filename': product['image'].split('/')[-1] if '/' in product['image'] else product['image'],
+                            'is_main': True
+                        }]
+                    else:
+                        product['images'] = [{
+                            'url': 'https://via.placeholder.com/400x300?text=Product+Image',
+                            'filename': 'placeholder.jpg',
+                            'is_main': True
+                        }]
+                else:
+                    # Ensure each image has all required fields
+                    formatted_images = []
+                    for i, img in enumerate(product['images']):
+                        if isinstance(img, str):
+                            formatted_images.append({
+                                'url': img,
+                                'filename': img.split('/')[-1] if '/' in img else img,
+                                'is_main': i == 0
+                            })
+                        elif isinstance(img, dict):
+                            img_copy = dict(img)
+                            img_copy.setdefault('url', img.get('url', 'https://via.placeholder.com/400x300?text=Product+Image'))
+                            img_copy.setdefault('filename', img.get('filename', img_copy['url'].split('/')[-1]))
+                            img_copy.setdefault('is_main', img.get('is_main', i == 0))
+                            formatted_images.append(img_copy)
+                    product['images'] = formatted_images
+                    # Ensure first image is main
+                    if product['images']:
+                        product['images'][0]['is_main'] = True
             
             return products
-        except:
+        except Exception as e:
+            print(f"Error in get_featured_products: {e}")
             return []
     
     def get_product_reviews(product_id):
@@ -2568,6 +2921,308 @@ def utility_processor():
         # Otherwise, truncate
         return str(order_id)[-8:].upper()
     
+    def get_image_count(product):
+        """Get the number of images for a product"""
+        images = get_product_images(product)
+        return len(images)
+    
+    def get_product_categories():
+        """Get all product categories"""
+        try:
+            categories_collection = get_collection('categories')
+            categories = list(categories_collection.find({}).sort('name', 1))
+            return categories
+        except:
+            return []
+    
+    def get_product_by_id(product_id):
+        """Get product by ID with proper image handling"""
+        try:
+            products_collection = get_collection('products')
+            product = products_collection.find_one({'_id': ObjectId(product_id)})
+            if product:
+                # Ensure images are properly formatted
+                if 'images' not in product or not product['images']:
+                    if 'image' in product and product['image']:
+                        product['images'] = [{
+                            'url': product['image'],
+                            'filename': product['image'].split('/')[-1] if '/' in product['image'] else product['image'],
+                            'is_main': True
+                        }]
+                    else:
+                        product['images'] = [{
+                            'url': 'https://via.placeholder.com/400x300?text=Product+Image',
+                            'filename': 'placeholder.jpg',
+                            'is_main': True
+                        }]
+                else:
+                    # Ensure each image has all required fields
+                    formatted_images = []
+                    for i, img in enumerate(product['images']):
+                        if isinstance(img, str):
+                            formatted_images.append({
+                                'url': img,
+                                'filename': img.split('/')[-1] if '/' in img else img,
+                                'is_main': i == 0
+                            })
+                        elif isinstance(img, dict):
+                            img_copy = dict(img)
+                            img_copy.setdefault('url', img.get('url', 'https://via.placeholder.com/400x300?text=Product+Image'))
+                            img_copy.setdefault('filename', img.get('filename', img_copy['url'].split('/')[-1]))
+                            img_copy.setdefault('is_main', img.get('is_main', i == 0))
+                            formatted_images.append(img_copy)
+                    product['images'] = formatted_images
+                    # Ensure first image is main
+                    if product['images']:
+                        product['images'][0]['is_main'] = True
+            return product
+        except Exception as e:
+            print(f"Error in get_product_by_id: {e}")
+            return None
+    
+    def is_product_featured(product):
+        """Check if product is featured"""
+        return safe_get(product, 'featured', False)
+    
+    def get_product_discount_price(original_price, discount_percentage):
+        """Calculate discounted price"""
+        try:
+            if discount_percentage > 0:
+                discount_amount = (original_price * discount_percentage) / 100
+                return original_price - discount_amount
+            return original_price
+        except:
+            return original_price
+    
+    def format_number(number, decimals=0):
+        """Format number with commas"""
+        try:
+            if number is None:
+                return "0"
+            return f"{float(number):,.{decimals}f}"
+        except:
+            return str(number)
+    
+    def get_session_user():
+        """Get current session user"""
+        try:
+            if 'user_id' in session:
+                users_collection = get_collection('users')
+                user = users_collection.find_one({'_id': ObjectId(session['user_id'])})
+                return user
+        except:
+            return None
+    
+    def is_user_admin():
+        """Check if current user is admin"""
+        user = get_session_user()
+        return user and user.get('role') == 'admin'
+    
+    def is_user_verified():
+        """Check if current user is verified"""
+        user = get_session_user()
+        return user and user.get('verified', False)
+    
+    def get_product_availability(product):
+        """Get product availability status"""
+        stock = safe_get(product, 'stock', 0)
+        if stock <= 0:
+            return {'status': 'out_of_stock', 'text': 'Out of Stock', 'color': 'danger'}
+        elif stock <= 5:
+            return {'status': 'low_stock', 'text': 'Low Stock', 'color': 'warning'}
+        else:
+            return {'status': 'in_stock', 'text': 'In Stock', 'color': 'success'}
+    
+    def get_product_condition_badge(condition):
+        """Get badge for product condition"""
+        condition_badges = {
+            'new': 'success',
+            'second hand': 'info',
+            'used': 'warning',
+            'refurbished': 'secondary'
+        }
+        return condition_badges.get(condition.lower(), 'secondary')
+    
+    def get_random_products(limit=4):
+        """Get random products with proper image handling"""
+        try:
+            products_collection = get_collection('products')
+            products = list(products_collection.aggregate([
+                {'$match': {}},
+                {'$sample': {'size': limit}},
+                {'$addFields': {
+                    'images': {'$ifNull': ['$images', []]}
+                }}
+            ]))
+            
+            # Process each product to ensure proper image structure
+            for product in products:
+                product.setdefault('rating', 0)
+                product.setdefault('reviews_count', 0)
+                
+                if 'images' not in product or not product['images']:
+                    if 'image' in product and product['image']:
+                        product['images'] = [{
+                            'url': product['image'],
+                            'filename': product['image'].split('/')[-1] if '/' in product['image'] else product['image'],
+                            'is_main': True
+                        }]
+                    else:
+                        product['images'] = [{
+                            'url': 'https://via.placeholder.com/400x300?text=Product+Image',
+                            'filename': 'placeholder.jpg',
+                            'is_main': True
+                        }]
+                else:
+                    # Ensure each image has all required fields
+                    formatted_images = []
+                    for i, img in enumerate(product['images']):
+                        if isinstance(img, str):
+                            formatted_images.append({
+                                'url': img,
+                                'filename': img.split('/')[-1] if '/' in img else img,
+                                'is_main': i == 0
+                            })
+                        elif isinstance(img, dict):
+                            img_copy = dict(img)
+                            img_copy.setdefault('url', img.get('url', 'https://via.placeholder.com/400x300?text=Product+Image'))
+                            img_copy.setdefault('filename', img.get('filename', img_copy['url'].split('/')[-1]))
+                            img_copy.setdefault('is_main', img.get('is_main', i == 0))
+                            formatted_images.append(img_copy)
+                    product['images'] = formatted_images
+                    if product['images']:
+                        product['images'][0]['is_main'] = True
+            
+            return products
+        except Exception as e:
+            print(f"Error in get_random_products: {e}")
+            return []
+    
+    def get_product_similar_products(product_id, limit=4):
+        """Get similar products based on category with proper image handling"""
+        try:
+            products_collection = get_collection('products')
+            product = products_collection.find_one({'_id': ObjectId(product_id)})
+            
+            if not product:
+                return []
+            
+            similar_products = list(products_collection.find({
+                '_id': {'$ne': ObjectId(product_id)},
+                'category': product.get('category', '')
+            }).limit(limit))
+            
+            # Process each similar product
+            for p in similar_products:
+                p['images'] = get_product_images(p)
+            
+            return similar_products
+        except Exception as e:
+            print(f"Error in get_product_similar_products: {e}")
+            return []
+    
+    def get_product_main_image(product):
+        """Get the main image URL from product images"""
+        images = get_product_images(product)
+        for img in images:
+            if img.get('is_main', False):
+                return img['url']
+        return images[0]['url'] if images else 'https://via.placeholder.com/400x300?text=Product+Image'
+    
+    def get_product_image_urls(product):
+        """Get list of image URLs from product"""
+        images = get_product_images(product)
+        return [img['url'] for img in images]
+    
+    def has_multiple_images(product):
+        """Check if product has multiple images"""
+        images = get_product_images(product)
+        return len(images) > 1
+    
+    def get_product_image_by_index(product, index=0):
+        """Get product image by index"""
+        images = get_product_images(product)
+        if 0 <= index < len(images):
+            return images[index]
+        return {'url': 'https://via.placeholder.com/400x300?text=Product+Image', 'filename': 'placeholder.jpg', 'is_main': True}
+    
+    def get_product_image_filenames(product):
+        """Get list of image filenames from product"""
+        images = get_product_images(product)
+        return [img.get('filename', '') for img in images if img.get('filename')]
+    
+    def get_cart_item_image(cart_item):
+        """Get image for cart item"""
+        if 'image' in cart_item and cart_item['image']:
+            return cart_item['image']
+        
+        # Try to get from product
+        if 'product_id' in cart_item:
+            product = get_product_by_id(cart_item['product_id'])
+            if product:
+                return get_product_main_image(product)
+        
+        return 'https://via.placeholder.com/100x100?text=Product'
+    
+    def process_product_images(products):
+        """Process multiple products to ensure proper image structure"""
+        for product in products:
+            if 'images' not in product or not product['images']:
+                if 'image' in product and product['image']:
+                    product['images'] = [{
+                        'url': product['image'],
+                        'filename': product['image'].split('/')[-1] if '/' in product['image'] else product['image'],
+                        'is_main': True
+                    }]
+                else:
+                    product['images'] = [{
+                        'url': 'https://via.placeholder.com/400x300?text=Product+Image',
+                        'filename': 'placeholder.jpg',
+                        'is_main': True
+                    }]
+            else:
+                # Ensure each image has all required fields
+                formatted_images = []
+                for i, img in enumerate(product['images']):
+                    if isinstance(img, str):
+                        formatted_images.append({
+                            'url': img,
+                            'filename': img.split('/')[-1] if '/' in img else img,
+                            'is_main': i == 0
+                        })
+                    elif isinstance(img, dict):
+                        img_copy = dict(img)
+                        img_copy.setdefault('url', img.get('url', 'https://via.placeholder.com/400x300?text=Product+Image'))
+                        img_copy.setdefault('filename', img.get('filename', img_copy['url'].split('/')[-1]))
+                        img_copy.setdefault('is_main', img.get('is_main', i == 0))
+                        formatted_images.append(img_copy)
+                product['images'] = formatted_images
+                if product['images']:
+                    product['images'][0]['is_main'] = True
+        
+        return products
+    
+    def get_product_variations(product):
+        """Get product variations (sizes and colors)"""
+        sizes = safe_get(product, 'sizes', [])
+        colors = safe_get(product, 'colors', [])
+        
+        variations = []
+        if sizes:
+            variations.append({
+                'name': 'Size',
+                'values': sizes,
+                'type': 'size'
+            })
+        if colors:
+            variations.append({
+                'name': 'Color',
+                'values': colors,
+                'type': 'color'
+            })
+        
+        return variations
+    
     return dict(
         # Built-in functions
         enumerate=enumerate,
@@ -2578,49 +3233,269 @@ def utility_processor():
         list=list,
         range=range,
         
-        # Custom helper functions
+        # Core helper functions
         safe_get=safe_get,
-        get_product_image=get_product_image,
-        get_user_by_id=get_user_by_id,
-        get_cart_count=get_cart_count,
-        get_wishlist_count=get_wishlist_count,
         format_price=format_price,
         format_date=format_date,
-        get_order_status_badge=get_order_status_badge,
-        get_product_stock_status=get_product_stock_status,
+        format_number=format_number,
         truncate_text=truncate_text,
         get_current_year=get_current_year,
-        get_user_role_badge=get_user_role_badge,
-        get_payment_method_badge=get_payment_method_badge,
-        calculate_subtotal=calculate_subtotal,
-        get_paystack_public_key=get_paystack_public_key,
-        is_paystack_test_mode=is_paystack_test_mode,
-        get_payment_status_text=get_payment_status_text,
-        calculate_delivery_fee=calculate_delivery_fee,
         format_phone_number=format_phone_number,
-        get_order_items_count=get_order_items_count,
-        get_recent_orders=get_recent_orders,
+        
+        # Image handling functions (UPDATED)
+        get_product_images=get_product_images,
+        get_main_product_image=get_main_product_image,
+        get_product_main_image=get_product_main_image,
+        get_product_image=get_product_image,  # Legacy compatibility
+        get_product_image_urls=get_product_image_urls,
+        get_product_image_by_index=get_product_image_by_index,
+        get_product_image_filenames=get_product_image_filenames,
+        get_image_count=get_image_count,
+        has_multiple_images=has_multiple_images,
+        process_product_images=process_product_images,
+        
+        # Product functions
+        get_product_by_id=get_product_by_id,
+        get_product_categories=get_product_categories,
         get_featured_products=get_featured_products,
+        get_random_products=get_random_products,
+        get_product_similar_products=get_product_similar_products,
         get_product_reviews=get_product_reviews,
         get_average_rating=get_average_rating,
-        get_payment_icon=get_payment_icon,
-        get_delivery_time=get_delivery_time,
-        can_cancel_order=can_cancel_order,
-        get_currency_symbol=get_currency_symbol,
+        get_product_stock_status=get_product_stock_status,
+        get_product_availability=get_product_availability,
+        get_product_condition_badge=get_product_condition_badge,
+        get_product_discount_price=get_product_discount_price,
+        get_product_variations=get_product_variations,
+        is_product_featured=is_product_featured,
+        
+        # User functions
+        get_user_by_id=get_user_by_id,
+        get_session_user=get_session_user,
+        is_user_admin=is_user_admin,
+        is_user_verified=is_user_verified,
+        get_user_role_badge=get_user_role_badge,
+        get_cart_count=get_cart_count,
+        get_wishlist_count=get_wishlist_count,
+        get_cart_item_image=get_cart_item_image,
+        
+        # Order functions
+        get_recent_orders=get_recent_orders,
+        get_order_status_badge=get_order_status_badge,
+        get_order_items_count=get_order_items_count,
         format_order_id=format_order_id,
+        can_cancel_order=can_cancel_order,
+        
+        # Cart functions
+        calculate_subtotal=calculate_subtotal,
+        
+        # Payment functions
+        get_payment_method_badge=get_payment_method_badge,
+        get_payment_status_text=get_payment_status_text,
+        get_payment_icon=get_payment_icon,
+        get_paystack_public_key=get_paystack_public_key,
+        is_paystack_test_mode=is_paystack_test_mode,
+        
+        # Shipping functions
+        calculate_delivery_fee=calculate_delivery_fee,
+        get_delivery_time=get_delivery_time,
+        get_currency_symbol=get_currency_symbol,
+        
+        # Database utility
+        get_collection=get_collection,
         
         # Other utilities
         datetime=datetime,
-        get_collection=get_collection,
         request=request,
         session=session,
         
-        # Paystack configuration
+        # Configuration
         PAYSTACK_PUBLIC_KEY=PAYSTACK_PUBLIC_KEY,
         PAYSTACK_BASE_URL=PAYSTACK_BASE_URL
     )
-
 # ========== APPLICATION STARTUP ==========
+# ========== JINJA2 FILTERS ==========
+@app.route('/admin/bulk-delete-products', methods=['POST'])
+@admin_required
+def bulk_delete_products():
+    """Bulk delete products"""
+    try:
+        data = request.get_json()
+        product_ids = data.get('product_ids', [])
+        
+        if not product_ids:
+            return jsonify({'success': False, 'message': 'No products selected'})
+        
+        products_collection = get_collection('products')
+        
+        # Convert string IDs to ObjectId
+        object_ids = [ObjectId(pid) for pid in product_ids]
+        
+        # Delete products
+        result = products_collection.delete_many({'_id': {'$in': object_ids}})
+        
+        return jsonify({
+            'success': True, 
+            'message': f'{result.deleted_count} product(s) deleted successfully',
+            'deleted_count': result.deleted_count
+        })
+    except Exception as e:
+        print(f"Error in bulk_delete_products: {e}")
+        return jsonify({'success': False, 'message': 'Error deleting products'}), 500
+    
+@app.route('/admin/toggle-product-status/<product_id>')
+@admin_required
+def toggle_product_status(product_id):
+    """Toggle product status between active and draft"""
+    try:
+        products_collection = get_collection('products')
+        product = products_collection.find_one({'_id': ObjectId(product_id)})
+        
+        if not product:
+            flash('Product not found', 'danger')
+            return redirect(url_for('admin_products'))
+        
+        new_status = 'draft' if product.get('status') == 'active' else 'active'
+        
+        products_collection.update_one(
+            {'_id': ObjectId(product_id)},
+            {'$set': {'status': new_status}}
+        )
+        
+        flash(f'Product status changed to {new_status}', 'success')
+        return redirect(url_for('admin_products'))
+    except Exception as e:
+        print(f"Error in toggle_product_status: {e}")
+        flash('Error updating product status', 'danger')
+        return redirect(url_for('admin_products'))
+
+@app.route('/admin/toggle-featured/<product_id>')
+@admin_required
+def toggle_featured(product_id):
+    """Toggle featured status of a product"""
+    try:
+        products_collection = get_collection('products')
+        product = products_collection.find_one({'_id': ObjectId(product_id)})
+        
+        if not product:
+            flash('Product not found', 'danger')
+            return redirect(url_for('admin_products'))
+        
+        new_featured = not product.get('featured', False)
+        
+        products_collection.update_one(
+            {'_id': ObjectId(product_id)},
+            {'$set': {'featured': new_featured}}
+        )
+        
+        status = 'featured' if new_featured else 'unfeatured'
+        flash(f'Product {status} successfully', 'success')
+        return redirect(url_for('admin_products'))
+    except Exception as e:
+        print(f"Error in toggle_featured: {e}")
+        flash('Error updating featured status', 'danger')
+        return redirect(url_for('admin_products'))
+    
+@app.route('/admin/duplicate-product/<product_id>', methods=['GET', 'POST'])
+@admin_required
+def duplicate_product(product_id):
+    """Duplicate a product"""
+    try:
+        products_collection = get_collection('products')
+        
+        if request.method == 'GET':
+            product = products_collection.find_one({'_id': ObjectId(product_id)})
+            if not product:
+                flash('Product not found', 'danger')
+                return redirect(url_for('admin_products'))
+            return render_template('admin/duplicate_product.html', product=product)
+        
+        elif request.method == 'POST':
+            product = products_collection.find_one({'_id': ObjectId(product_id)})
+            if not product:
+                flash('Product not found', 'danger')
+                return redirect(url_for('admin_products'))
+            
+            # Get form data
+            new_name = request.form.get('new_name', f"{product['name']} (Copy)")
+            copy_images = request.form.get('copy_images') == 'on'
+            draft_status = request.form.get('draft_status') == 'on'
+            
+            # Create a copy of the product
+            new_product = dict(product)
+            
+            # Remove MongoDB _id to create a new document
+            new_product.pop('_id', None)
+            
+            # Update fields
+            new_product['name'] = new_name
+            new_product['status'] = 'draft' if draft_status else 'active'
+            new_product['featured'] = False  # Reset featured status for copy
+            new_product['created_at'] = datetime.utcnow()
+            new_product['updated_at'] = datetime.utcnow()
+            
+            # Insert the duplicated product
+            result = products_collection.insert_one(new_product)
+            
+            flash(f'Product duplicated successfully!', 'success')
+            return redirect(url_for('admin_products'))
+            
+    except Exception as e:
+        print(f"Error in duplicate_product: {e}")
+        flash('Error duplicating product', 'danger')
+        return redirect(url_for('admin_products'))
+# Register format_number as a Jinja2 filter
+@app.template_filter('format_number')
+def format_number_filter(number, decimals=0):
+    """Format number with commas - Jinja2 filter version"""
+    try:
+        if number is None:
+            return "0"
+        return f"{float(number):,.{decimals}f}"
+    except (ValueError, TypeError):
+        return str(number)
+
+# Register other filters you need
+@app.template_filter('format_date')
+def format_date_filter(date, format='%B %d, %Y'):
+    """Format datetime object - Jinja2 filter version"""
+    try:
+        if date:
+            return date.strftime(format)
+        return "N/A"
+    except (AttributeError, ValueError):
+        return "N/A"
+
+@app.template_filter('format_order_id')
+def format_order_id_filter(order_id):
+    """Format order ID for display - Jinja2 filter version"""
+    if not order_id:
+        return "N/A"
+    
+    # If it's a MongoDB ObjectId, convert to string
+    if isinstance(order_id, ObjectId):
+        return str(order_id)[-8:].upper()
+    
+    # If it starts with MUFRA, use as is
+    if str(order_id).startswith('MUFRA'):
+        return order_id
+    
+    # Otherwise, truncate
+    return str(order_id)[-8:].upper()
+
+# You might also need this filter that's used in your template:
+@app.template_filter('format_price')
+def format_price_filter(price):
+    """Format price with KES currency - Jinja2 filter version"""
+    try:
+        if price is None:
+            return "KES 0"
+        return f"KES {int(float(price)):,}"
+    except (ValueError, TypeError):
+        try:
+            return f"KES {price}"
+        except:
+            return "KES 0"
 
 if __name__ == '__main__':
     print("\n" + "="*50)
