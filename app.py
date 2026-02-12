@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from datetime import timedelta
 from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
+from types import SimpleNamespace
 from flask_pymongo import PyMongo
 from flask_mail import Mail, Message
 from bson.objectid import ObjectId
@@ -2095,6 +2096,18 @@ def admin_products():
         flash('Error loading products', 'danger')
         return render_template('admin/products.html', products=[])
 
+
+@app.route('/wishlist')
+def wishlist_redirect():
+    """Compatibility route: redirect legacy /wishlist endpoint to account#wishlist or login"""
+    try:
+        if 'user_id' in session:
+            return redirect(url_for('account') + '#wishlist')
+        return redirect(url_for('login'))
+    except Exception as e:
+        print(f"Error in wishlist_redirect: {e}")
+        return redirect(url_for('home'))
+
 @app.route('/admin/add-product', methods=['GET', 'POST'])
 @admin_required
 def add_product():
@@ -2333,16 +2346,223 @@ def delete_product(product_id):
 @app.route('/admin/orders')
 @admin_required
 def admin_orders():
-    """Admin order management"""
+    """Admin order management - HANDLES ALL ORDER FORMATS"""
+    try:
+        print("\n🔍 ===== ADMIN ORDERS ROUTE STARTED =====")
+        
+        # Get collections
+        orders_collection = get_collection('orders')
+        users_collection = get_collection('users')
+        
+        # Get ALL orders
+        orders = list(orders_collection.find({}).sort('created_at', -1))
+        print(f"✅ Raw orders from database: {len(orders)}")
+        
+        # Process orders for template
+        processed_orders = []
+        
+        for order in orders:
+            try:
+                # Create a clean dictionary
+                clean_order = {}
+                
+                # Handle different ID fields
+                if '_id' in order:
+                    clean_order['_id'] = str(order['_id']) if isinstance(order['_id'], ObjectId) else str(order['_id'])
+                
+                # Handle order_id - some use _id as order_id, some have separate field
+                if 'order_id' in order and order['order_id']:
+                    clean_order['order_id'] = str(order['order_id'])
+                elif '_id' in order:
+                    # Use _id as order_id if no order_id exists
+                    id_str = str(order['_id']) if isinstance(order['_id'], ObjectId) else str(order['_id'])
+                    # If it starts with MUFRA, use as is, otherwise generate
+                    if id_str.startswith('MUFRA'):
+                        clean_order['order_id'] = id_str
+                    else:
+                        clean_order['order_id'] = f"MUFRA{id_str[-8:]}"
+                else:
+                    clean_order['order_id'] = f"ORDER-{datetime.utcnow().timestamp()}"
+                
+                # Handle amount/total - some use total_amount, some use total
+                if 'total_amount' in order:
+                    clean_order['total'] = float(order['total_amount'])
+                elif 'total' in order:
+                    clean_order['total'] = float(order['total'])
+                else:
+                    clean_order['total'] = 0
+                
+                # Handle subtotal
+                if 'subtotal' in order:
+                    clean_order['subtotal'] = float(order['subtotal'])
+                elif 'cart_total' in order:
+                    clean_order['subtotal'] = float(order['cart_total'])
+                else:
+                    clean_order['subtotal'] = clean_order['total'] - order.get('delivery_fee', 0)
+                
+                # Handle delivery_fee
+                if 'delivery_fee' in order:
+                    clean_order['delivery_fee'] = float(order['delivery_fee'])
+                else:
+                    clean_order['delivery_fee'] = 150  # Default
+                
+                # Handle status
+                if 'status' in order:
+                    clean_order['status'] = order['status']
+                else:
+                    clean_order['status'] = 'pending'
+                
+                # Handle payment_status
+                if 'payment_status' in order:
+                    clean_order['payment_status'] = order['payment_status']
+                elif order.get('paid_at'):
+                    clean_order['payment_status'] = 'paid'
+                else:
+                    clean_order['payment_status'] = 'pending'
+                
+                # Handle payment_method
+                if 'payment_method' in order:
+                    clean_order['payment_method'] = order['payment_method']
+                else:
+                    clean_order['payment_method'] = 'paystack'
+                
+                # Handle created_at
+                if 'created_at' in order and order['created_at']:
+                    clean_order['created_at'] = order['created_at']
+                else:
+                    clean_order['created_at'] = datetime.utcnow()
+                
+                # Handle updated_at
+                if 'updated_at' in order and order['updated_at']:
+                    clean_order['updated_at'] = order['updated_at']
+                else:
+                    clean_order['updated_at'] = datetime.utcnow()
+                
+                # Handle shipping_address - different formats
+                clean_order['shipping_address'] = {}
+                
+                # Format 1: Direct fields in order
+                if 'address' in order or 'city' in order or 'region' in order:
+                    clean_order['shipping_address'] = {
+                        'street': order.get('address', ''),
+                        'city': order.get('city', ''),
+                        'county': order.get('region', order.get('county', '')),
+                        'postal_code': order.get('postal_code', ''),
+                        'phone': order.get('phone', ''),
+                        'name': order.get('name', 'Customer')
+                    }
+                
+                # Format 2: shipping_address object
+                elif 'shipping_address' in order and isinstance(order['shipping_address'], dict):
+                    clean_order['shipping_address'] = order['shipping_address']
+                
+                # Handle items - CRITICAL: Ensure it's a list
+                if 'items' in order:
+                    if isinstance(order['items'], list):
+                        processed_items = []
+                        for item in order['items']:
+                            if isinstance(item, dict):
+                                item_dict = {}
+                                for key, value in item.items():
+                                    if isinstance(value, ObjectId):
+                                        item_dict[key] = str(value)
+                                    else:
+                                        item_dict[key] = value
+                                processed_items.append(item_dict)
+                        clean_order['items'] = processed_items
+                    else:
+                        # If items is not a list, create empty list
+                        clean_order['items'] = []
+                else:
+                    clean_order['items'] = []
+                
+                # Handle user_id - could be null for guest checkouts
+                user_id = order.get('user_id')
+                clean_order['user_name'] = order.get('name', 'Guest Customer')
+                clean_order['user_email'] = order.get('email', 'N/A')
+                
+                if user_id:
+                    try:
+                        user_id_str = str(user_id) if not isinstance(user_id, ObjectId) else str(user_id)
+                        try:
+                            user = users_collection.find_one({'_id': ObjectId(user_id_str)})
+                        except:
+                            user = users_collection.find_one({'_id': user_id_str})
+                        
+                        if user:
+                            clean_order['user_name'] = user.get('name', order.get('name', 'Customer'))
+                            clean_order['user_email'] = user.get('email', order.get('email', 'N/A'))
+                    except Exception as e:
+                        print(f"⚠️ Error getting user: {e}")
+                
+                processed_orders.append(clean_order)
+                
+            except Exception as order_error:
+                print(f"❌ Error processing order: {order_error}")
+                import traceback
+                print(traceback.format_exc())
+                continue
+        
+        print(f"✅ Processed {len(processed_orders)} orders for template")
+        
+        # Return the template with orders
+        return render_template('admin/orders.html', orders=processed_orders)
+        
+    except Exception as e:
+        import traceback
+        print(f"❌ CRITICAL ERROR in admin_orders: {e}")
+        print(traceback.format_exc())
+        flash(f'Error loading orders: {str(e)}', 'danger')
+        return render_template('admin/orders.html', orders=[])
+    
+@app.route('/admin/debug-orders-direct')
+@admin_required
+def debug_orders_direct():
+    """Direct debug to see what's in the orders collection"""
     try:
         orders_collection = get_collection('orders')
-        orders = list(orders_collection.find().sort('created_at', -1))
-        return render_template('admin/orders.html', orders=orders)
+        
+        # Get raw count
+        total_count = orders_collection.count_documents({})
+        
+        # Get raw documents
+        raw_orders = list(orders_collection.find({}).limit(5))
+        
+        # Convert to JSON-serializable format
+        debug_orders = []
+        for order in raw_orders:
+            order_dict = {}
+            for key, value in order.items():
+                if isinstance(value, ObjectId):
+                    order_dict[key] = str(value)
+                elif isinstance(value, datetime):
+                    order_dict[key] = value.isoformat()
+                elif key == 'items':
+                    items = []
+                    for item in value:
+                        item_dict = {}
+                        for ik, iv in item.items():
+                            if isinstance(iv, ObjectId):
+                                item_dict[ik] = str(iv)
+                            else:
+                                item_dict[ik] = iv
+                        items.append(item_dict)
+                    order_dict[key] = items
+                else:
+                    order_dict[key] = value
+            debug_orders.append(order_dict)
+        
+        return jsonify({
+            'total_orders_in_db': total_count,
+            'sample_orders': debug_orders,
+            'collections': get_db().list_collection_names()
+        })
     except Exception as e:
-        print(f"Error in admin_orders: {e}")
-        flash('Error loading orders', 'danger')
-        return render_template('admin/orders.html', orders=[])
-
+        import traceback
+        return jsonify({
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
 @app.route('/admin/update-order-status/<order_id>', methods=['POST'])
 @admin_required
 def update_order_status(order_id):
@@ -2931,12 +3151,29 @@ def utility_processor():
             'pending': 'warning',
             'processing': 'info',
             'paid': 'primary',
+            'disbursed': 'info',
             'shipped': 'secondary',
             'delivered': 'success',
+            'received': 'success',
             'cancelled': 'danger',
             'failed': 'danger'
         }
         return status_map.get(status.lower(), 'secondary')
+    
+    def get_order_status_icon(status):
+        """Get Font Awesome icon class for order status"""
+        icon_map = {
+            'pending': 'hourglass-start',
+            'processing': 'cog',
+            'paid': 'credit-card',
+            'disbursed': 'hand-holding-box',
+            'shipped': 'shipping-fast',
+            'delivered': 'check-circle',
+            'received': 'box-open',
+            'cancelled': 'times-circle',
+            'failed': 'exclamation-circle'
+        }
+        return icon_map.get(status.lower(), 'box')
     
     def get_product_stock_status(stock):
         """Get stock status text and color"""
@@ -3532,6 +3769,56 @@ def utility_processor():
                 return get_product_main_image(product)
         
         return 'https://via.placeholder.com/100x100?text=Product'
+
+    def get_cart_item_images(cart_item):
+        """Get images for cart item - handles both dict and object formats"""
+        try:
+            # If product_id exists, try to get the full product
+            product_id = cart_item.get('product_id') if isinstance(cart_item, dict) else getattr(cart_item, 'product_id', None)
+            if product_id:
+                # Convert to ObjectId if it's a string
+                from bson.objectid import ObjectId
+                try:
+                    if isinstance(product_id, str):
+                        product_obj_id = ObjectId(product_id)
+                    else:
+                        product_obj_id = product_id
+                    
+                    products_collection = get_collection('products')
+                    product = products_collection.find_one({'_id': product_obj_id})
+                    
+                    if product:
+                        return get_product_images(product)
+                except Exception:
+                    pass
+            
+            # Fallback to cart item's image field
+            image_field = None
+            if isinstance(cart_item, dict):
+                image_field = cart_item.get('image')
+            else:
+                image_field = getattr(cart_item, 'image', None)
+
+            if image_field:
+                return [{
+                    'url': image_field,
+                    'filename': image_field.split('/')[-1] if '/' in image_field else image_field,
+                    'is_main': True
+                }]
+            
+            # Default placeholder
+            return [{
+                'url': 'https://via.placeholder.com/100x100?text=Product',
+                'filename': 'placeholder.jpg',
+                'is_main': True
+            }]
+        except Exception as e:
+            print(f"Error in get_cart_item_images: {e}")
+            return [{
+                'url': 'https://via.placeholder.com/100x100?text=Product',
+                'filename': 'placeholder.jpg',
+                'is_main': True
+            }]
     
     def process_product_images(products):
         """Process multiple products to ensure proper image structure"""
@@ -3593,13 +3880,11 @@ def utility_processor():
         return variations
     
     return dict(
-        # Built-in functions
+        # Built-in functions (avoid overriding core Jinja filters like 'len' and 'list')
         enumerate=enumerate,
-        len=len,
         str=str,
         int=int,
         float=float,
-        list=list,
         range=range,
         
         # Core helper functions
@@ -3653,6 +3938,7 @@ def utility_processor():
         get_recent_orders=get_recent_orders,
         get_recently_viewed=get_recently_viewed,  # ADDED THIS LINE
         get_order_status_badge=get_order_status_badge,
+        get_order_status_icon=get_order_status_icon,
         get_order_items_count=get_order_items_count,
         format_order_id=format_order_id,
         can_cancel_order=can_cancel_order,

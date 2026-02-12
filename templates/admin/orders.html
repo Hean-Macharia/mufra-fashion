@@ -1,29 +1,30 @@
-{% extends "base.html" %}
+{% extends "admin/base.html" %}
 
-{% block title %}My Orders - MUFRA FASHIONS{% endblock %}
+{% block title %}Order Management - MUFRA ADMIN{% endblock %}
 
 {% block content %}
-<div class="container py-4">
+{# Safety check - ensure orders is always a list #}
+{% if orders is not defined or orders is none or orders is string %}
+    {% set orders = [] %}
+{% endif %}
+
+<div class="container-fluid">
     <!-- Page Header -->
-    <div class="row mb-5">
+    <div class="row mb-4">
         <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h1 class="mb-0"><i class="fas fa-shopping-bag me-2"></i>My Orders</h1>
-                <a href="{{ url_for('account') }}" class="btn btn-outline-primary">
-                    <i class="fas fa-user-circle me-2"></i> Back to Account
-                </a>
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="mb-1"><i class="fas fa-shopping-bag me-2"></i>Order Management</h1>
+                    <p class="text-muted mb-0">Manage customer orders and update delivery status</p>
+                </div>
+                <button class="btn btn-outline-secondary" onclick="location.reload()">
+                    <i class="fas fa-sync me-2"></i>Refresh
+                </button>
             </div>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="{{ url_for('home') }}">Home</a></li>
-                    <li class="breadcrumb-item"><a href="{{ url_for('account') }}">Account</a></li>
-                    <li class="breadcrumb-item active">Orders</li>
-                </ol>
-            </nav>
         </div>
     </div>
 
-    <!-- Orders Overview -->
+    <!-- Order Statistics -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="card shadow-sm border-0">
@@ -31,25 +32,49 @@
                     <div class="row text-center">
                         <div class="col-md-3 col-6 mb-3">
                             <div class="d-flex flex-column align-items-center">
-                                <span class="stats-number">{{ orders|length }}</span>
+                                <span class="stats-number">{{ orders|length if orders is iterable else 0 }}</span>
                                 <span class="stats-label">Total Orders</span>
                             </div>
                         </div>
                         <div class="col-md-3 col-6 mb-3">
                             <div class="d-flex flex-column align-items-center">
-                                <span class="stats-number">{{ orders|selectattr('status', 'equalto', 'delivered')|list|length }}</span>
+                                {% set delivered_count = 0 %}
+                                {% if orders is iterable %}
+                                    {% for order in orders %}
+                                        {% if order.status|lower == 'delivered' %}
+                                            {% set delivered_count = delivered_count + 1 %}
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endif %}
+                                <span class="stats-number">{{ delivered_count }}</span>
                                 <span class="stats-label">Delivered</span>
                             </div>
                         </div>
                         <div class="col-md-3 col-6 mb-3">
                             <div class="d-flex flex-column align-items-center">
-                                <span class="stats-number">{{ orders|selectattr('status', 'in', ['processing', 'shipped'])|list|length }}</span>
+                                {% set progress_count = 0 %}
+                                {% if orders is iterable %}
+                                    {% for order in orders %}
+                                        {% if order.status|lower in ['processing', 'shipped', 'paid', 'disbursed'] %}
+                                            {% set progress_count = progress_count + 1 %}
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endif %}
+                                <span class="stats-number">{{ progress_count }}</span>
                                 <span class="stats-label">In Progress</span>
                             </div>
                         </div>
                         <div class="col-md-3 col-6 mb-3">
                             <div class="d-flex flex-column align-items-center">
-                                <span class="stats-number">{{ orders|selectattr('status', 'equalto', 'cancelled')|list|length }}</span>
+                                {% set cancelled_count = 0 %}
+                                {% if orders is iterable %}
+                                    {% for order in orders %}
+                                        {% if order.status|lower == 'cancelled' %}
+                                            {% set cancelled_count = cancelled_count + 1 %}
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endif %}
+                                <span class="stats-number">{{ cancelled_count }}</span>
                                 <span class="stats-label">Cancelled</span>
                             </div>
                         </div>
@@ -71,7 +96,7 @@
                                     <i class="fas fa-search text-muted"></i>
                                 </span>
                                 <input type="text" class="form-control border-0" id="orderSearch" 
-                                       placeholder="Search by order ID or product name...">
+                                       placeholder="Search by order ID or customer name...">
                             </div>
                         </div>
                         <div class="col-md-4">
@@ -79,9 +104,13 @@
                                 <option value="all">All Statuses</option>
                                 <option value="pending">Pending</option>
                                 <option value="processing">Processing</option>
+                                <option value="paid">Paid</option>
+                                <option value="disbursed">Disbursed</option>
                                 <option value="shipped">Shipped</option>
+                                <option value="received">Received</option>
                                 <option value="delivered">Delivered</option>
                                 <option value="cancelled">Cancelled</option>
+                                <option value="failed">Failed</option>
                             </select>
                         </div>
                         <div class="col-md-2">
@@ -95,54 +124,74 @@
         </div>
     </div>
 
-    {% if orders %}
+    {% if orders and orders is iterable and orders|length > 0 %}
     <!-- Orders List -->
     <div class="row">
         <div class="col-12">
             <div class="orders-list">
                 {% for order in orders %}
-                <div class="card shadow-sm border-0 mb-4 order-card" data-order-id="{{ order.order_id }}" data-status="{{ order.status }}">
+                {% if order is mapping %}
+                <div class="card shadow-sm border-0 mb-4 order-card" 
+                     data-order-id="{{ order.order_id|default(order._id, true)|string|default('', true) }}" 
+                     data-status="{{ order.status|default('pending', true)|lower }}">
                     <div class="card-header bg-white border-0 pb-0">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <div>
-                                <h5 class="mb-1">Order #{{ order.order_id }}</h5>
+                                <h5 class="mb-1">Order #{{ order.order_id|default(order._id, true)|string|truncate(12, true, '') }}</h5>
                                 <div class="text-muted small">
                                     <i class="fas fa-calendar-alt me-1"></i>
-                                    {{ format_date(order.created_at, '%B %d, %Y') }}
+                                    {{ format_date(order.created_at|default(none), '%B %d, %Y')|default('N/A', true) }}
                                     <span class="mx-2">•</span>
                                     <i class="fas fa-clock me-1"></i>
-                                    {{ format_date(order.created_at, '%I:%M %p') }}
+                                    {{ format_date(order.created_at|default(none), '%I:%M %p')|default('N/A', true) }}
+                                </div>
+                                <div class="mt-1">
+                                    <span class="badge bg-secondary me-1">
+                                        <i class="fas fa-user me-1"></i>{{ order.user_name|default(order.name|default('Guest', true), true) }}
+                                    </span>
+                                    {% if order.user_email and order.user_email != 'N/A' %}
+                                    <span class="badge bg-info">
+                                        <i class="fas fa-envelope me-1"></i>{{ order.user_email }}
+                                    </span>
+                                    {% endif %}
                                 </div>
                             </div>
                             <div class="text-end">
                                 <div class="order-status-badge mb-2">
-                                    <span class="badge bg-{{ get_order_status_badge(order.status) }} px-3 py-2">
-                                        <i class="fas fa-{{ get_order_status_icon(order.status) }} me-2"></i>
-                                        {{ order.status|title }}
+                                    <span class="badge bg-{{ get_order_status_badge(order.status|default('pending', true)) }} px-3 py-2">
+                                        <i class="fas fa-{{ get_order_status_icon(order.status|default('pending', true)) }} me-2"></i>
+                                        {{ (order.status|default('pending', true))|title }}
                                     </span>
                                 </div>
                                 <div class="order-total">
-                                    <h4 class="mb-0 text-primary">{{ format_price(order.total) }}</h4>
-                                    <small class="text-muted">{{ order.items|length }} item{% if order.items|length != 1 %}s{% endif %}</small>
+                                    <h4 class="mb-0 text-primary">{{ format_price(order.total|default(0, true)) }}</h4>
+                                    <small class="text-muted">
+                                        {% if order.items and order.items is iterable %}
+                                            {{ order.items|length }} item{% if order.items|length != 1 %}s{% endif %}
+                                        {% else %}
+                                            0 items
+                                        {% endif %}
+                                    </small>
                                 </div>
                             </div>
                         </div>
                         
                         <!-- Order Progress Timeline -->
                         <div class="order-timeline mb-3">
-                            <div class="timeline-step {% if order.status == 'pending' %}active{% endif %}">
+                            {% set order_status = order.status|default('pending', true)|lower %}
+                            <div class="timeline-step {% if order_status in ['pending', 'processing', 'paid', 'shipped', 'delivered'] %}active{% endif %}">
                                 <div class="timeline-dot"></div>
                                 <div class="timeline-label">Order Placed</div>
                             </div>
-                            <div class="timeline-step {% if order.status == 'processing' or order.status in ['shipped', 'delivered'] %}active{% endif %}">
+                            <div class="timeline-step {% if order_status in ['processing', 'paid', 'shipped', 'delivered'] %}active{% endif %}">
                                 <div class="timeline-dot"></div>
                                 <div class="timeline-label">Processing</div>
                             </div>
-                            <div class="timeline-step {% if order.status == 'shipped' or order.status == 'delivered' %}active{% endif %}">
+                            <div class="timeline-step {% if order_status in ['shipped', 'delivered'] %}active{% endif %}">
                                 <div class="timeline-dot"></div>
                                 <div class="timeline-label">Shipped</div>
                             </div>
-                            <div class="timeline-step {% if order.status == 'delivered' %}active{% endif %}">
+                            <div class="timeline-step {% if order_status == 'delivered' %}active{% endif %}">
                                 <div class="timeline-dot"></div>
                                 <div class="timeline-label">Delivered</div>
                             </div>
@@ -154,97 +203,73 @@
                         <div class="order-items mb-4">
                             <h6 class="mb-3">Order Items</h6>
                             <div class="row">
-                                {% for item in order.items %}
-                                <div class="col-md-6 mb-3">
-                                    <div class="order-item-card p-3 border rounded">
-                                        <div class="row align-items-center">
-                                            <!-- Product Image with Multiple Views -->
-                                            <div class="col-4 col-md-3">
-                                                <div class="position-relative">
-                                                    {% set item_images = get_cart_item_images(item) %}
-                                                    {% if item_images|length > 1 %}
-                                                    <div id="accountOrderImageCarousel{{ loop.parent.loop.index0 }}_{{ loop.index0 }}" 
-                                                         class="carousel slide account-order-image-carousel" data-bs-ride="carousel">
-                                                        <div class="carousel-inner">
-                                                            {% for img in item_images %}
-                                                            <div class="carousel-item {% if loop.first %}active{% endif %}">
-                                                                <img src="{{ img.url if img.url.startswith('http') else url_for('static', filename='uploads/' + img.url) }}" 
-                                                                     class="img-fluid rounded account-order-item-image" 
-                                                                     alt="{{ item.name }} - Image {{ loop.index }}"
-                                                                     onerror="this.src='https://via.placeholder.com/100x100?text=Product'">
-                                                            </div>
-                                                            {% endfor %}
-                                                        </div>
-                                                        {% if item_images|length > 1 %}
-                                                        <button class="carousel-control-prev" type="button" 
-                                                                data-bs-target="#accountOrderImageCarousel{{ loop.parent.loop.index0 }}_{{ loop.index0 }}" 
-                                                                data-bs-slide="prev">
-                                                            <span class="carousel-control-prev-icon"></span>
-                                                        </button>
-                                                        <button class="carousel-control-next" type="button" 
-                                                                data-bs-target="#accountOrderImageCarousel{{ loop.parent.loop.index0 }}_{{ loop.index0 }}" 
-                                                                data-bs-slide="next">
-                                                            <span class="carousel-control-next-icon"></span>
-                                                        </button>
+                                {% if order.items and order.items is iterable %}
+                                    {% for item in order.items %}
+                                    {% if item is mapping %}
+                                    <div class="col-md-6 mb-3">
+                                        <div class="order-item-card p-3 border rounded">
+                                            <div class="row align-items-center">
+                                                <!-- Product Image -->
+                                                <div class="col-4 col-md-3">
+                                                    <div class="position-relative">
+                                                        {% set item_images = get_cart_item_images(item) %}
+                                                        <img src="{{ get_cart_item_image(item) }}" 
+                                                             class="img-fluid rounded account-order-item-image" 
+                                                             alt="{{ item.name|default('Product', true) }}"
+                                                             onerror="this.src='https://via.placeholder.com/100x100?text=Product'">
+                                                        {% if item_images and item_images|length > 1 %}
+                                                        <span class="position-absolute top-0 end-0 badge bg-dark bg-opacity-75 small">
+                                                            <i class="fas fa-images me-1"></i>{{ item_images|length }}
+                                                        </span>
                                                         {% endif %}
                                                     </div>
-                                                    <span class="position-absolute top-0 end-0 badge bg-dark bg-opacity-75 small">
-                                                        <i class="fas fa-images me-1"></i>{{ item_images|length }}
-                                                    </span>
-                                                    {% else %}
-                                                    <img src="{{ get_cart_item_image(item) }}" 
-                                                         class="img-fluid rounded account-order-item-image" 
-                                                         alt="{{ item.name }}"
-                                                         onerror="this.src='https://via.placeholder.com/100x100?text=Product'">
-                                                    {% endif %}
+                                                </div>
+                                                
+                                                <!-- Product Details -->
+                                                <div class="col-8 col-md-9">
+                                                    <h6 class="mb-1">{{ item.name|default('Product', true) }}</h6>
+                                                    <div class="text-muted small mb-2">
+                                                        {% if item.size and item.size != '' %}
+                                                        <span class="me-2"><i class="fas fa-ruler me-1"></i>{{ item.size }}</span>
+                                                        {% endif %}
+                                                        {% if item.color and item.color != '' %}
+                                                        <span><i class="fas fa-palette me-1"></i>{{ item.color }}</span>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="d-flex justify-content-between align-items-center">
+                                                        <div>
+                                                            <span class="fw-bold">{{ format_price(item.price|default(0, true)) }}</span>
+                                                            <small class="text-muted ms-2">× {{ item.quantity|default(1, true) }}</small>
+                                                        </div>
+                                                        <div class="text-end">
+                                                            <strong class="text-primary">{{ format_price((item.price|default(0, true)) * (item.quantity|default(1, true))) }}</strong>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                             
-                                            <!-- Product Details -->
-                                            <div class="col-8 col-md-9">
-                                                <h6 class="mb-1">{{ item.name }}</h6>
-                                                <div class="text-muted small mb-2">
-                                                    {% if item.size %}
-                                                    <span class="me-2"><i class="fas fa-ruler me-1"></i>{{ item.size }}</span>
-                                                    {% endif %}
-                                                    {% if item.color %}
-                                                    <span><i class="fas fa-palette me-1"></i>{{ item.color }}</span>
+                                            <!-- Item Actions -->
+                                            <div class="row mt-3">
+                                                <div class="col-12">
+                                                    {% if item.product_id %}
+                                                    <a href="{{ url_for('product_details', product_id=item.product_id) }}" 
+                                                       class="btn btn-sm btn-outline-primary">
+                                                        <i class="fas fa-eye me-1"></i> View Product
+                                                    </a>
                                                     {% endif %}
                                                 </div>
-                                                <div class="d-flex justify-content-between align-items-center">
-                                                    <div>
-                                                        <span class="fw-bold">{{ format_price(item.price) }}</span>
-                                                        <small class="text-muted ms-2">× {{ item.quantity }}</small>
-                                                    </div>
-                                                    <div class="text-end">
-                                                        <strong class="text-primary">{{ format_price(item.price * item.quantity) }}</strong>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Item Status and Actions -->
-                                        <div class="row mt-3">
-                                            <div class="col-md-6">
-                                                {% if item.product_id %}
-                                                <a href="{{ url_for('product_details', product_id=item.product_id) }}" 
-                                                   class="btn btn-sm btn-outline-primary">
-                                                    <i class="fas fa-eye me-1"></i> View Product
-                                                </a>
-                                                {% endif %}
-                                            </div>
-                                            <div class="col-md-6 text-md-end">
-                                                {% if order.status == 'delivered' %}
-                                                <button class="btn btn-sm btn-outline-success" 
-                                                        onclick="reviewProduct('{{ item.product_id }}', '{{ item.name }}')">
-                                                    <i class="fas fa-star me-1"></i> Write Review
-                                                </button>
-                                                {% endif %}
                                             </div>
                                         </div>
                                     </div>
+                                    {% endif %}
+                                    {% endfor %}
+                                {% else %}
+                                <div class="col-12">
+                                    <div class="alert alert-light mb-0">
+                                        <i class="fas fa-info-circle me-2"></i>No items found for this order.
+                                    </div>
                                 </div>
-                                {% endfor %}
+                                {% endif %}
                             </div>
                         </div>
                         
@@ -257,36 +282,41 @@
                                         <h6 class="mb-3">
                                             <i class="fas fa-truck me-2"></i>Shipping Information
                                         </h6>
-                                        {% if order.shipping_address %}
+                                        {% if order.shipping_address or order.address %}
                                         <div class="shipping-details">
+                                            {% set ship = order.shipping_address|default(order, true) %}
                                             <p class="mb-2">
-                                                <strong>{{ order.shipping_address.name }}</strong>
+                                                <strong>{{ ship.name|default(order.name|default('Customer', true), true) }}</strong>
                                             </p>
                                             <p class="mb-2">
-                                                {{ order.shipping_address.street }}
-                                                {% if order.shipping_address.additional_info %}
-                                                <br>{{ order.shipping_address.additional_info }}
-                                                {% endif %}
+                                                {{ ship.street|default(ship.address|default('', true), true) }}
                                             </p>
                                             <p class="mb-2">
-                                                {{ order.shipping_address.city }}, 
-                                                {{ order.shipping_address.county }}
-                                                {% if order.shipping_address.postal_code %}
-                                                - {{ order.shipping_address.postal_code }}
+                                                {{ ship.city|default(order.city|default('', true), true) }}, 
+                                                {{ ship.county|default(order.region|default(order.county|default('', true), true), true) }}
+                                                {% if ship.postal_code %}
+                                                - {{ ship.postal_code }}
                                                 {% endif %}
                                             </p>
                                             <p class="mb-0">
                                                 <i class="fas fa-phone me-2"></i>
-                                                +254{{ order.shipping_address.phone }}
+                                                {{ format_phone_number(ship.phone|default(order.phone|default('', true), true)) }}
                                             </p>
                                         </div>
+                                        {% else %}
+                                        <p class="text-muted mb-0">No shipping information available</p>
                                         {% endif %}
                                         
                                         <!-- Delivery Estimate -->
                                         <div class="mt-4 pt-3 border-top">
                                             <small class="text-muted">Estimated Delivery:</small>
                                             <p class="mb-0">
-                                                {% set county = order.shipping_address.county|lower if order.shipping_address and order.shipping_address.county else '' %}
+                                                {% set county = '' %}
+                                                {% if order.shipping_address and order.shipping_address.county %}
+                                                    {% set county = order.shipping_address.county|lower %}
+                                                {% elif order.region %}
+                                                    {% set county = order.region|lower %}
+                                                {% endif %}
                                                 {% if 'embu' in county %}
                                                     <span class="fw-bold text-success">1-2 business days</span>
                                                 {% else %}
@@ -309,32 +339,47 @@
                                         <div class="order-summary mb-4">
                                             <div class="d-flex justify-content-between mb-2">
                                                 <span class="text-muted">Subtotal:</span>
-                                                <span>{{ format_price(order.subtotal) }}</span>
+                                                <span>{{ format_price(order.subtotal|default(order.cart_total|default(order.total|default(0, true), true), true)) }}</span>
                                             </div>
                                             <div class="d-flex justify-content-between mb-2">
                                                 <span class="text-muted">Delivery Fee:</span>
-                                                <span>{{ format_price(order.delivery_fee) }}</span>
+                                                <span>{{ format_price(order.delivery_fee|default(0, true)) }}</span>
                                             </div>
                                             <div class="d-flex justify-content-between mb-2">
                                                 <span class="text-muted">Payment Method:</span>
                                                 <span class="badge bg-light text-dark">
-                                                    {{ order.payment_method|title if order.payment_method else 'Paystack' }}
+                                                    {{ (order.payment_method|default('paystack', true))|title }}
                                                 </span>
                                             </div>
+                                            {% if order.transaction_id or order.paystack_ref %}
+                                            <div class="d-flex justify-content-between mb-2">
+                                                <span class="text-muted">Transaction ID:</span>
+                                                <span class="small">{{ order.transaction_id|default(order.paystack_ref|default('N/A', true), true) }}</span>
+                                            </div>
+                                            {% endif %}
                                             <hr class="my-3">
                                             <div class="d-flex justify-content-between">
                                                 <strong class="fs-5">Total:</strong>
-                                                <strong class="fs-5 text-primary">{{ format_price(order.total) }}</strong>
+                                                <strong class="fs-5 text-primary">{{ format_price(order.total|default(order.total_amount|default(0, true), true)) }}</strong>
                                             </div>
                                         </div>
                                         
                                         <!-- Payment Status -->
                                         <div class="payment-status mb-4">
                                             <small class="text-muted d-block mb-2">Payment Status:</small>
-                                            <span class="badge bg-{{ 'success' if order.payment_status == 'paid' else 'warning' }} px-3 py-2">
-                                                <i class="fas fa-{{ 'check-circle' if order.payment_status == 'paid' else 'clock' }} me-2"></i>
-                                                {{ order.payment_status|title if order.payment_status else 'Pending' }}
+                                            {% set payment_status = order.payment_status|default('pending', true)|lower %}
+                                            {% if order.paid_at or payment_status == 'completed' or payment_status == 'paid' %}
+                                                {% set payment_status = 'paid' %}
+                                            {% endif %}
+                                            <span class="badge bg-{{ 'success' if payment_status == 'paid' else 'warning' }} px-3 py-2">
+                                                <i class="fas fa-{{ 'check-circle' if payment_status == 'paid' else 'clock' }} me-2"></i>
+                                                {{ payment_status|title }}
                                             </span>
+                                            {% if order.paid_at %}
+                                            <small class="d-block mt-1 text-muted">
+                                                Paid on {{ format_date(order.paid_at, '%B %d, %Y at %I:%M %p') }}
+                                            </small>
+                                            {% endif %}
                                         </div>
                                     </div>
                                 </div>
@@ -346,24 +391,29 @@
                             <div class="col-12">
                                 <div class="d-flex flex-wrap gap-2 justify-content-between">
                                     <div>
-                                        <a href="{{ url_for('order_confirmation', order_id=order.order_id) }}" 
+                                        <a href="{{ url_for('order_confirmation', order_id=order.order_id|default(order._id, true)) }}" 
                                            class="btn btn-outline-primary">
-                                            <i class="fas fa-eye me-2"></i> View Order Details
+                                            <i class="fas fa-eye me-2"></i> View Details
                                         </a>
-                                        <button class="btn btn-outline-secondary" onclick="printOrder('{{ order.order_id }}')">
-                                            <i class="fas fa-print me-2"></i> Print Invoice
+                                        <button class="btn btn-outline-secondary" onclick="printOrder('{{ order.order_id|default(order._id, true) }}')">
+                                            <i class="fas fa-print me-2"></i> Print
                                         </button>
                                     </div>
                                     <div>
-                                        {% if order.status == 'pending' %}
-                                        <button class="btn btn-outline-danger" 
-                                                onclick="cancelOrder('{{ order.order_id }}')">
-                                            <i class="fas fa-times me-2"></i> Cancel Order
+                                        <button class="btn btn-outline-primary btn-sm me-2" 
+                                                onclick="openUpdateStatusModal('{{ order.order_id|default(order._id, true) }}', '{{ order.status|default('pending', true) }}')">
+                                            <i class="fas fa-exchange-alt me-1"></i> Update Status
+                                        </button>
+
+                                        {% if order.status|lower in ['pending', 'processing'] %}
+                                        <button class="btn btn-outline-danger btn-sm me-2" 
+                                                onclick="cancelOrder('{{ order.order_id|default(order._id, true) }}')">
+                                            <i class="fas fa-times me-2"></i> Cancel
                                         </button>
                                         {% endif %}
                                         
-                                        {% if order.status == 'delivered' %}
-                                        <button class="btn btn-outline-success" 
+                                        {% if order.status|lower == 'delivered' and order.items and order.items is iterable %}
+                                        <button class="btn btn-outline-success btn-sm" 
                                                 onclick="reorderItems({{ order.items|tojson|safe }})">
                                             <i class="fas fa-redo me-2"></i> Reorder
                                         </button>
@@ -380,48 +430,23 @@
                             <div class="col-md-6 mb-2 mb-md-0">
                                 <small class="text-muted">
                                     <i class="fas fa-info-circle me-1"></i>
-                                    Order ID: {{ order.order_id }} | 
-                                    {% if order.transaction_id %}
-                                    Transaction: {{ order.transaction_id|truncate(12, True, '') }}
+                                    Order ID: {{ order.order_id|default(order._id, true) }}
+                                    {% if order.paystack_ref %}
+                                    | Ref: {{ order.paystack_ref|truncate(12, true, '') }}
                                     {% endif %}
                                 </small>
                             </div>
                             <div class="col-md-6 text-md-end">
-                                {% if order.status == 'delivered' and order.items|length > 0 %}
-                                <a href="#" class="btn btn-sm btn-link text-decoration-none" 
-                                   onclick="reviewAllProducts({{ order.items|tojson|safe }})">
-                                    <i class="fas fa-star me-1"></i> Review All Items
-                                </a>
-                                {% endif %}
+                                <small class="text-muted">
+                                    Last updated: {{ format_date(order.updated_at|default(order.created_at|default(none, true), true), '%B %d, %Y')|default('N/A', true) }}
+                                </small>
                             </div>
                         </div>
                     </div>
                 </div>
+                {% endif %}
                 {% endfor %}
             </div>
-            
-            <!-- Pagination -->
-            {% if orders|length > 10 %}
-            <div class="d-flex justify-content-center mt-4">
-                <nav aria-label="Orders pagination">
-                    <ul class="pagination">
-                        <li class="page-item disabled">
-                            <a class="page-link" href="#" tabindex="-1">
-                                <i class="fas fa-chevron-left"></i>
-                            </a>
-                        </li>
-                        <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                        <li class="page-item"><a class="page-link" href="#">2</a></li>
-                        <li class="page-item"><a class="page-link" href="#">3</a></li>
-                        <li class="page-item">
-                            <a class="page-link" href="#">
-                                <i class="fas fa-chevron-right"></i>
-                            </a>
-                        </li>
-                    </ul>
-                </nav>
-            </div>
-            {% endif %}
         </div>
     </div>
     
@@ -431,14 +456,11 @@
         <div class="empty-orders-icon mb-4">
             <i class="fas fa-shopping-bag fa-4x text-muted"></i>
         </div>
-        <h3 class="mb-3">No Orders Yet</h3>
-        <p class="text-muted mb-4">You haven't placed any orders yet. Start shopping to see your order history here.</p>
+        <h3 class="mb-3">No Orders Found</h3>
+        <p class="text-muted mb-4">There are no orders in the system yet. Orders will appear here once customers make purchases.</p>
         <div class="d-grid gap-2 d-md-flex justify-content-center">
-            <a href="{{ url_for('categories') }}" class="btn btn-primary btn-lg px-5">
-                <i class="fas fa-shopping-bag me-2"></i> Start Shopping
-            </a>
-            <a href="{{ url_for('home') }}" class="btn btn-outline-primary btn-lg px-5">
-                <i class="fas fa-home me-2"></i> Back to Home
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-primary btn-lg px-5">
+                <i class="fas fa-tachometer-alt me-2"></i> Back to Dashboard
             </a>
         </div>
     </div>
@@ -463,11 +485,14 @@
                         <option value="found_cheaper">Found cheaper elsewhere</option>
                         <option value="too_expensive">Too expensive</option>
                         <option value="delivery_time">Delivery time too long</option>
+                        <option value="out_of_stock">Item out of stock</option>
+                        <option value="fraud_suspicion">Fraud suspicion</option>
                         <option value="other">Other reason</option>
                     </select>
                 </div>
                 <div class="mb-3" id="otherReasonDiv" style="display: none;">
-                    <textarea class="form-control" id="otherReason" rows="3" placeholder="Please specify..."></textarea>
+                    <label for="otherReason" class="form-label">Please specify:</label>
+                    <textarea class="form-control" id="otherReason" rows="3" placeholder="Enter reason..."></textarea>
                 </div>
             </div>
             <div class="modal-footer">
@@ -478,43 +503,38 @@
     </div>
 </div>
 
-<!-- Review Product Modal -->
-<div class="modal fade" id="reviewProductModal" tabindex="-1">
+<!-- Update Status Modal (Admin) -->
+<div class="modal fade" id="updateStatusModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Review Product</h5>
+                <h5 class="modal-title">Update Order Status</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <form id="reviewForm">
-                    <input type="hidden" id="reviewProductId">
-                    <div class="mb-3">
-                        <label class="form-label">Product Rating</label>
-                        <div class="rating-input">
-                            {% for i in range(5, 0, -1) %}
-                            <input type="radio" id="productStar{{ i }}" name="rating" value="{{ i }}" 
-                                   class="d-none" {% if i == 5 %}checked{% endif %}>
-                            <label for="productStar{{ i }}" class="rating-star">
-                                <i class="far fa-star"></i>
-                            </label>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="reviewTitle" class="form-label">Review Title</label>
-                        <input type="text" class="form-control" id="reviewTitle" placeholder="Great product!">
-                    </div>
-                    <div class="mb-3">
-                        <label for="reviewComment" class="form-label">Your Review</label>
-                        <textarea class="form-control" id="reviewComment" rows="4" 
-                                  placeholder="Share your experience with this product..."></textarea>
-                    </div>
-                </form>
+                <input type="hidden" id="updateOrderId">
+                <div class="mb-3">
+                    <label for="newStatus" class="form-label">New Status</label>
+                    <select class="form-select" id="newStatus">
+                        <option value="pending">Pending</option>
+                        <option value="processing">Processing</option>
+                        <option value="paid">Paid</option>
+                        <option value="disbursed">Disbursed</option>
+                        <option value="shipped">Shipped</option>
+                        <option value="received">Received</option>
+                        <option value="delivered">Delivered</option>
+                        <option value="cancelled">Cancelled</option>
+                        <option value="failed">Failed</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="statusNote" class="form-label">Note (optional)</label>
+                    <textarea class="form-control" id="statusNote" rows="3" placeholder="Add a note for the customer..."></textarea>
+                </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="submitReview">Submit Review</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="confirmStatusUpdate">Update Status</button>
             </div>
         </div>
     </div>
@@ -602,28 +622,6 @@
     border-radius: 8px;
 }
 
-.account-order-image-carousel {
-    border-radius: 8px;
-    overflow: hidden;
-}
-
-.account-order-image-carousel .carousel-control-prev,
-.account-order-image-carousel .carousel-control-next {
-    width: 25px;
-    height: 25px;
-    background-color: rgba(0, 0, 0, 0.5);
-    border-radius: 50%;
-    top: 50%;
-    transform: translateY(-50%);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.account-order-image-carousel:hover .carousel-control-prev,
-.account-order-image-carousel:hover .carousel-control-next {
-    opacity: 0.7;
-}
-
 .order-item-card {
     transition: all 0.3s ease;
     background: white;
@@ -631,30 +629,6 @@
 
 .order-item-card:hover {
     box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-}
-
-.rating-input {
-    display: flex;
-    gap: 5px;
-    flex-direction: row-reverse;
-    justify-content: flex-end;
-}
-
-.rating-input .rating-star {
-    font-size: 1.8rem;
-    color: #ddd;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.rating-input input:checked ~ label .fa-star,
-.rating-input label:hover .fa-star,
-.rating-input label:hover ~ label .fa-star {
-    color: #ffc107;
-}
-
-.rating-input input:checked + label .fa-star {
-    color: #ffc107;
 }
 
 .empty-orders-icon {
@@ -671,9 +645,7 @@
 
 /* Print styles */
 @media print {
-    .btn, .card-footer, .order-timeline::before,
-    .account-order-image-carousel .carousel-control-prev,
-    .account-order-image-carousel .carousel-control-next {
+    .btn, .card-footer, .order-timeline::before {
         display: none !important;
     }
     
@@ -681,10 +653,6 @@
         break-inside: avoid;
         border: 1px solid #ddd !important;
         box-shadow: none !important;
-    }
-    
-    .order-card {
-        border: 1px solid #ddd !important;
     }
 }
 
@@ -713,16 +681,6 @@
         width: 80px;
         height: 80px;
     }
-    
-    .d-flex.justify-content-between.align-items-center.mb-3 {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    
-    .text-end {
-        text-align: left !important;
-        margin-top: 1rem;
-    }
 }
 
 @media (max-width: 576px) {
@@ -731,26 +689,8 @@
         height: 60px;
     }
     
-    .order-item-card {
-        padding: 15px !important;
-    }
-    
     .stats-number {
         font-size: 1.5rem;
-    }
-    
-    .d-flex.flex-wrap.gap-2.justify-content-between {
-        flex-direction: column;
-        gap: 10px !important;
-    }
-    
-    .d-flex.flex-wrap.gap-2.justify-content-between > div {
-        width: 100%;
-    }
-    
-    .d-flex.flex-wrap.gap-2.justify-content-between .btn {
-        width: 100%;
-        margin-bottom: 5px;
     }
 }
 </style>
@@ -759,15 +699,6 @@
 {% block extra_js %}
 <script>
 $(document).ready(function() {
-    // Initialize image carousels
-    $('.carousel').each(function() {
-        new bootstrap.Carousel(this, {
-            interval: false, // Don't auto-slide for account orders
-            wrap: true,
-            touch: true
-        });
-    });
-    
     // Search and filter functionality
     let currentOrders = $('.order-card');
     
@@ -775,7 +706,7 @@ $(document).ready(function() {
         const searchTerm = $(this).val().toLowerCase();
         
         currentOrders.each(function() {
-            const orderId = $(this).data('order-id').toString().toLowerCase();
+            const orderId = $(this).data('order-id')?.toString().toLowerCase() || '';
             const orderText = $(this).text().toLowerCase();
             const hasMatch = orderId.includes(searchTerm) || orderText.includes(searchTerm);
             
@@ -787,7 +718,7 @@ $(document).ready(function() {
         const status = $(this).val();
         
         currentOrders.each(function() {
-            const orderStatus = $(this).data('status');
+            const orderStatus = $(this).data('status') || 'pending';
             
             if (status === 'all' || orderStatus === status) {
                 $(this).show();
@@ -808,6 +739,9 @@ $(document).ready(function() {
     
     window.cancelOrder = function(orderId) {
         currentOrderIdToCancel = orderId;
+        $('#cancelReason').val('');
+        $('#otherReason').val('');
+        $('#otherReasonDiv').hide();
         const modal = new bootstrap.Modal(document.getElementById('cancelOrderModal'));
         modal.show();
     };
@@ -829,7 +763,7 @@ $(document).ready(function() {
             return;
         }
         
-        if (reason === 'other' && !otherReason) {
+        if (reason === 'other' && !otherReason.trim()) {
             alert('Please specify your reason.');
             return;
         }
@@ -841,21 +775,18 @@ $(document).ready(function() {
         
         // Send cancellation request
         $.ajax({
-            url: '/account/orders/' + currentOrderIdToCancel + '/cancel',
+            url: '/admin/orders/' + currentOrderIdToCancel + '/cancel',
             method: 'POST',
-            data: { 
+            contentType: 'application/json',
+            data: JSON.stringify({ 
                 reason: finalReason,
                 order_id: currentOrderIdToCancel
-            },
+            }),
             success: function(response) {
                 if (response.success) {
                     $('#cancelOrderModal').modal('hide');
                     showToast('Success', 'Order cancelled successfully!', 'success');
-                    
-                    // Reload the page after a delay
-                    setTimeout(() => {
-                        location.reload();
-                    }, 1500);
+                    setTimeout(() => { location.reload(); }, 1500);
                 } else {
                     showToast('Error', response.message || 'Failed to cancel order', 'danger');
                     $('#confirmCancel').prop('disabled', false).html('Cancel Order');
@@ -868,78 +799,9 @@ $(document).ready(function() {
         });
     });
     
-    // Review product functionality
-    let currentProductToReview = null;
-    let currentProductName = null;
-    
-    window.reviewProduct = function(productId, productName) {
-        currentProductToReview = productId;
-        currentProductName = productName;
-        
-        $('#reviewProductModal .modal-title').text('Review: ' + productName);
-        $('#reviewProductId').val(productId);
-        
-        const modal = new bootstrap.Modal(document.getElementById('reviewProductModal'));
-        modal.show();
-    };
-    
-    window.reviewAllProducts = function(items) {
-        if (items && items.length > 0) {
-            // Review the first product and suggest reviewing others
-            reviewProduct(items[0].product_id, items[0].name);
-        }
-    };
-    
-    $('#submitReview').on('click', function() {
-        const rating = $('input[name="rating"]:checked').val();
-        const title = $('#reviewTitle').val();
-        const comment = $('#reviewComment').val();
-        
-        if (!rating) {
-            alert('Please select a rating.');
-            return;
-        }
-        
-        if (!title || !comment) {
-            alert('Please fill in all fields.');
-            return;
-        }
-        
-        // Show loading state
-        $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>Submitting...');
-        
-        // Submit review
-        $.ajax({
-            url: '/products/' + currentProductToReview + '/reviews',
-            method: 'POST',
-            data: {
-                rating: rating,
-                title: title,
-                comment: comment,
-                product_id: currentProductToReview
-            },
-            success: function(response) {
-                if (response.success) {
-                    $('#reviewProductModal').modal('hide');
-                    showToast('Success', 'Review submitted successfully!', 'success');
-                    
-                    // Reset form
-                    $('#reviewForm')[0].reset();
-                } else {
-                    showToast('Error', response.message || 'Failed to submit review', 'danger');
-                }
-                $('#submitReview').prop('disabled', false).html('Submit Review');
-            },
-            error: function() {
-                showToast('Error', 'Network error. Please try again.', 'danger');
-                $('#submitReview').prop('disabled', false).html('Submit Review');
-            }
-        });
-    });
-    
     // Print invoice
     window.printOrder = function(orderId) {
-        window.open('/account/orders/' + orderId + '/print', '_blank');
+        window.open('/admin/orders/' + orderId + '/print', '_blank');
     };
     
     // Reorder functionality
@@ -949,50 +811,21 @@ $(document).ready(function() {
             return;
         }
         
-        let addedCount = 0;
-        
-        items.forEach(item => {
-            // Add each item to cart
-            $.ajax({
-                url: '/cart/add/' + item.product_id,
-                method: 'POST',
-                data: {
-                    size: item.size || '',
-                    color: item.color || '',
-                    quantity: item.quantity || 1
-                },
-                success: function(response) {
-                    if (response.success) {
-                        addedCount++;
-                        
-                        // Update cart count in navbar
-                        $('.cart-count-badge').text(response.cart_count || 0);
-                    }
-                }
-            });
-        });
-        
-        // Show success message after all items are processed
-        setTimeout(() => {
-            if (addedCount > 0) {
-                showToast('Success', `${addedCount} item(s) added to cart!`, 'success');
-            }
-        }, 1000);
+        showToast('Info', 'This feature is for customer use only.', 'info');
     };
     
     // Toast notification function
     function showToast(title, message, type = 'info') {
-        // Remove existing toasts
         $('.toast-container').remove();
         
         const icon = type === 'success' ? 'check-circle' : 
-                    type === 'error' ? 'times-circle' : 
+                    type === 'danger' ? 'times-circle' : 
                     type === 'warning' ? 'exclamation-triangle' : 'info-circle';
         
         const toastHtml = `
             <div class="toast-container position-fixed bottom-0 end-0 p-3">
                 <div class="toast show" role="alert">
-                    <div class="toast-header bg-${type} text-white">
+                    <div class="toast-header bg-${type === 'danger' ? 'danger' : type} text-white">
                         <i class="fas fa-${icon} me-2"></i>
                         <strong class="me-auto">${title}</strong>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
@@ -1006,45 +839,64 @@ $(document).ready(function() {
         
         $('body').append(toastHtml);
         
-        // Auto remove after 5 seconds
         setTimeout(() => {
-            $('.toast-container').fadeOut(300, function() {
-                $(this).remove();
-            });
+            $('.toast-container').fadeOut(300, function() { $(this).remove(); });
         }, 5000);
     }
     
-    // Track order button functionality
-    $('.track-order-btn').on('click', function() {
-        const orderId = $(this).data('order-id');
-        window.location.href = '/account/orders/' + orderId + '/track';
+    // Admin: Open update status modal
+    window.openUpdateStatusModal = function(orderId, currentStatus) {
+        $('#updateOrderId').val(orderId);
+        $('#newStatus').val(currentStatus);
+        $('#statusNote').val('');
+        const modal = new bootstrap.Modal(document.getElementById('updateStatusModal'));
+        modal.show();
+    };
+
+    // Confirm status update
+    $('#confirmStatusUpdate').on('click', function() {
+        const orderId = $('#updateOrderId').val();
+        const newStatus = $('#newStatus').val();
+        const note = $('#statusNote').val();
+
+        if (!orderId || !newStatus) {
+            showToast('Error', 'Order ID and status are required', 'danger');
+            return;
+        }
+
+        $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>Updating...');
+
+        $.ajax({
+            url: '/admin/update-status/' + orderId,
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ status: newStatus, note: note }),
+            success: function(response) {
+                if (response.success) {
+                    $('#updateStatusModal').modal('hide');
+                    showToast('Success', response.message || 'Status updated successfully', 'success');
+                    setTimeout(function() { location.reload(); }, 800);
+                } else {
+                    showToast('Error', response.error || 'Failed to update status', 'danger');
+                    $('#confirmStatusUpdate').prop('disabled', false).html('Update Status');
+                }
+            },
+            error: function() {
+                showToast('Error', 'Network error. Please try again.', 'danger');
+                $('#confirmStatusUpdate').prop('disabled', false).html('Update Status');
+            }
+        });
     });
-    
+
     // Keyboard shortcuts
     $(document).keydown(function(e) {
-        // Ctrl/Cmd + F to focus search
         if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
             e.preventDefault();
             $('#orderSearch').focus();
         }
-        // Escape to clear search
         if (e.key === 'Escape' && $('#orderSearch').is(':focus')) {
             $('#orderSearch').val('');
             currentOrders.show();
-        }
-    });
-    
-    // Save scroll position
-    $(window).on('beforeunload', function() {
-        sessionStorage.setItem('ordersScrollPos', $(window).scrollTop());
-    });
-    
-    // Restore scroll position
-    $(window).on('load', function() {
-        const scrollPos = sessionStorage.getItem('ordersScrollPos');
-        if (scrollPos) {
-            $(window).scrollTop(scrollPos);
-            sessionStorage.removeItem('ordersScrollPos');
         }
     });
 });

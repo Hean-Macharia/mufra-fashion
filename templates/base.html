@@ -1454,8 +1454,8 @@
                 <span class="mobile-cart-badge cart-count-badge">{{ cart_count }}</span>
             {% endif %}
         </a>
-        <a class="mobile-bottom-item {% if request.endpoint == 'wishlist' %}active{% endif %}" 
-           href="{% if session.user_id %}{{ url_for('wishlist') }}{% else %}{{ url_for('login') }}{% endif %}">
+        <a class="mobile-bottom-item {% if request.endpoint == 'account' %}active{% endif %}" 
+           href="{% if session.user_id %}{{ url_for('account') }}#wishlist{% else %}{{ url_for('login') }}{% endif %}">
             <i class="fas fa-heart"></i>
             <span>Wishlist</span>
         </a>
