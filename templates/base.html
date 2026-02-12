@@ -1030,6 +1030,161 @@
             pointer-events: none;
         }
 
+        /* ===== PWA INSTALL BANNER ===== */
+        .pwa-install-banner,
+        .pwa-update-banner {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(135deg, var(--magenta-vibrant) 0%, #B21550 100%);
+            box-shadow: 0 -8px 24px rgba(216, 27, 96, 0.3);
+            z-index: 1040;
+            transform: translateY(120%);
+            transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+            padding: 0;
+            color: white;
+        }
+        
+        .pwa-install-banner.show,
+        .pwa-update-banner.show {
+            transform: translateY(0);
+        }
+        
+        .pwa-banner-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        
+        .pwa-banner-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .pwa-banner-icon {
+            font-size: 32px;
+            animation: bounce 2s ease-in-out infinite;
+        }
+        
+        .pwa-banner-text {
+            margin: 0;
+        }
+        
+        .pwa-banner-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin: 0 0 4px 0;
+            letter-spacing: -0.02em;
+        }
+        
+        .pwa-banner-subtitle {
+            font-size: 0.9rem;
+            margin: 0;
+            opacity: 0.95;
+            font-weight: 400;
+        }
+        
+        .pwa-banner-actions {
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+        
+        .pwa-install-yes,
+        .pwa-install-no {
+            font-weight: 600;
+            border: none;
+            border-radius: 50px;
+            padding: 8px 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+        
+        .pwa-install-yes {
+            background: rgba(255, 255, 255, 0.25);
+            color: white;
+            border: 2px solid white;
+        }
+        
+        .pwa-install-yes:hover {
+            background: rgba(255, 255, 255, 0.35);
+            transform: scale(1.05);
+        }
+        
+        .pwa-install-no {
+            background: transparent;
+            color: white;
+            opacity: 0.8;
+            font-size: 1.2rem;
+            padding: 4px 12px;
+            min-width: auto;
+        }
+        
+        .pwa-install-no:hover {
+            opacity: 1;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .pwa-update-banner {
+            background: linear-gradient(135deg, var(--cyan-bright) 0%, #0097A7 100%);
+            box-shadow: 0 -8px 24px rgba(0, 172, 193, 0.3);
+        }
+        
+        @keyframes bounce {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-8px);
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .pwa-install-banner,
+            .pwa-update-banner {
+                bottom: 70px;
+            }
+            
+            .pwa-banner-content {
+                flex-direction: column;
+                padding: 12px 16px;
+                gap: 12px;
+            }
+            
+            .pwa-banner-left {
+                width: 100%;
+                gap: 12px;
+            }
+            
+            .pwa-banner-icon {
+                font-size: 28px;
+            }
+            
+            .pwa-banner-title {
+                font-size: 1rem;
+            }
+            
+            .pwa-banner-subtitle {
+                font-size: 0.85rem;
+            }
+            
+            .pwa-banner-actions {
+                width: 100%;
+            }
+            
+            .pwa-install-yes {
+                flex: 1;
+            }
+        }
+
         /* ===== PRODUCT CARD STYLES ===== */
         .product-card {
             transition: var(--transition-brand);
@@ -2087,6 +2242,7 @@
     </script>
     
     <!-- PWA Service Worker Registration & Installation -->
+    <script src="{{ url_for('static', filename='js/pwa-banner.js') }}" defer></script>
     <script src="{{ url_for('static', filename='js/pwa-install.js') }}" defer></script>
     
     {% block extra_js %}{% endblock %}
