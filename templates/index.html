@@ -44,9 +44,9 @@
         </div>
         
         {% if featured_products %}
-        <div class="row">
+        <div class="row g-4">
             {% for product in featured_products %}
-            <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
+            <div class="col-xl-3 col-lg-4 col-md-6">
                 <div class="card product-card h-100">
                     <div class="position-relative">
                         <a href="{{ url_for('product_details', product_id=product._id) if product._id else '#' }}">
@@ -109,7 +109,7 @@
                             </div>
                             {% endif %}
                             
-                            <!-- New Arrival Badge (if added to product model) -->
+                            <!-- New Arrival Badge -->
                             {% if product.is_new or product.created_at and (datetime.utcnow() - product.created_at).days < 7 %}
                             <span class="badge bg-success new-badge">
                                 <i class="fas fa-bolt me-1"></i>New
@@ -243,9 +243,9 @@
             <small class="text-muted">Based on your browsing history</small>
         </div>
         
-        <div class="row">
+        <div class="row g-4">
             {% for product in recommended_products %}
-            <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
+            <div class="col-xl-3 col-lg-4 col-md-6">
                 <div class="card product-card h-100">
                     <div class="position-relative">
                         <a href="{{ url_for('product_details', product_id=product._id) if product._id else '#' }}">
@@ -259,11 +259,13 @@
                                         <img src="{{ get_product_main_image(product) }}" 
                                              class="product-image primary-image" 
                                              alt="{{ product.name }}"
-                                             loading="lazy">
+                                             loading="lazy"
+                                             onerror="this.src='https://via.placeholder.com/400x300?text=Product+Image'">
                                         <img src="{{ product_images[1].url if product_images|length > 1 else product_images[0].url }}" 
                                              class="product-image secondary-image" 
                                              alt="{{ product.name }} - Alternate"
-                                             loading="lazy">
+                                             loading="lazy"
+                                             onerror="this.src='https://via.placeholder.com/400x300?text=Product+Image'">
                                     </div>
                                     
                                     <!-- Image Count Badge -->
@@ -278,10 +280,20 @@
                                     <img src="{{ get_product_main_image(product) }}" 
                                          class="product-image single-image" 
                                          alt="{{ product.name }}"
-                                         loading="lazy">
+                                         loading="lazy"
+                                         onerror="this.src='https://via.placeholder.com/400x300?text=Product+Image'">
                                 {% endif %}
                             </div>
                         </a>
+                        <!-- Out of Stock Badge for recommended -->
+                        {% set stock = product.stock|default(0)|int %}
+                        {% if stock == 0 %}
+                        <div class="out-of-stock-overlay">
+                            <span class="badge bg-danger">
+                                <i class="fas fa-ban me-1"></i>Out of Stock
+                            </span>
+                        </div>
+                        {% endif %}
                     </div>
                     
                     <div class="card-body">
@@ -320,8 +332,8 @@
 <section class="categories-section mb-5">
     <div class="container">
         <h2 class="text-center mb-4">Shop By Category</h2>
-        <div class="row">
-            <div class="col-md-3 col-sm-6 mb-4">
+        <div class="row g-4">
+            <div class="col-md-3 col-sm-6">
                 <a href="{{ url_for('categories') }}?category=Shoes" class="text-decoration-none">
                     <div class="card text-center border-0 shadow-sm h-100 hover-card">
                         <div class="card-body py-4">
@@ -335,7 +347,7 @@
                     </div>
                 </a>
             </div>
-            <div class="col-md-3 col-sm-6 mb-4">
+            <div class="col-md-3 col-sm-6">
                 <a href="{{ url_for('categories') }}?category=Clothes" class="text-decoration-none">
                     <div class="card text-center border-0 shadow-sm h-100 hover-card">
                         <div class="card-body py-4">
@@ -349,7 +361,7 @@
                     </div>
                 </a>
             </div>
-            <div class="col-md-3 col-sm-6 mb-4">
+            <div class="col-md-3 col-sm-6">
                 <a href="{{ url_for('categories') }}?condition=New" class="text-decoration-none">
                     <div class="card text-center border-0 shadow-sm h-100 hover-card">
                         <div class="card-body py-4">
@@ -363,7 +375,7 @@
                     </div>
                 </a>
             </div>
-            <div class="col-md-3 col-sm-6 mb-4">
+            <div class="col-md-3 col-sm-6">
                 <a href="{{ url_for('categories') }}?condition=Second+Hand" class="text-decoration-none">
                     <div class="card text-center border-0 shadow-sm h-100 hover-card">
                         <div class="card-body py-4">
@@ -384,8 +396,8 @@
 <!-- Features Section -->
 <section class="features-section mb-5">
     <div class="container">
-        <div class="row text-center">
-            <div class="col-md-4 mb-4">
+        <div class="row g-4">
+            <div class="col-md-4">
                 <div class="p-4 border rounded bg-white shadow-sm h-100">
                     <div class="feature-icon mb-3">
                         <i class="fas fa-shipping-fast fa-3x text-primary"></i>
@@ -394,7 +406,7 @@
                     <p class="text-muted mb-0">Free delivery within Embu for orders over KES 5,000. Fast delivery across Kenya.</p>
                 </div>
             </div>
-            <div class="col-md-4 mb-4">
+            <div class="col-md-4">
                 <div class="p-4 border rounded bg-white shadow-sm h-100">
                     <div class="feature-icon mb-3">
                         <i class="fas fa-undo fa-3x text-primary"></i>
@@ -403,7 +415,7 @@
                     <p class="text-muted mb-0">2-day return policy. Items must be in good condition as taken. We make returns simple and convenient.</p>
                 </div>
             </div>
-            <div class="col-md-4 mb-4">
+            <div class="col-md-4">
                 <div class="p-4 border rounded bg-white shadow-sm h-100">
                     <div class="feature-icon mb-3">
                         <i class="fas fa-shield-alt fa-3x text-primary"></i>
@@ -417,7 +429,7 @@
 </section>
 
 <!-- Newsletter Section -->
-<section class="newsletter-section">
+<section class="newsletter-section mb-5">
     <div class="container">
         <div class="card bg-primary text-white">
             <div class="card-body py-5">
@@ -434,7 +446,7 @@
                                     <i class="fas fa-paper-plane"></i>
                                 </button>
                             </div>
-                            <small class="form-text mt-2 d-block">We respect your privacy. Unsubscribe at any time.</small>
+                            <small class="form-text mt-2 d-block text-white-50">We respect your privacy. Unsubscribe at any time.</small>
                         </form>
                     </div>
                 </div>
@@ -442,7 +454,6 @@
         </div>
     </div>
 </section>
-
 {% endblock %}
 
 {% block extra_css %}
@@ -579,7 +590,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 5;
+    z-index: 15;
 }
 
 .out-of-stock-overlay .badge {
@@ -678,6 +689,8 @@
 @media (max-width: 768px) {
     .hero-section {
         padding: 40px 0;
+        margin-top: 0;
+        border-radius: 0;
     }
     
     .hero-section h1 {
@@ -700,6 +713,12 @@
         width: 36px;
         height: 36px;
     }
+    
+    /* Adjust for mobile bottom nav */
+    .container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
 }
 
 @media (max-width: 576px) {
@@ -707,12 +726,8 @@
         height: 180px;
     }
     
-    .col-md-6 {
-        padding: 0 10px;
-    }
-    
     .product-card {
-        margin-bottom: 20px;
+        margin-bottom: 0;
     }
 }
 
@@ -746,24 +761,68 @@
     animation: fadeIn 0.5s ease;
 }
 
-/* Quick view overlay for images */
-.quick-view-overlay {
-    position: absolute;
-    bottom: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0,0,0,0.7);
-    color: white;
-    padding: 5px 10px;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    z-index: 10;
+/* Toast notifications */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
 }
 
-.product-card:hover .quick-view-overlay {
-    opacity: 1;
+.toast {
+    background: white;
+    border: none;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+}
+
+.toast-header.bg-success {
+    background-color: #28a745 !important;
+}
+
+.toast-header.bg-danger {
+    background-color: #dc3545 !important;
+}
+
+.toast-header.bg-warning {
+    background-color: #ffc107 !important;
+}
+
+/* Cart badge pulse animation */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+.cart-count-badge.pulse {
+    animation: pulse 0.5s ease;
+}
+
+/* Mobile adjustments for hero and sections */
+@media (max-width: 768px) {
+    .hero-section .col-md-6:first-child {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    
+    .hero-section .d-flex {
+        justify-content: center;
+    }
+    
+    .featured-section h2,
+    .recommended-section h2,
+    .categories-section h2 {
+        font-size: 1.75rem;
+    }
+    
+    .newsletter-section .card-body {
+        text-align: center;
+    }
+    
+    .newsletter-form {
+        max-width: 400px;
+        margin: 0 auto;
+    }
 }
 </style>
 {% endblock %}
@@ -771,7 +830,7 @@
 {% block extra_js %}
 <script>
 $(document).ready(function() {
-    // Add to cart with AJAX
+    // Add to cart with AJAX - FULLY PRESERVED
     $('.add-to-cart-form').submit(function(e) {
         e.preventDefault();
         
@@ -800,14 +859,14 @@ $(document).ready(function() {
                     // Show toast notification
                     showToast('Success', response.message, 'success');
                     
-                    // Update cart count in navbar
+                    // Update cart count in navbar (both desktop and mobile)
                     const cartCount = response.cart_count || 0;
-                    $('.cart-count-badge').text(cartCount);
+                    $('.badge.bg-danger, .mobile-cart-badge').text(cartCount);
                     
-                    // Pulse animation for cart icon in navbar
-                    $('.cart-count-badge').addClass('pulse');
+                    // Pulse animation for cart badges
+                    $('.badge.bg-danger, .mobile-cart-badge').addClass('pulse');
                     setTimeout(() => {
-                        $('.cart-count-badge').removeClass('pulse');
+                        $('.badge.bg-danger, .mobile-cart-badge').removeClass('pulse');
                     }, 1000);
                     
                     // Reset button after delay
@@ -853,7 +912,7 @@ $(document).ready(function() {
         }, 1500);
     });
     
-    // Product image lazy loading with Intersection Observer
+    // Product image lazy loading
     if ('IntersectionObserver' in window) {
         const imageObserver = new IntersectionObserver((entries, observer) => {
             entries.forEach(entry => {
@@ -861,14 +920,11 @@ $(document).ready(function() {
                     const img = entry.target;
                     const src = img.getAttribute('data-src');
                     if (src) {
-                        // Load image
                         img.src = src;
                         img.removeAttribute('data-src');
-                        
-                        // Add loaded class for animation
                         img.classList.add('loaded');
                         
-                        // Preload secondary image for hover effect
+                        // Preload secondary image
                         const secondarySrc = img.getAttribute('data-secondary-src');
                         if (secondarySrc) {
                             const secondaryImg = new Image();
@@ -883,31 +939,10 @@ $(document).ready(function() {
             threshold: 0.1
         });
         
-        // Observe all product images
         document.querySelectorAll('.product-image[data-src]').forEach(img => {
             imageObserver.observe(img);
         });
     }
-    
-    // Product card click tracking for recommendations
-    $('.product-card').on('click', function() {
-        const productId = $(this).find('.add-to-cart-btn').data('product-id');
-        if (productId) {
-            // Track product view (you can implement analytics here)
-            console.log('Product viewed:', productId);
-        }
-    });
-    
-    // Quick view functionality
-    $('.product-image-container').on('click', function(e) {
-        if ($(window).width() > 768) {
-            const productId = $(this).data('product-id');
-            if (productId && !$(e.target).closest('.add-to-cart-btn').length) {
-                // You can implement quick view modal here
-                console.log('Quick view for product:', productId);
-            }
-        }
-    });
     
     // Helper functions
     function isValidEmail(email) {
@@ -920,7 +955,7 @@ $(document).ready(function() {
         $('.toast-container').remove();
         
         const toastHtml = `
-            <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999;">
+            <div class="toast-container">
                 <div class="toast show" role="alert">
                     <div class="toast-header bg-${type} text-white">
                         <strong class="me-auto">${title}</strong>
@@ -943,25 +978,24 @@ $(document).ready(function() {
         }, 3000);
     }
     
-    // Initialize tooltips
-    $('[data-bs-toggle="tooltip"]').tooltip();
-    
-    // Add pulse animation for cart badge
-    const pulseCSS = `
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.2); }
-            100% { transform: scale(1); }
+    // Product card click tracking (for recommendations)
+    $('.product-card').on('click', function(e) {
+        // Don't trigger if clicking on form or button
+        if ($(e.target).closest('.add-to-cart-btn, form').length) {
+            return;
         }
-        .cart-count-badge.pulse {
-            animation: pulse 0.5s ease;
+        
+        const productId = $(this).find('.add-to-cart-btn').data('product-id');
+        if (productId) {
+            console.log('Product viewed:', productId);
         }
-    `;
+    });
     
-    const styleSheet = document.createElement("style");
-    styleSheet.type = "text/css";
-    styleSheet.innerText = pulseCSS;
-    document.head.appendChild(styleSheet);
+    // Update mobile cart badge on page load
+    const cartCount = $('.badge.bg-danger').text();
+    if (cartCount && cartCount !== '') {
+        $('.mobile-cart-badge').text(cartCount);
+    }
 });
 </script>
 {% endblock %}
