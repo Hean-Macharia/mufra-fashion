@@ -5,6 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0, user-scalable=yes">
     <title>MUFRA FASHIONS - {% block title %}{% endblock %}</title>
     
+    <!-- PWA Configuration -->
+    <meta name="theme-color" content="#D81B60">
+    <meta name="description" content="MUFRA FASHIONS - Shop trendy fashion items with stunning designs. A style that speaks!">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="MUFRA">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/logo.png') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/logo.png') }}">
+    
     <!-- Performance Optimization -->
     <link rel="dns-prefetch" href="//cdn.jsdelivr.net">
     <link rel="dns-prefetch" href="//cdnjs.cloudflare.com">
@@ -1207,6 +1217,12 @@
                             {% endif %}
                         </ul>
                     </li>
+                    <!-- PWA Install Button -->
+                    <li class="nav-item d-none" id="pwa-install-btn">
+                        <a class="nav-link" href="javascript:void(0)" title="Install MUFRA FASHIONS app">
+                            <i class="fas fa-download"></i> Install App
+                        </a>
+                    </li>
                     <li class="nav-item">
                         <a class="nav-link position-relative" href="{{ url_for('cart') }}">
                             <i class="fas fa-shopping-cart"></i>
@@ -2069,6 +2085,9 @@
             }
         });
     </script>
+    
+    <!-- PWA Service Worker Registration & Installation -->
+    <script src="{{ url_for('static', filename='js/pwa-install.js') }}" defer></script>
     
     {% block extra_js %}{% endblock %}
 </body>
