@@ -972,6 +972,9 @@ def product_details(product_id):
             flash('Product not found', 'danger')
             return redirect(url_for('home'))
         
+        # Convert ObjectId to string
+        product['_id'] = str(product['_id'])
+        
         # Ensure product has all required fields
         product.setdefault('rating', 0)
         product.setdefault('reviews_count', 0)
@@ -982,6 +985,9 @@ def product_details(product_id):
         
         # Get reviews
         reviews = list(reviews_collection.find({'product_id': ObjectId(product_id)}).sort('created_at', -1))
+        for review in reviews:
+            review['_id'] = str(review['_id'])
+            review['user_id'] = str(review['user_id'])
         
         # Update viewed products if logged in
         if 'user_id' in session:
@@ -998,15 +1004,10 @@ def product_details(product_id):
         }).limit(4))
         
         for p in related_products:
+            p['_id'] = str(p['_id'])
             p.setdefault('rating', 0)
             p.setdefault('reviews_count', 0)
             p.setdefault('image', 'https://via.placeholder.com/400x300?text=Product+Image')
-        
-        # Debug output
-        print(f"\n🔍 DEBUG: Loading product details for {product_id}")
-        print(f"🔍 DEBUG: Product found: {product.get('name')}")
-        print(f"🔍 DEBUG: Reviews count: {len(reviews)}")
-        print(f"🔍 DEBUG: Related products: {len(related_products)}\n")
         
         return render_template('product_details.html',
                              product=product,
@@ -1018,7 +1019,6 @@ def product_details(product_id):
         print(f"❌ TRACEBACK: {traceback.format_exc()}")
         flash('Error loading product details', 'danger')
         return redirect(url_for('home'))
-   
 
 @app.route('/add-to-cart/<product_id>', methods=['POST'])
 def add_to_cart(product_id):
@@ -1039,9 +1039,9 @@ def add_to_cart(product_id):
         if product.get('stock', 0) < quantity:
             return jsonify({'success': False, 'message': 'Insufficient stock'})
         
-        # Create cart item
+        # Create cart item - FIX: Convert ObjectId to string for guest users
         cart_item = {
-            'product_id': ObjectId(product_id),
+            'product_id': str(product_id),  # ← CHANGE THIS: Convert to string
             'name': product['name'],
             'price': product['price'],
             'size': size,
@@ -1052,7 +1052,8 @@ def add_to_cart(product_id):
         }
         
         if 'user_id' in session:
-            # Logged in user - store in database
+            # Logged in user - store in database (keep as ObjectId)
+            cart_item['product_id'] = ObjectId(product_id)  # ObjectId for DB
             users_collection = get_collection('users')
             user = users_collection.find_one({'_id': ObjectId(session['user_id'])})
             cart = user.get('cart', [])
@@ -1076,13 +1077,13 @@ def add_to_cart(product_id):
             )
             cart_count = len(cart)
         else:
-            # Guest user - store in session
+            # Guest user - store in session (use string ID)
             cart = session.get('cart', [])
             
             # Check if item already exists
             item_found = False
             for item in cart:
-                if (str(item['product_id']) == product_id and 
+                if (str(item['product_id']) == product_id and  # Compare as strings
                     item.get('size') == size and 
                     item.get('color') == color):
                     item['quantity'] += quantity
@@ -1099,7 +1100,6 @@ def add_to_cart(product_id):
     except Exception as e:
         print(f"Error in add_to_cart: {e}")
         return jsonify({'success': False, 'message': 'Error adding to cart'})
-
 @app.route('/cart')
 def cart():
     """Shopping cart page"""
@@ -2489,6 +2489,17 @@ def utility_processor():
             return getattr(obj, key, default)
         return default
     
+    def convert_objectid_to_str(obj):
+        """Recursively convert ObjectId to string in dictionaries and lists"""
+        if isinstance(obj, ObjectId):
+            return str(obj)
+        elif isinstance(obj, dict):
+            return {k: convert_objectid_to_str(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [convert_objectid_to_str(item) for item in obj]
+        else:
+            return obj
+    
     def get_product_images(product):
         """Get product images with fallback to single image - HANDLES BOTH FORMATS"""
         if not product:
@@ -2571,6 +2582,8 @@ def utility_processor():
         try:
             users_collection = get_collection('users')
             user = users_collection.find_one({'_id': ObjectId(user_id)})
+            if user:
+                user = convert_objectid_to_str(user)
             return user
         except:
             return None
@@ -2772,8 +2785,54 @@ def utility_processor():
                 {'user_id': ObjectId(session['user_id'])}
             ).sort('created_at', -1).limit(limit))
             
+            # Convert ObjectIds to strings
+            orders = convert_objectid_to_str(orders)
+            
             return orders
         except:
+            return []
+    
+    def get_recently_viewed(limit=4):
+        """Get recently viewed products for the current user"""
+        try:
+            if 'user_id' not in session:
+                return []
+            
+            users_collection = get_collection('users')
+            products_collection = get_collection('products')
+            
+            user = users_collection.find_one({'_id': ObjectId(session['user_id'])})
+            if not user or 'viewed_products' not in user:
+                return []
+            
+            viewed_ids = user.get('viewed_products', [])[-limit:]
+            
+            # Get the actual products
+            products = []
+            for pid in viewed_ids:
+                product = products_collection.find_one({'_id': pid})
+                if product:
+                    # Convert ObjectId to string
+                    product['_id'] = str(product['_id'])
+                    # Ensure images are properly formatted
+                    if 'images' not in product or not product['images']:
+                        if 'image' in product and product['image']:
+                            product['images'] = [{
+                                'url': product['image'],
+                                'filename': product['image'].split('/')[-1] if '/' in product['image'] else product['image'],
+                                'is_main': True
+                            }]
+                        else:
+                            product['images'] = [{
+                                'url': 'https://via.placeholder.com/400x300?text=Product+Image',
+                                'filename': 'placeholder.jpg',
+                                'is_main': True
+                            }]
+                    products.append(product)
+            
+            return products
+        except Exception as e:
+            print(f"Error in get_recently_viewed: {e}")
             return []
     
     def get_featured_products(limit=8):
@@ -2786,6 +2845,8 @@ def utility_processor():
             
             # Process each product to ensure proper image structure
             for product in products:
+                # Convert ObjectId to string
+                product['_id'] = str(product['_id'])
                 product.setdefault('rating', 0)
                 product.setdefault('reviews_count', 0)
                 product.setdefault('stock', 0)
@@ -2840,6 +2901,12 @@ def utility_processor():
             reviews = list(reviews_collection.find(
                 {'product_id': ObjectId(product_id)}
             ).sort('created_at', -1))
+            
+            # Convert ObjectIds to strings
+            for review in reviews:
+                review['_id'] = str(review['_id'])
+                review['user_id'] = str(review['user_id'])
+                review['product_id'] = str(review['product_id'])
             
             return reviews
         except:
@@ -2931,6 +2998,9 @@ def utility_processor():
         try:
             categories_collection = get_collection('categories')
             categories = list(categories_collection.find({}).sort('name', 1))
+            # Convert ObjectIds to strings
+            for cat in categories:
+                cat['_id'] = str(cat['_id'])
             return categories
         except:
             return []
@@ -2941,6 +3011,8 @@ def utility_processor():
             products_collection = get_collection('products')
             product = products_collection.find_one({'_id': ObjectId(product_id)})
             if product:
+                # Convert ObjectId to string
+                product['_id'] = str(product['_id'])
                 # Ensure images are properly formatted
                 if 'images' not in product or not product['images']:
                     if 'image' in product and product['image']:
@@ -3009,6 +3081,8 @@ def utility_processor():
             if 'user_id' in session:
                 users_collection = get_collection('users')
                 user = users_collection.find_one({'_id': ObjectId(session['user_id'])})
+                if user:
+                    user = convert_objectid_to_str(user)
                 return user
         except:
             return None
@@ -3057,6 +3131,8 @@ def utility_processor():
             
             # Process each product to ensure proper image structure
             for product in products:
+                # Convert ObjectId to string
+                product['_id'] = str(product['_id'])
                 product.setdefault('rating', 0)
                 product.setdefault('reviews_count', 0)
                 
@@ -3114,6 +3190,7 @@ def utility_processor():
             
             # Process each similar product
             for p in similar_products:
+                p['_id'] = str(p['_id'])
                 p['images'] = get_product_images(p)
             
             return similar_products
@@ -3241,6 +3318,7 @@ def utility_processor():
         truncate_text=truncate_text,
         get_current_year=get_current_year,
         format_phone_number=format_phone_number,
+        convert_objectid_to_str=convert_objectid_to_str,
         
         # Image handling functions (UPDATED)
         get_product_images=get_product_images,
@@ -3281,6 +3359,7 @@ def utility_processor():
         
         # Order functions
         get_recent_orders=get_recent_orders,
+        get_recently_viewed=get_recently_viewed,  # ADDED THIS LINE
         get_order_status_badge=get_order_status_badge,
         get_order_items_count=get_order_items_count,
         format_order_id=format_order_id,
@@ -3496,6 +3575,22 @@ def format_price_filter(price):
             return f"KES {price}"
         except:
             return "KES 0"
+
+# ========== PERFORMANCE OPTIMIZATION ==========
+@app.after_request
+def set_cache_headers(response):
+    """Add caching headers for static files to reduce server load"""
+    if request.path.startswith('/static/'):
+        # Cache static assets for 30 days
+        response.headers['Cache-Control'] = 'public, max-age=2592000, immutable'
+        response.headers['Vary'] = 'Accept-Encoding'
+    else:
+        # Don't cache HTML pages
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+    
+    return response
 
 if __name__ == '__main__':
     print("\n" + "="*50)

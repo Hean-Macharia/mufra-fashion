@@ -1,14 +1,16 @@
 {% extends "base.html" %}
 
-{% block title %}Checkout - MUFRA FASHIONS{% endblock %}
+{% block title %}Secure Checkout - MUFRA FASHIONS{% endblock %}
 
 {% block content %}
 <div class="container py-4">
     <!-- Page Header -->
     <div class="row mb-4">
         <div class="col-12">
-            <h1 class="mb-2 fw-bold"><i class="fas fa-shopping-bag me-2"></i>Secure Checkout</h1>
-            <p class="text-muted lead">Complete your purchase with confidence</p>
+            <h1 class="mb-2 fw-bold text-charcoal">
+                <i class="fas fa-lock me-2 text-magenta"></i>Secure Checkout
+            </h1>
+            <p class="text-grey-medium lead">Complete your purchase with confidence</p>
         </div>
     </div>
 
@@ -19,29 +21,29 @@
                 <div class="step completed">
                     <div class="step-circle">1</div>
                     <div class="step-label">
-                        <i class="fas fa-shopping-cart d-md-none mb-1"></i>
-                        <span class="d-none d-md-inline">Cart</span>
+                        <i class="fas fa-shopping-cart d-md-none mb-1 text-magenta"></i>
+                        <span class="d-none d-md-inline text-charcoal">Cart</span>
                     </div>
                 </div>
                 <div class="step active">
                     <div class="step-circle">2</div>
                     <div class="step-label">
-                        <i class="fas fa-user d-md-none mb-1"></i>
-                        <span class="d-none d-md-inline">Details</span>
+                        <i class="fas fa-user d-md-none mb-1 text-cyan"></i>
+                        <span class="d-none d-md-inline text-cyan">Details</span>
                     </div>
                 </div>
                 <div class="step">
                     <div class="step-circle">3</div>
                     <div class="step-label">
-                        <i class="fas fa-credit-card d-md-none mb-1"></i>
-                        <span class="d-none d-md-inline">Payment</span>
+                        <i class="fas fa-credit-card d-md-none mb-1 text-grey-medium"></i>
+                        <span class="d-none d-md-inline text-grey-medium">Payment</span>
                     </div>
                 </div>
                 <div class="step">
                     <div class="step-circle">4</div>
                     <div class="step-label">
-                        <i class="fas fa-check d-md-none mb-1"></i>
-                        <span class="d-none d-md-inline">Confirm</span>
+                        <i class="fas fa-check d-md-none mb-1 text-grey-medium"></i>
+                        <span class="d-none d-md-inline text-grey-medium">Confirm</span>
                     </div>
                 </div>
             </div>
@@ -50,71 +52,75 @@
 
     <div class="row">
         <!-- Order Summary -->
-        <div class="col-lg-4 mb-4">
-            <div class="card shadow-sm border-0 sticky-summary">
-                <div class="card-header bg-primary text-white border-0 rounded-top">
-                    <h5 class="mb-0"><i class="fas fa-receipt me-2"></i>Order Summary</h5>
+        <div class="col-lg-4 mb-4 order-lg-last">
+            <div class="card shadow-brand border-0 sticky-summary bg-white">
+                <div class="card-header bg-magenta text-white border-0 rounded-top py-3">
+                    <h5 class="mb-0 fw-semibold"><i class="fas fa-receipt me-2"></i>Order Summary</h5>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-4">
                     <!-- Cart Items -->
                     <div class="cart-items mb-4">
-                        <h6 class="mb-3 fw-bold">Order Items ({{ get_cart_count() }})</h6>
+                        <h6 class="mb-3 fw-bold text-charcoal">
+                            <i class="fas fa-box me-2 text-cyan"></i>Order Items ({{ get_cart_count() }})
+                        </h6>
                         {% for item in cart_items %}
-                        <div class="d-flex mb-3 pb-3 {% if not loop.last %}border-bottom{% endif %}">
+                        <div class="d-flex mb-3 pb-3 {% if not loop.last %}border-bottom border-grey-medium border-opacity-25{% endif %}">
                             <!-- Product Image with Carousel Support -->
                             <div class="flex-shrink-0 position-relative">
-                                {% set item_images = get_cart_item_images(item) %}
-                                {% if item_images|length > 1 %}
-                                <div id="checkoutImageCarousel{{ loop.index0 }}" class="carousel slide" style="width: 60px; height: 60px;">
-                                    <div class="carousel-inner rounded">
-                                        {% for img in item_images %}
+                                {% set product = get_product_by_id(item.product_id) %}
+                                {% set product_images = get_product_images(product) if product else get_cart_item_images(item) %}
+                                
+                                {% if product_images|length > 1 %}
+                                <div id="checkoutImageCarousel{{ loop.index0 }}" class="carousel slide" style="width: 70px; height: 70px;">
+                                    <div class="carousel-inner rounded-3">
+                                        {% for img in product_images %}
                                         <div class="carousel-item {% if loop.first %}active{% endif %}">
-                                            <img src="{{ img.url if img.url.startswith('http') else url_for('static', filename='uploads/' + img.url) }}" 
+                                            <img src="{{ img.url if img.url.startswith('http') else url_for('static', filename='uploads/' + img.filename) if img.filename else img.url }}" 
                                                  class="checkout-item-image" 
                                                  alt="{{ item.name }} - Image {{ loop.index }}"
-                                                 onerror="this.src='https://via.placeholder.com/60x60?text=Product'">
+                                                 onerror="this.src='https://via.placeholder.com/70x70?text=MF'">
                                         </div>
                                         {% endfor %}
                                     </div>
                                     <!-- Image Count Badge -->
-                                    <span class="position-absolute top-0 end-0 badge bg-dark bg-opacity-75 small">
-                                        {{ item_images|length }}
+                                    <span class="position-absolute top-0 end-0 badge bg-charcoal bg-opacity-85 small">
+                                        <i class="fas fa-images me-1"></i>{{ product_images|length }}
                                     </span>
                                 </div>
                                 {% else %}
                                 <img src="{{ get_cart_item_image(item) }}" 
-                                     class="rounded checkout-item-image" 
+                                     class="rounded-3 checkout-item-image" 
                                      alt="{{ item.name }}"
-                                     onerror="this.src='https://via.placeholder.com/60x60?text=Product'">
+                                     onerror="this.src='https://via.placeholder.com/70x70?text=MF'">
                                 {% endif %}
                             </div>
                             
                             <div class="flex-grow-1 ms-3">
-                                <h6 class="mb-1 fw-bold">{{ item.name }}</h6>
-                                <div class="text-muted small mb-1">
+                                <h6 class="mb-1 fw-bold text-cyan product-title">{{ item.name }}</h6>
+                                <div class="text-grey-medium small mb-1">
                                     <div class="d-flex flex-wrap gap-2">
-                                        <span class="badge bg-light text-dark border">
+                                        <span class="badge bg-soft-cyan text-cyan border border-cyan">
                                             <i class="fas fa-hashtag me-1"></i>Qty: {{ item.quantity }}
                                         </span>
                                         {% if item.size %}
-                                        <span class="badge bg-light text-dark border">
+                                        <span class="badge bg-soft-cyan text-cyan border border-cyan">
                                             <i class="fas fa-ruler me-1"></i>{{ item.size }}
                                         </span>
                                         {% endif %}
                                         {% if item.color %}
-                                        <span class="badge bg-light text-dark border">
+                                        <span class="badge bg-soft-magenta text-magenta border border-magenta">
                                             <i class="fas fa-palette me-1"></i>{{ item.color }}
                                         </span>
                                         {% endif %}
                                     </div>
                                 </div>
-                                <p class="mb-0 fw-bold text-primary">{{ format_price(item.price * item.quantity) }}</p>
-                                <small class="text-muted">{{ format_price(item.price) }} each</small>
+                                <p class="mb-0 fw-bold text-magenta">{{ format_price(item.price * item.quantity) }}</p>
+                                <small class="text-grey-medium">{{ format_price(item.price) }} each</small>
                                 
                                 <!-- Stock Status -->
                                 {% set stock_status = get_product_stock_status(item.stock) %}
                                 <div class="mt-1">
-                                    <span class="badge bg-{{ stock_status.color }} small">
+                                    <span class="badge bg-{{ 'success' if stock_status.color == 'success' else 'warning' if stock_status.color == 'warning' else 'danger' }} small">
                                         <i class="fas fa-{{ 'check-circle' if stock_status.color == 'success' else 'exclamation-circle' }} me-1"></i>
                                         {{ stock_status.text }}
                                     </span>
@@ -126,54 +132,58 @@
 
                     <!-- Order Summary Details -->
                     <div class="order-summary-details mb-4">
-                        <h6 class="mb-3 fw-bold">Price Details</h6>
+                        <h6 class="mb-3 fw-bold text-charcoal">
+                            <i class="fas fa-calculator me-2 text-cyan"></i>Price Details
+                        </h6>
                         <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="text-muted">Subtotal ({{ get_cart_count() }} items):</span>
-                            <span class="fw-bold">{{ format_price(subtotal) }}</span>
+                            <span class="text-grey-medium">Subtotal ({{ get_cart_count() }} items):</span>
+                            <span class="fw-bold text-charcoal">{{ format_price(subtotal) }}</span>
                         </div>
                         
                         <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="text-muted">Delivery:</span>
-                            <span class="fw-bold" id="deliveryFee">{{ format_price(200) }}</span>
+                            <span class="text-grey-medium">Delivery:</span>
+                            <span class="fw-bold text-cyan" id="deliveryFee">{{ format_price(200) }}</span>
                         </div>
                         
                         <div class="d-flex justify-content-between align-items-center mb-2" id="discountRow" style="display: none;">
-                            <span class="text-muted">Discount:</span>
-                            <span class="text-success fw-bold" id="discountAmount">- {{ format_price(0) }}</span>
+                            <span class="text-grey-medium">Discount:</span>
+                            <span class="text-cyan fw-bold" id="discountAmount">- {{ format_price(0) }}</span>
                         </div>
 
-                        <hr class="my-3">
+                        <hr class="my-3" style="border-color: rgba(117,117,117,0.2);">
                         
                         <div class="d-flex justify-content-between align-items-center mb-4">
-                            <span class="fw-bold fs-5">Total Amount:</span>
-                            <span class="fw-bold fs-5 text-primary" id="totalAmount">{{ format_price(subtotal + 200) }}</span>
+                            <span class="fw-bold fs-5 text-charcoal">Total Amount:</span>
+                            <span class="fw-bold fs-5 text-magenta" id="totalAmount">{{ format_price(subtotal + 200) }}</span>
                         </div>
                         
-                        <div class="alert alert-success small mb-0">
-                            <i class="fas fa-info-circle me-2"></i>
-                            <strong>Free shipping</strong> on orders over KES 5,000
+                        <div class="alert bg-soft-cyan border-0 small mb-0" id="shippingAlert">
+                            <i class="fas fa-info-circle me-2 text-cyan"></i>
+                            <span class="text-charcoal">
+                                <strong class="text-cyan">Free shipping</strong> on orders over KES 5,000
+                            </span>
                         </div>
                     </div>
 
                     <!-- Security Badges -->
-                    <div class="security-badges text-center pt-3 border-top">
+                    <div class="security-badges text-center pt-3 border-top border-grey-medium border-opacity-25">
                         <div class="row g-2">
                             <div class="col-4">
-                                <div class="p-2 bg-light rounded">
-                                    <i class="fas fa-shield-alt text-primary mb-1"></i>
-                                    <p class="small mb-0">100% Secure</p>
+                                <div class="p-2 bg-soft-magenta rounded-3">
+                                    <i class="fas fa-shield-alt text-magenta mb-1"></i>
+                                    <p class="small mb-0 text-charcoal">100% Secure</p>
                                 </div>
                             </div>
                             <div class="col-4">
-                                <div class="p-2 bg-light rounded">
-                                    <i class="fas fa-lock text-primary mb-1"></i>
-                                    <p class="small mb-0">SSL Encrypted</p>
+                                <div class="p-2 bg-soft-cyan rounded-3">
+                                    <i class="fas fa-lock text-cyan mb-1"></i>
+                                    <p class="small mb-0 text-charcoal">SSL Encrypted</p>
                                 </div>
                             </div>
                             <div class="col-4">
-                                <div class="p-2 bg-light rounded">
-                                    <i class="fas fa-undo text-primary mb-1"></i>
-                                    <p class="small mb-0">Easy Returns</p>
+                                <div class="p-2 bg-soft-magenta rounded-3">
+                                    <i class="fas fa-undo text-magenta mb-1"></i>
+                                    <p class="small mb-0 text-charcoal">Easy Returns</p>
                                 </div>
                             </div>
                         </div>
@@ -182,21 +192,23 @@
             </div>
             
             <!-- Need Help? -->
-            <div class="card shadow-sm border-0 mt-4">
-                <div class="card-body">
-                    <h6 class="mb-3 fw-bold"><i class="fas fa-headset me-2"></i>Need Help?</h6>
+            <div class="card shadow-brand border-0 mt-4 bg-white">
+                <div class="card-body p-4">
+                    <h6 class="mb-3 fw-bold text-charcoal">
+                        <i class="fas fa-headset me-2 text-cyan"></i>Need Help?
+                    </h6>
                     <div class="d-flex align-items-center mb-2">
-                        <i class="fas fa-phone text-primary me-3"></i>
+                        <i class="fas fa-phone text-magenta me-3"></i>
                         <div>
-                            <p class="small mb-0">Call us</p>
-                            <p class="mb-0 fw-bold">+254 712 345 678</p>
+                            <p class="small mb-0 text-grey-medium">Call us</p>
+                            <p class="mb-0 fw-bold text-charcoal">0102850010</p>
                         </div>
                     </div>
                     <div class="d-flex align-items-center">
-                        <i class="fas fa-envelope text-primary me-3"></i>
+                        <i class="fas fa-envelope text-magenta me-3"></i>
                         <div>
-                            <p class="small mb-0">Email us</p>
-                            <p class="mb-0 fw-bold">support@mufrafashions.com</p>
+                            <p class="small mb-0 text-grey-medium">Email us</p>
+                            <p class="mb-0 fw-bold text-charcoal">mufrafashions@gmail.com</p>
                         </div>
                     </div>
                 </div>
@@ -205,56 +217,56 @@
 
         <!-- Checkout Form -->
         <div class="col-lg-8">
-            <div class="card shadow-sm border-0">
-                <div class="card-body">
+            <div class="card shadow-brand border-0 bg-white">
+                <div class="card-body p-4 p-lg-5">
                     <form id="checkoutForm" method="POST" action="{{ url_for('process_checkout') }}">
                         <!-- Contact Information -->
                         <div class="mb-5">
-                            <h4 class="mb-4 border-bottom pb-3">
-                                <i class="fas fa-user-circle me-2"></i>Contact Information
+                            <h4 class="mb-4 pb-3 border-bottom border-grey-medium border-opacity-25 text-charcoal">
+                                <i class="fas fa-user-circle me-2 text-magenta"></i>Contact Information
                             </h4>
                             
                             <div class="row mb-4">
                                 <div class="col-md-6 mb-3">
-                                    <label class="form-label fw-bold">Full Name <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" name="name" 
+                                    <label class="form-label fw-bold text-charcoal">Full Name <span class="text-magenta">*</span></label>
+                                    <input type="text" class="form-control border-grey-medium" name="name" 
                                            value="{{ user.name if user else '' }}" required
                                            placeholder="John Doe">
-                                    <div class="form-text">As it appears on your ID</div>
+                                    <div class="form-text text-grey-medium">As it appears on your ID</div>
                                 </div>
                                 <div class="col-md-6 mb-3">
-                                    <label class="form-label fw-bold">Email Address <span class="text-danger">*</span></label>
-                                    <input type="email" class="form-control" name="email" 
+                                    <label class="form-label fw-bold text-charcoal">Email Address <span class="text-magenta">*</span></label>
+                                    <input type="email" class="form-control border-grey-medium" name="email" 
                                            value="{{ user.email if user else '' }}" required
                                            placeholder="john@example.com">
-                                    <div class="form-text">Order confirmation will be sent here</div>
+                                    <div class="form-text text-grey-medium">Order confirmation will be sent here</div>
                                 </div>
                             </div>
                             
                             <div class="mb-3">
-                                <label class="form-label fw-bold">Phone Number <span class="text-danger">*</span></label>
+                                <label class="form-label fw-bold text-charcoal">Phone Number <span class="text-magenta">*</span></label>
                                 <div class="input-group">
-                                    <span class="input-group-text bg-light border-end-0">+254</span>
-                                    <input type="tel" class="form-control" name="phone" 
-                                           value="{{ user.phone if user else '' }}" required
+                                    <span class="input-group-text bg-soft-magenta text-magenta border-grey-medium">+254</span>
+                                    <input type="tel" class="form-control border-grey-medium" name="phone" 
+                                           value="{{ user.phone if user.phone else '' }}" required
                                            placeholder="712345678" maxlength="9" minlength="9"
                                            pattern="[0-9]{9}">
                                 </div>
-                                <div class="form-text">Enter 9 digits without the leading 0. We'll send SMS updates.</div>
+                                <div class="form-text text-grey-medium">Enter 9 digits without the leading 0. We'll send SMS updates.</div>
                             </div>
                         </div>
 
                         <!-- Shipping Address -->
                         <div class="mb-5">
-                            <h4 class="mb-4 border-bottom pb-3">
-                                <i class="fas fa-map-marker-alt me-2"></i>Shipping Address
+                            <h4 class="mb-4 pb-3 border-bottom border-grey-medium border-opacity-25 text-charcoal">
+                                <i class="fas fa-map-marker-alt me-2 text-cyan"></i>Shipping Address
                             </h4>
                             
                             <div class="row mb-4">
                                 <div class="col-md-6 mb-3">
-                                    <label class="form-label fw-bold">County <span class="text-danger">*</span></label>
-                                    <select class="form-select" id="county" name="county" required>
-                                        <option value="">Select your county</option>
+                                    <label class="form-label fw-bold text-charcoal">County <span class="text-magenta">*</span></label>
+                                    <select class="form-select border-grey-medium" id="county" name="county" required>
+                                        <option value="" class="text-grey-medium">Select your county</option>
                                         <option value="Baringo">Baringo</option>
                                         <option value="Bomet">Bomet</option>
                                         <option value="Bungoma">Bungoma</option>
@@ -303,29 +315,29 @@
                                     </select>
                                 </div>
                                 <div class="col-md-6 mb-3">
-                                    <label class="form-label fw-bold">City/Town <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" name="city" required
+                                    <label class="form-label fw-bold text-charcoal">City/Town <span class="text-magenta">*</span></label>
+                                    <input type="text" class="form-control border-grey-medium" name="city" required
                                            placeholder="e.g., Embu Town, Nairobi CBD" id="cityInput">
-                                    <div class="form-text">Nearest town or city center</div>
+                                    <div class="form-text text-grey-medium">Nearest town or city center</div>
                                 </div>
                             </div>
                             
                             <div class="mb-4">
-                                <label class="form-label fw-bold">Street Address <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" name="street" required
+                                <label class="form-label fw-bold text-charcoal">Street Address <span class="text-magenta">*</span></label>
+                                <input type="text" class="form-control border-grey-medium" name="street" required
                                        placeholder="House number, building, street">
-                                <div class="form-text">Where your order will be delivered</div>
+                                <div class="form-text text-grey-medium">Where your order will be delivered</div>
                             </div>
                             
                             <div class="row">
                                 <div class="col-md-6 mb-3">
-                                    <label class="form-label">Postal Code (Optional)</label>
-                                    <input type="text" class="form-control" name="postal_code"
+                                    <label class="form-label text-charcoal">Postal Code (Optional)</label>
+                                    <input type="text" class="form-control border-grey-medium" name="postal_code"
                                            placeholder="e.g., 60100">
                                 </div>
                                 <div class="col-md-6 mb-3">
-                                    <label class="form-label">Additional Information (Optional)</label>
-                                    <input type="text" class="form-control" name="additional_info"
+                                    <label class="form-label text-charcoal">Additional Information (Optional)</label>
+                                    <input type="text" class="form-control border-grey-medium" name="additional_info"
                                            placeholder="Apartment, suite, floor, landmark">
                                 </div>
                             </div>
@@ -333,35 +345,39 @@
 
                         <!-- Delivery Information -->
                         <div class="mb-5">
-                            <h4 class="mb-4 border-bottom pb-3">
-                                <i class="fas fa-truck me-2"></i>Delivery Information
+                            <h4 class="mb-4 pb-3 border-bottom border-grey-medium border-opacity-25 text-charcoal">
+                                <i class="fas fa-truck me-2 text-cyan"></i>Delivery Information
                             </h4>
                             
                             <div class="delivery-info mb-4">
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
-                                        <div class="card border-primary">
+                                        <div class="card border-cyan selected-delivery-option" id="standardDelivery">
                                             <div class="card-body">
                                                 <div class="d-flex align-items-start">
-                                                    <i class="fas fa-shipping-fast fa-2x text-primary me-3"></i>
+                                                    <div class="delivery-icon bg-soft-cyan rounded-3 p-2 me-3">
+                                                        <i class="fas fa-shipping-fast fa-2x text-cyan"></i>
+                                                    </div>
                                                     <div>
-                                                        <h6 class="fw-bold mb-2">Standard Delivery</h6>
-                                                        <p class="small mb-1">2-5 business days</p>
-                                                        <p class="small mb-0 text-success" id="deliveryCost">KES 200</p>
+                                                        <h6 class="fw-bold mb-2 text-charcoal">Standard Delivery</h6>
+                                                        <p class="small mb-1 text-grey-medium">2-5 business days</p>
+                                                        <p class="small mb-0 text-cyan fw-bold" id="deliveryCost">KES 200</p>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                     <div class="col-md-6 mb-3">
-                                        <div class="card border-light">
+                                        <div class="card border-grey-medium" id="expressDelivery">
                                             <div class="card-body">
                                                 <div class="d-flex align-items-start">
-                                                    <i class="fas fa-bolt fa-2x text-warning me-3"></i>
+                                                    <div class="delivery-icon bg-soft-cyan rounded-3 p-2 me-3">
+                                                        <i class="fas fa-bolt fa-2x text-cyan"></i>
+                                                    </div>
                                                     <div>
-                                                        <h6 class="fw-bold mb-2">Express Delivery</h6>
-                                                        <p class="small mb-1">1-2 business days</p>
-                                                        <p class="small mb-0 text-muted">KES 500</p>
+                                                        <h6 class="fw-bold mb-2 text-charcoal">Express Delivery</h6>
+                                                        <p class="small mb-1 text-grey-medium">1-2 business days</p>
+                                                        <p class="small mb-0 text-grey-medium">KES 500</p>
                                                     </div>
                                                 </div>
                                             </div>
@@ -369,16 +385,16 @@
                                     </div>
                                 </div>
                                 
-                                <div class="alert alert-info">
+                                <div class="alert bg-soft-cyan border-0 mt-3" id="deliveryNotes">
                                     <div class="d-flex">
-                                        <i class="fas fa-info-circle fa-lg me-3 mt-1"></i>
+                                        <i class="fas fa-info-circle fa-lg me-3 text-cyan"></i>
                                         <div>
-                                            <h6 class="mb-2">Delivery Notes</h6>
-                                            <ul class="mb-0 small">
-                                                <li>Free delivery on orders over KES 5,000</li>
-                                                <li>Same-day delivery available in Embu (order before 2 PM)</li>
-                                                <li>Delivery times may vary during holidays</li>
-                                                <li>You'll receive SMS tracking updates</li>
+                                            <h6 class="mb-2 fw-bold text-charcoal">Delivery Notes</h6>
+                                            <ul class="mb-0 small text-charcoal">
+                                                <li class="mb-1">✓ Free delivery on orders over KES 5,000</li>
+                                                <li class="mb-1">✓ Same-day delivery available in Embu (order before 2 PM)</li>
+                                                <li class="mb-1">✓ Delivery times may vary during holidays</li>
+                                                <li>✓ You'll receive SMS tracking updates</li>
                                             </ul>
                                         </div>
                                     </div>
@@ -388,8 +404,8 @@
 
                         <!-- Payment Method -->
                         <div class="mb-5">
-                            <h4 class="mb-4 border-bottom pb-3">
-                                <i class="fas fa-credit-card me-2"></i>Payment Method
+                            <h4 class="mb-4 pb-3 border-bottom border-grey-medium border-opacity-25 text-charcoal">
+                                <i class="fas fa-credit-card me-2 text-magenta"></i>Payment Method
                             </h4>
                             
                             <div class="payment-methods">
@@ -400,18 +416,18 @@
                                         <label class="form-check-label w-100" for="paystack">
                                             <div class="d-flex align-items-center justify-content-between">
                                                 <div class="d-flex align-items-center">
-                                                    <div class="payment-icon bg-primary text-white me-3">
+                                                    <div class="payment-icon bg-magenta text-white me-3 rounded-3">
                                                         <i class="fas fa-credit-card"></i>
                                                     </div>
                                                     <div>
-                                                        <h6 class="mb-1 fw-bold">Paystack Secure Payment</h6>
-                                                        <p class="text-muted small mb-0">
+                                                        <h6 class="mb-1 fw-bold text-charcoal">Paystack Secure Payment</h6>
+                                                        <p class="text-grey-medium small mb-0">
                                                             Card, mobile money, bank transfer, USSD
                                                         </p>
                                                     </div>
                                                 </div>
                                                 <div class="payment-security">
-                                                    <span class="badge bg-success">
+                                                    <span class="badge bg-cyan">
                                                         <i class="fas fa-lock me-1"></i>Secure
                                                     </span>
                                                 </div>
@@ -421,14 +437,25 @@
                                 </div>
                                 
                                 <!-- Payment Icons -->
-                                <div class="payment-icons mt-3 text-center">
-                                    <p class="small text-muted mb-2">We accept:</p>
+                                <div class="payment-icons mt-4 text-center">
+                                    <p class="small text-grey-medium mb-2">We accept:</p>
                                     <div class="d-flex justify-content-center gap-3 flex-wrap">
-                                        <i class="fab fa-cc-visa fa-2x text-primary" title="Visa"></i>
-                                        <i class="fab fa-cc-mastercard fa-2x text-danger" title="Mastercard"></i>
-                                        <i class="fas fa-mobile-alt fa-2x text-success" title="Mobile Money"></i>
-                                        <i class="fas fa-university fa-2x text-info" title="Bank Transfer"></i>
-                                        <i class="fas fa-phone-alt fa-2x text-warning" title="USSD"></i>
+                                        <span class="payment-icon-item bg-soft-magenta px-3 py-2 rounded-3">
+                                            <i class="fab fa-cc-visa text-magenta me-1"></i>
+                                            <span class="small fw-bold text-charcoal">Visa</span>
+                                        </span>
+                                        <span class="payment-icon-item bg-soft-cyan px-3 py-2 rounded-3">
+                                            <i class="fab fa-cc-mastercard text-cyan me-1"></i>
+                                            <span class="small fw-bold text-charcoal">Mastercard</span>
+                                        </span>
+                                        <span class="payment-icon-item bg-soft-magenta px-3 py-2 rounded-3">
+                                            <i class="fas fa-mobile-alt text-magenta me-1"></i>
+                                            <span class="small fw-bold text-charcoal">M-Pesa</span>
+                                        </span>
+                                        <span class="payment-icon-item bg-soft-cyan px-3 py-2 rounded-3">
+                                            <i class="fas fa-university text-cyan me-1"></i>
+                                            <span class="small fw-bold text-charcoal">Bank</span>
+                                        </span>
                                     </div>
                                 </div>
                             </div>
@@ -436,42 +463,44 @@
 
                         <!-- Order Notes -->
                         <div class="mb-5">
-                            <h4 class="mb-3 border-bottom pb-3">
-                                <i class="fas fa-sticky-note me-2"></i>Order Notes (Optional)
+                            <h4 class="mb-4 pb-3 border-bottom border-grey-medium border-opacity-25 text-charcoal">
+                                <i class="fas fa-sticky-note me-2 text-cyan"></i>Order Notes (Optional)
                             </h4>
                             
                             <div class="mb-3">
-                                <label class="form-label">Special Instructions</label>
-                                <textarea class="form-control" name="order_notes" rows="3" 
+                                <label class="form-label text-charcoal">Special Instructions</label>
+                                <textarea class="form-control border-grey-medium" name="order_notes" rows="3" 
                                           placeholder="Any special instructions for delivery, preferred delivery time, etc."></textarea>
-                                <div class="form-text">Maximum 200 characters</div>
+                                <div class="form-text text-grey-medium text-end">
+                                    <span id="charCount">0</span>/200 characters
+                                </div>
                             </div>
                         </div>
 
                         <!-- Terms and Conditions -->
                         <div class="mb-5">
-                            <div class="form-check">
+                            <div class="form-check mb-3">
                                 <input class="form-check-input" type="checkbox" id="terms" required>
-                                <label class="form-check-label" for="terms">
-                                    I agree to the <a href="#" class="text-decoration-none" data-bs-toggle="modal" data-bs-target="#termsModal">Terms and Conditions</a> 
+                                <label class="form-check-label text-charcoal" for="terms">
+                                    I agree to the <a href="#" class="text-cyan text-decoration-none" data-bs-toggle="modal" data-bs-target="#termsModal">Terms and Conditions</a> 
                                     and confirm that my shipping information is correct. *
                                 </label>
                             </div>
                             
-                            <div class="form-check mt-3">
+                            <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="newsletter" name="newsletter" checked>
-                                <label class="form-check-label" for="newsletter">
+                                <label class="form-check-label text-grey-medium" for="newsletter">
                                     Send me updates about new products, promotions, and special offers.
                                 </label>
                             </div>
                         </div>
 
                         <!-- Action Buttons -->
-                        <div class="d-flex justify-content-between pt-4 border-top">
-                            <a href="{{ url_for('cart') }}" class="btn btn-outline-primary btn-lg">
+                        <div class="d-flex justify-content-between pt-4 border-top border-grey-medium border-opacity-25">
+                            <a href="{{ url_for('cart') }}" class="btn btn-outline-cyan btn-lg px-4">
                                 <i class="fas fa-arrow-left me-2"></i> Back to Cart
                             </a>
-                            <button type="submit" class="btn btn-primary btn-lg px-5" id="placeOrderBtn">
+                            <button type="submit" class="btn btn-magenta btn-lg px-5" id="placeOrderBtn">
                                 <i class="fas fa-lock me-2"></i> Pay Now
                             </button>
                         </div>
@@ -482,29 +511,52 @@
             <!-- Customer Testimonials -->
             <div class="row mt-4">
                 <div class="col-12">
-                    <div class="card border-0 bg-light">
-                        <div class="card-body text-center">
-                            <h6 class="mb-3 fw-bold">What Our Customers Say</h6>
+                    <div class="card border-0 bg-soft-magenta">
+                        <div class="card-body p-4">
+                            <h6 class="mb-3 fw-bold text-charcoal text-center">
+                                <i class="fas fa-quote-left me-2 text-magenta"></i>What Our Customers Say
+                            </h6>
                             <div class="row">
-                                <div class="col-md-4 mb-3">
-                                    <div class="testimonial">
-                                        <i class="fas fa-quote-left text-primary mb-2"></i>
-                                        <p class="small mb-2">"Fast delivery and great quality products!"</p>
-                                        <p class="small fw-bold mb-0">- Sarah K., Embu</p>
+                                <div class="col-md-4 mb-3 mb-md-0">
+                                    <div class="testimonial bg-white p-3 rounded-3">
+                                        <div class="d-flex mb-2">
+                                            <i class="fas fa-quote-left text-magenta me-2"></i>
+                                            <i class="fas fa-star text-cyan"></i>
+                                            <i class="fas fa-star text-cyan"></i>
+                                            <i class="fas fa-star text-cyan"></i>
+                                            <i class="fas fa-star text-cyan"></i>
+                                            <i class="fas fa-star text-cyan"></i>
+                                        </div>
+                                        <p class="small text-charcoal mb-2">"Fast delivery and great quality products!"</p>
+                                        <p class="small fw-bold text-cyan mb-0">- Sarah K., Embu</p>
                                     </div>
                                 </div>
-                                <div class="col-md-4 mb-3">
-                                    <div class="testimonial">
-                                        <i class="fas fa-quote-left text-primary mb-2"></i>
-                                        <p class="small mb-2">"Secure checkout process and excellent support."</p>
-                                        <p class="small fw-bold mb-0">- James M., Nairobi</p>
+                                <div class="col-md-4 mb-3 mb-md-0">
+                                    <div class="testimonial bg-white p-3 rounded-3">
+                                        <div class="d-flex mb-2">
+                                            <i class="fas fa-quote-left text-magenta me-2"></i>
+                                            <i class="fas fa-star text-cyan"></i>
+                                            <i class="fas fa-star text-cyan"></i>
+                                            <i class="fas fa-star text-cyan"></i>
+                                            <i class="fas fa-star text-cyan"></i>
+                                            <i class="fas fa-star text-cyan"></i>
+                                        </div>
+                                        <p class="small text-charcoal mb-2">"Secure checkout process and excellent support."</p>
+                                        <p class="small fw-bold text-cyan mb-0">- James M., Nairobi</p>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
-                                    <div class="testimonial">
-                                        <i class="fas fa-quote-left text-primary mb-2"></i>
-                                        <p class="small mb-2">"Easy returns and friendly customer service."</p>
-                                        <p class="small fw-bold mb-0">- Mercy W., Meru</p>
+                                    <div class="testimonial bg-white p-3 rounded-3">
+                                        <div class="d-flex mb-2">
+                                            <i class="fas fa-quote-left text-magenta me-2"></i>
+                                            <i class="fas fa-star text-cyan"></i>
+                                            <i class="fas fa-star text-cyan"></i>
+                                            <i class="fas fa-star text-cyan"></i>
+                                            <i class="fas fa-star text-cyan"></i>
+                                            <i class="fas fa-star text-cyan"></i>
+                                        </div>
+                                        <p class="small text-charcoal mb-2">"Easy returns and friendly customer service."</p>
+                                        <p class="small fw-bold text-cyan mb-0">- Mercy W., Meru</p>
                                     </div>
                                 </div>
                             </div>
@@ -520,46 +572,48 @@
 <div class="modal fade" id="termsModal" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
+            <div class="modal-header bg-magenta text-white border-0">
                 <h5 class="modal-title"><i class="fas fa-file-contract me-2"></i>Terms and Conditions</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body p-4">
                 <div class="mb-4">
-                    <h6 class="fw-bold mb-3">1. Order Acceptance</h6>
-                    <p class="text-muted">Your order is subject to acceptance by MUFRA FASHIONS. We reserve the right to refuse service to anyone for any reason at any time.</p>
+                    <h6 class="fw-bold mb-3 text-charcoal">1. Order Acceptance</h6>
+                    <p class="text-grey-medium">Your order is subject to acceptance by MUFRA FASHIONS. We reserve the right to refuse service to anyone for any reason at any time.</p>
                 </div>
                 
                 <div class="mb-4">
-                    <h6 class="fw-bold mb-3">2. Pricing and Payment</h6>
-                    <p class="text-muted">All prices are in Kenyan Shillings (KES). Payment must be made in full before order processing. Delivery fees: KES 100 within Embu, KES 200 outside Embu. Free shipping for orders above KES 5,000. Secure payment via Paystack only.</p>
+                    <h6 class="fw-bold mb-3 text-charcoal">2. Pricing and Payment</h6>
+                    <p class="text-grey-medium">All prices are in Kenyan Shillings (KES). Payment must be made in full before order processing. Delivery fees: KES 100 within Embu, KES 200 outside Embu. Free shipping for orders above KES 5,000. Secure payment via Paystack only.</p>
                 </div>
                 
                 <div class="mb-4">
-                    <h6 class="fw-bold mb-3">3. Shipping and Delivery</h6>
-                    <p class="text-muted">Orders are typically processed within 24 hours and delivered within 1-2 days. Delivery times may vary based on location and availability.</p>
+                    <h6 class="fw-bold mb-3 text-charcoal">3. Shipping and Delivery</h6>
+                    <p class="text-grey-medium">Orders are typically processed within 24 hours and delivered within 1-2 days. Delivery times may vary based on location and availability.</p>
                 </div>
                 
                 <div class="mb-4">
-                    <h6 class="fw-bold mb-3">4. Returns & Refunds</h6>
-                    <p class="text-muted">Returns accepted within 2 days of delivery. Items must be in good condition as taken with original packaging and tags. Refunds are processed within 7-14 business days.</p>
+                    <h6 class="fw-bold mb-3 text-charcoal">4. Returns & Refunds</h6>
+                    <p class="text-grey-medium">Returns accepted within 2 days of delivery. Items must be in good condition as taken with original packaging and tags. Refunds are processed within 7-14 business days.</p>
                 </div>
                 
                 <div class="mb-4">
-                    <h6 class="fw-bold mb-3">5. Privacy Policy</h6>
-                    <p class="text-muted">We respect your privacy. Your personal information is used only for order processing and delivery. We never share your information with third parties.</p>
+                    <h6 class="fw-bold mb-3 text-charcoal">5. Privacy Policy</h6>
+                    <p class="text-grey-medium">We respect your privacy. Your personal information is used only for order processing and delivery. We never share your information with third parties.</p>
                 </div>
                 
                 <div class="mb-4">
-                    <h6 class="fw-bold mb-3">6. Contact Information</h6>
-                    <p class="text-muted">MUFRA FASHIONS<br>
-                    Email: support@mufrafashions.com<br>
-                    Phone: +254 712 345 678<br>
-                    Address: Embu Town, Kenya</p>
+                    <h6 class="fw-bold mb-3 text-charcoal">6. Contact Information</h6>
+                    <p class="text-grey-medium">
+                        MUFRA FASHIONS<br>
+                        Email: mufrafashions@gmail.com<br>
+                        Phone: 0102850010<br>
+                        Address: 123 Fashion Street, Embu, Kenya
+                    </p>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">I Understand</button>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-magenta" data-bs-dismiss="modal">I Understand</button>
             </div>
         </div>
     </div>
@@ -569,20 +623,20 @@
 <div class="modal fade" id="paymentProcessingModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header border-0">
-                <h5 class="modal-title">Processing Payment</h5>
+            <div class="modal-header border-0 bg-magenta text-white">
+                <h5 class="modal-title"><i class="fas fa-lock me-2"></i>Processing Payment</h5>
             </div>
-            <div class="modal-body text-center">
-                <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+            <div class="modal-body text-center p-4">
+                <div class="spinner-border text-magenta mb-3" role="status" style="width: 3rem; height: 3rem;">
                     <span class="visually-hidden">Loading...</span>
                 </div>
-                <p class="mb-3 fw-bold">Redirecting to secure payment...</p>
-                <div class="progress mb-3">
-                    <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" 
-                         style="width: 100%"></div>
+                <p class="mb-3 fw-bold text-charcoal">Redirecting to secure payment...</p>
+                <div class="progress mb-3" style="height: 8px;">
+                    <div class="progress-bar bg-magenta progress-bar-striped progress-bar-animated" 
+                         role="progressbar" style="width: 100%"></div>
                 </div>
-                <p class="small text-muted mb-0">
-                    <i class="fas fa-shield-alt me-1"></i>Your payment information is secure
+                <p class="small text-grey-medium mb-0">
+                    <i class="fas fa-shield-alt me-1 text-cyan"></i>Your payment information is secure
                 </p>
             </div>
         </div>
@@ -592,280 +646,490 @@
 
 {% block extra_css %}
 <style>
-.progress-steps {
-    display: flex;
-    justify-content: space-between;
-    position: relative;
-    padding: 20px 0;
-}
+    /* ===== MUFRA FASHIONS BRAND COLORS ===== */
+    :root {
+        --magenta-vibrant: #D81B60;
+        --cyan-bright: #00ACC1;
+        --link-blue: #2196F3;
+        --charcoal-dark: #333333;
+        --grey-medium: #757575;
+        --bg-light-page: #F9F9F9;
+        --white-pure: #FFFFFF;
+        --footer-soft-grey: #EEEEEE;
+        --shadow-brand: 0 16px 32px -10px rgba(0,0,0,0.08);
+    }
 
-.progress-steps::before {
-    content: '';
-    position: absolute;
-    top: 24px;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background-color: #dee2e6;
-    z-index: 1;
-}
-
-.step {
-    position: relative;
-    z-index: 2;
-    text-align: center;
-    flex: 1;
-}
-
-.step-circle {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    background-color: #dee2e6;
-    color: #6c757d;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    font-size: 1.1rem;
-    margin: 0 auto 8px;
-    border: 4px solid white;
-    transition: all 0.3s ease;
-}
-
-.step.active .step-circle {
-    background-color: #0d6efd;
-    color: white;
-    transform: scale(1.1);
-    box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.2);
-}
-
-.step.completed .step-circle {
-    background-color: #198754;
-    color: white;
-}
-
-.step-label {
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: #6c757d;
-}
-
-.step.active .step-label {
-    color: #0d6efd;
-    font-weight: 600;
-}
-
-.checkout-item-image {
-    width: 60px;
-    height: 60px;
-    object-fit: cover;
-    border-radius: 8px;
-}
-
-.sticky-summary {
-    position: sticky;
-    top: 20px;
-}
-
-.payment-option {
-    border: 2px solid #e9ecef;
-    border-radius: 10px;
-    padding: 15px;
-    transition: all 0.3s;
-}
-
-.payment-option:hover {
-    border-color: #0d6efd;
-    background-color: rgba(13, 110, 253, 0.05);
-}
-
-.payment-option .form-check-input:checked ~ label {
-    border-color: #0d6efd;
-    background-color: rgba(13, 110, 253, 0.05);
-}
-
-.payment-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.testimonial {
-    background: white;
-    padding: 15px;
-    border-radius: 10px;
-    border: 1px solid #eaeaea;
-}
-
-.delivery-info .card {
-    transition: all 0.3s;
-    cursor: pointer;
-}
-
-.delivery-info .card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-}
-
-.delivery-info .card.border-primary {
-    background-color: rgba(13, 110, 253, 0.05);
-}
-
-#checkoutForm input:focus,
-#checkoutForm select:focus,
-#checkoutForm textarea:focus {
-    border-color: #86b7fe;
-    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-}
-
-@media (max-width: 768px) {
+    /* Progress Steps */
     .progress-steps {
-        padding: 15px 0;
+        display: flex;
+        justify-content: space-between;
+        position: relative;
+        padding: 20px 0;
     }
-    
-    .step-circle {
-        width: 40px;
-        height: 40px;
-        font-size: 1rem;
-    }
-    
-    .progress-steps::before {
-        top: 20px;
-    }
-    
-    .checkout-item-image {
-        width: 50px;
-        height: 50px;
-    }
-    
-    #placeOrderBtn {
-        width: 100%;
-        margin-top: 15px;
-    }
-    
-    .d-flex.justify-content-between.pt-4.border-top {
-        flex-direction: column;
-    }
-    
-    .btn-outline-primary.btn-lg {
-        width: 100%;
-    }
-}
 
-@media (max-width: 576px) {
-    .progress-steps {
-        flex-direction: column;
-        gap: 20px;
-    }
-    
     .progress-steps::before {
-        display: none;
+        content: '';
+        position: absolute;
+        top: 24px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, var(--cyan-bright) 0%, var(--magenta-vibrant) 100%);
+        z-index: 1;
+        opacity: 0.3;
     }
-    
+
     .step {
+        position: relative;
+        z-index: 2;
+        text-align: center;
+        flex: 1;
+    }
+
+    .step-circle {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background-color: var(--white-pure);
+        color: var(--grey-medium);
         display: flex;
         align-items: center;
-        text-align: left;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 1.1rem;
+        margin: 0 auto 8px;
+        border: 2px solid rgba(117,117,117,0.3);
+        transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
     }
-    
-    .step-circle {
-        margin: 0 15px 0 0;
-        flex-shrink: 0;
+
+    .step.active .step-circle {
+        background-color: var(--cyan-bright);
+        color: white;
+        border-color: var(--cyan-bright);
+        transform: scale(1.1);
+        box-shadow: 0 0 0 4px rgba(0,172,193,0.2);
     }
-    
+
+    .step.completed .step-circle {
+        background-color: var(--magenta-vibrant);
+        color: white;
+        border-color: var(--magenta-vibrant);
+    }
+
     .step-label {
-        flex-grow: 1;
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: var(--grey-medium);
     }
-    
+
+    .step.active .step-label {
+        color: var(--cyan-bright);
+        font-weight: 600;
+    }
+
+    .step.completed .step-label {
+        color: var(--magenta-vibrant);
+    }
+
+    /* Checkout Item Image */
+    .checkout-item-image {
+        width: 70px;
+        height: 70px;
+        object-fit: cover;
+        border-radius: 12px;
+        border: 1px solid rgba(216,27,96,0.1);
+    }
+
+    .sticky-summary {
+        position: sticky;
+        top: 20px;
+    }
+
+    /* Payment Option */
     .payment-option {
-        padding: 12px;
+        border: 2px solid rgba(117,117,117,0.2);
+        border-radius: 16px;
+        padding: 16px;
+        transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
     }
-    
+
+    .payment-option:hover {
+        border-color: var(--magenta-vibrant);
+        background-color: rgba(216,27,96,0.02);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-brand);
+    }
+
+    .payment-option .form-check-input:checked ~ label {
+        border-color: var(--magenta-vibrant);
+    }
+
+    .payment-option .form-check-input:checked {
+        background-color: var(--magenta-vibrant);
+        border-color: var(--magenta-vibrant);
+    }
+
+    .payment-option .form-check-input:focus {
+        border-color: var(--magenta-vibrant);
+        box-shadow: 0 0 0 0.25rem rgba(216,27,96,0.25);
+    }
+
     .payment-icon {
-        width: 35px;
-        height: 35px;
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
     }
-}
 
-/* Custom animations */
-@keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-    100% { transform: scale(1); }
-}
-
-.pulse-animation {
-    animation: pulse 2s infinite;
-}
-
-/* Form validation styles */
-.was-validated .form-control:valid {
-    border-color: #198754;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%23198754' d='M2.3 6.73.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e");
-}
-
-.was-validated .form-control:invalid {
-    border-color: #dc3545;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
-}
-
-/* Toast notifications */
-.toast-container {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    z-index: 9999;
-}
-
-.toast {
-    min-width: 300px;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-}
-
-/* Loading overlay */
-.loading-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(255, 255, 255, 0.9);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 9999;
-    display: none;
-}
-
-/* Print styles */
-@media print {
-    .progress-steps,
-    .btn,
-    .modal,
-    .toast-container,
-    .loading-overlay {
-        display: none !important;
+    .payment-option:hover .payment-icon {
+        transform: scale(1.1);
     }
-    
-    .card {
-        break-inside: avoid;
-        box-shadow: none !important;
-        border: 1px solid #ddd !important;
+
+    .payment-icon-item {
+        transition: all 0.2s ease;
+        border: 1px solid transparent;
     }
-}
+
+    .payment-icon-item:hover {
+        transform: translateY(-2px);
+        border-color: var(--cyan-bright);
+        box-shadow: 0 8px 16px rgba(0,172,193,0.1);
+    }
+
+    /* Delivery Cards */
+    .delivery-info .card {
+        transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+        cursor: pointer;
+        border-width: 2px;
+    }
+
+    .delivery-info .card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-brand);
+    }
+
+    .delivery-info .card.border-cyan {
+        border-color: var(--cyan-bright) !important;
+        background-color: rgba(0,172,193,0.02);
+    }
+
+    .selected-delivery-option {
+        border-color: var(--cyan-bright) !important;
+        background-color: rgba(0,172,193,0.05);
+    }
+
+    .delivery-icon {
+        width: 56px;
+        height: 56px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+    }
+
+    .delivery-info .card:hover .delivery-icon {
+        transform: scale(1.1);
+    }
+
+    /* Testimonial */
+    .testimonial {
+        transition: all 0.3s ease;
+        border: 1px solid rgba(216,27,96,0.05);
+    }
+
+    .testimonial:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-brand);
+        border-color: rgba(0,172,193,0.2);
+    }
+
+    /* Form Controls */
+    .form-control, .form-select {
+        border: 2px solid rgba(117,117,117,0.2);
+        border-radius: 12px;
+        padding: 0.6rem 1rem;
+        transition: all 0.2s ease;
+        color: var(--charcoal-dark);
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: var(--magenta-vibrant);
+        box-shadow: 0 0 0 0.25rem rgba(216,27,96,0.1);
+    }
+
+    .form-control.is-valid, .form-select.is-valid {
+        border-color: var(--cyan-bright);
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%2300ACC1' d='M2.3 6.73.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e");
+    }
+
+    .form-control.is-invalid, .form-select.is-invalid {
+        border-color: var(--magenta-vibrant);
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23D81B60'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23D81B60' stroke='none'/%3e%3c/svg%3e");
+    }
+
+    .input-group-text {
+        border-radius: 12px 0 0 12px;
+        border: 2px solid rgba(117,117,117,0.2);
+        border-right: none;
+        background-color: rgba(216,27,96,0.05);
+        color: var(--magenta-vibrant);
+        font-weight: 600;
+    }
+
+    .input-group .form-control {
+        border-radius: 0 12px 12px 0;
+    }
+
+    .form-text {
+        color: var(--grey-medium);
+        font-size: 0.8rem;
+        margin-top: 0.4rem;
+    }
+
+    .form-check-input:checked {
+        background-color: var(--magenta-vibrant);
+        border-color: var(--magenta-vibrant);
+    }
+
+    .form-check-input:focus {
+        border-color: var(--magenta-vibrant);
+        box-shadow: 0 0 0 0.25rem rgba(216,27,96,0.25);
+    }
+
+    /* Modal Styles */
+    .modal-content {
+        border: none;
+        border-radius: 24px;
+        overflow: hidden;
+    }
+
+    .modal-header {
+        padding: 1.5rem;
+    }
+
+    .modal-body {
+        padding: 1.5rem;
+    }
+
+    .modal-footer {
+        padding: 1.5rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .progress-steps {
+            padding: 15px 0;
+        }
+        
+        .step-circle {
+            width: 40px;
+            height: 40px;
+            font-size: 1rem;
+        }
+        
+        .progress-steps::before {
+            top: 20px;
+        }
+        
+        .checkout-item-image {
+            width: 60px;
+            height: 60px;
+        }
+        
+        #placeOrderBtn {
+            width: 100%;
+            margin-top: 15px;
+        }
+        
+        .d-flex.justify-content-between.pt-4.border-top {
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .btn-outline-cyan.btn-lg,
+        .btn-magenta.btn-lg {
+            width: 100%;
+        }
+        
+        .sticky-summary {
+            position: static;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .progress-steps {
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .progress-steps::before {
+            display: none;
+        }
+        
+        .step {
+            display: flex;
+            align-items: center;
+            text-align: left;
+        }
+        
+        .step-circle {
+            margin: 0 15px 0 0;
+            flex-shrink: 0;
+        }
+        
+        .step-label {
+            flex-grow: 1;
+        }
+        
+        .payment-option {
+            padding: 12px;
+        }
+        
+        .payment-icon {
+            width: 40px;
+            height: 40px;
+        }
+        
+        .delivery-icon {
+            width: 48px;
+            height: 48px;
+        }
+        
+        .delivery-icon i {
+            font-size: 1.5rem;
+        }
+    }
+
+    /* Touch Device Optimizations */
+    @media (hover: none) and (pointer: coarse) {
+        .payment-option:hover,
+        .delivery-info .card:hover,
+        .testimonial:hover {
+            transform: none;
+        }
+        
+        .payment-option {
+            border-color: rgba(117,117,117,0.2);
+        }
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateX(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    .fade-in {
+        animation: fadeIn 0.5s ease-in-out;
+    }
+
+    .slide-in {
+        animation: slideIn 0.5s ease-in-out;
+    }
+
+    /* Toast Notifications */
+    .toast-container {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 9999;
+    }
+
+    .toast {
+        min-width: 300px;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: var(--shadow-brand);
+        border-left: 6px solid;
+    }
+
+    .toast-header {
+        border-bottom: none;
+    }
+
+    .toast-header.bg-success {
+        background-color: var(--magenta-vibrant) !important;
+    }
+
+    .toast-header.bg-danger {
+        background-color: var(--cyan-bright) !important;
+    }
+
+    .toast-header.bg-warning {
+        background-color: var(--cyan-bright) !important;
+    }
+
+    .toast-header.bg-info {
+        background-color: var(--link-blue) !important;
+    }
+
+    /* Loading Spinner */
+    .spinner-border {
+        border-width: 0.2em;
+    }
+
+    /* Progress Bar */
+    .progress {
+        background-color: rgba(216,27,96,0.1);
+        border-radius: 10px;
+    }
+
+    .progress-bar {
+        background-color: var(--magenta-vibrant);
+    }
+
+    /* Print Styles */
+    @media print {
+        .progress-steps,
+        .btn,
+        .modal,
+        .toast-container,
+        .payment-option:hover,
+        .delivery-info .card:hover,
+        .testimonial:hover {
+            transform: none !important;
+            box-shadow: none !important;
+        }
+        
+        .card {
+            break-inside: avoid;
+            box-shadow: none !important;
+            border: 1px solid var(--grey-medium) !important;
+        }
+        
+        .payment-icons,
+        .security-badges,
+        .testimonial {
+            display: none !important;
+        }
+    }
 </style>
 {% endblock %}
 
 {% block extra_js %}
 <script>
 $(document).ready(function() {
-    // Initialize tooltips
+    // Initialize Bootstrap tooltips
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl);
@@ -886,8 +1150,7 @@ $(document).ready(function() {
             cityInput.val(county + ' Town');
             
             // Trigger validation
-            cityInput.removeClass('is-invalid');
-            cityInput.addClass('is-valid');
+            cityInput.removeClass('is-invalid').addClass('is-valid');
         }
     });
     
@@ -918,17 +1181,37 @@ $(document).ready(function() {
         $('#totalAmount').text(formattedTotal);
         
         // Update free shipping message
+        const shippingAlert = $('#shippingAlert');
         if (deliveryFee === 0) {
-            $('.alert-success').show();
+            shippingAlert.html('<i class="fas fa-check-circle me-2 text-cyan"></i><span class="text-charcoal"><strong class="text-cyan">Congratulations!</strong> You qualify for free shipping!</span>');
         } else if (subtotal >= 5000) {
-            $('.alert-success').show().html('<i class="fas fa-check-circle me-2"></i>Congratulations! You qualify for free shipping!');
+            shippingAlert.html('<i class="fas fa-check-circle me-2 text-cyan"></i><span class="text-charcoal"><strong class="text-cyan">Congratulations!</strong> You qualify for free shipping!</span>');
         } else {
             const remaining = 5000 - subtotal;
-            $('.alert-success').show().html(`<i class="fas fa-info-circle me-2"></i>Add KES ${remaining.toLocaleString()} more to get free shipping!`);
+            shippingAlert.html(`<i class="fas fa-info-circle me-2 text-cyan"></i><span class="text-charcoal">Add <strong class="text-cyan">KES ${remaining.toLocaleString()}</strong> more to get free shipping!</span>`);
         }
         
         return deliveryFee;
     }
+    
+    // Delivery option selection
+    $('#standardDelivery').click(function() {
+        $(this).addClass('border-cyan selected-delivery-option');
+        $('#expressDelivery').removeClass('border-cyan selected-delivery-option').addClass('border-grey-medium');
+        $('#deliveryCost').text('KES 200');
+        calculateDeliveryFee();
+    });
+    
+    $('#expressDelivery').click(function() {
+        $(this).addClass('border-cyan selected-delivery-option');
+        $('#standardDelivery').removeClass('border-cyan selected-delivery-option').addClass('border-grey-medium');
+        $('#deliveryCost').text('KES 500');
+        // Override the delivery fee calculation
+        const subtotal = {{ subtotal }};
+        const total = subtotal + 500;
+        $('#totalAmount').text('KES ' + total.toLocaleString());
+        $('#deliveryFee').text('KES 500');
+    });
     
     // Form validation and submission
     $('#checkoutForm').submit(function(e) {
@@ -980,18 +1263,12 @@ $(document).ready(function() {
                             processingModal.hide();
                             window.location.href = response.authorization_url;
                         }, 1000);
-                    } else if (response.message === 'Redirecting to secure payment...') {
-                        // Wait a moment then redirect
-                        setTimeout(() => {
-                            processingModal.hide();
-                            if (response.redirect_url) {
-                                window.location.href = response.redirect_url;
-                            }
-                        }, 1000);
                     } else {
                         processingModal.hide();
-                        showToast('Info', response.message, 'info');
-                        button.prop('disabled', false).html(originalText);
+                        showToast('Success', 'Order placed successfully! Redirecting...', 'success');
+                        setTimeout(() => {
+                            window.location.href = response.redirect_url || '/order-confirmation/' + response.order_id;
+                        }, 1500);
                     }
                 } else {
                     processingModal.hide();
@@ -1009,7 +1286,18 @@ $(document).ready(function() {
             error: function(xhr, status, error) {
                 processingModal.hide();
                 console.error('Checkout error:', xhr.responseText);
-                showToast('Error', 'Network error. Please check your connection and try again.', 'danger');
+                
+                let errorMessage = 'Network error. Please check your connection and try again.';
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    if (response.message) {
+                        errorMessage = response.message;
+                    }
+                } catch (e) {
+                    // Use default error message
+                }
+                
+                showToast('Error', errorMessage, 'danger');
                 button.prop('disabled', false).html(originalText);
             }
         });
@@ -1046,35 +1334,39 @@ $(document).ready(function() {
     $('textarea[name="order_notes"]').on('input', function() {
         const maxLength = 200;
         const currentLength = $(this).val().length;
-        const counter = $(this).next('.form-text');
-        
-        if (counter.length === 0) {
-            $(this).after(`<div class="form-text text-end"><span id="charCount">${currentLength}</span>/${maxLength} characters</div>`);
-        } else {
-            $('#charCount').text(currentLength);
-        }
+        $('#charCount').text(currentLength);
         
         if (currentLength > maxLength) {
             $(this).addClass('is-invalid');
-            $('#charCount').addClass('text-danger');
+            $('#charCount').addClass('text-magenta');
         } else {
             $(this).removeClass('is-invalid');
-            $('#charCount').removeClass('text-danger');
+            $('#charCount').removeClass('text-magenta');
         }
     });
     
     // Toast notification function
     function showToast(title, message, type = 'info') {
+        if (window.Mufra && window.Mufra.notify) {
+            if (type === 'success') Mufra.notify.success(message);
+            else if (type === 'danger') Mufra.notify.error(message);
+            else Mufra.notify.info(message);
+            return;
+        }
+        
         // Remove existing toasts
         $('.toast-container').remove();
         
         const icon = type === 'success' ? 'check-circle' : 
-                    type === 'error' ? 'times-circle' : 
+                    type === 'danger' ? 'times-circle' : 
                     type === 'warning' ? 'exclamation-triangle' : 'info-circle';
+        
+        const bgColor = type === 'success' ? 'var(--magenta-vibrant)' : 
+                       type === 'danger' ? 'var(--cyan-bright)' : 'var(--link-blue)';
         
         const toastHtml = `
             <div class="toast-container">
-                <div class="toast show" role="alert">
+                <div class="toast show" role="alert" style="border-left: 6px solid ${bgColor};">
                     <div class="toast-header bg-${type} text-white">
                         <i class="fas fa-${icon} me-2"></i>
                         <strong class="me-auto">${title}</strong>
@@ -1139,6 +1431,7 @@ $(document).ready(function() {
         formData.forEach(field => {
             $(`[name="${field.name}"]`).val(field.value);
         });
+        calculateDeliveryFee();
     }
     
     // Clear saved form data on successful submission

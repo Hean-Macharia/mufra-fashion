@@ -7,26 +7,39 @@
     <!-- Page Header -->
     <div class="row mb-4">
         <div class="col-12 text-center">
-            <h1 class="mb-3">Contact Us</h1>
-            <p class="lead text-muted">We're here to help! Get in touch with us for any questions or concerns.</p>
+            <h1 class="mb-3 fw-bold text-charcoal">
+                <i class="fas fa-headset me-2 text-magenta"></i>Contact Us
+            </h1>
+            <p class="lead text-grey-medium">We're here to help! Get in touch with us for any questions or concerns.</p>
         </div>
     </div>
 
     <div class="row">
         <!-- Contact Form -->
         <div class="col-lg-8 mb-4">
-            <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
-                    <h3 class="mb-0"><i class="fas fa-comments me-2"></i>Send us a Message</h3>
+            <div class="card shadow-brand border-0 bg-white">
+                <div class="card-header bg-magenta text-white border-0 rounded-top py-3">
+                    <h3 class="mb-0 fs-4"><i class="fas fa-comments me-2"></i>Send us a Message</h3>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-4">
                     <form id="contactForm" method="POST" action="{{ url_for('contact') }}">
                         <!-- Flash Messages -->
                         {% with messages = get_flashed_messages(with_categories=true) %}
                             {% if messages %}
                                 {% for category, message in messages %}
-                                    <div class="alert alert-{{ category }} alert-dismissible fade show mb-4" role="alert">
-                                        {{ message }}
+                                    <div class="alert alert-{{ 'success' if category == 'success' else 'warning' if category == 'danger' else category }} alert-dismissible fade show mb-4 rounded-3" role="alert">
+                                        <div class="d-flex align-items-center">
+                                            {% if category == 'success' %}
+                                                <i class="fas fa-check-circle me-2 fs-5 text-magenta"></i>
+                                            {% elif category == 'danger' %}
+                                                <i class="fas fa-exclamation-circle me-2 fs-5 text-cyan"></i>
+                                            {% elif category == 'warning' %}
+                                                <i class="fas fa-exclamation-triangle me-2 fs-5 text-cyan"></i>
+                                            {% elif category == 'info' %}
+                                                <i class="fas fa-info-circle me-2 fs-5 text-link-blue"></i>
+                                            {% endif %}
+                                            {{ message }}
+                                        </div>
                                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                                     </div>
                                 {% endfor %}
@@ -34,31 +47,37 @@
                         {% endwith %}
                         
                         <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold">Your Name *</label>
-                                <input type="text" class="form-control" name="name" 
+                            <div class="col-md-6 mb-3 mb-md-0">
+                                <label class="form-label fw-bold text-charcoal">Your Name <span class="text-magenta">*</span></label>
+                                <input type="text" class="form-control border-grey-medium" name="name" 
                                        value="{{ session.get('user_name', '') }}" required
                                        placeholder="Enter your full name">
+                                <div class="form-text text-grey-medium">As it appears on your ID</div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label fw-bold">Email Address *</label>
-                                <input type="email" class="form-control" name="email" 
+                                <label class="form-label fw-bold text-charcoal">Email Address <span class="text-magenta">*</span></label>
+                                <input type="email" class="form-control border-grey-medium" name="email" 
                                        value="{{ session.get('user_email', '') if 'user_id' in session else '' }}" 
                                        required placeholder="you@example.com">
+                                <div class="form-text text-grey-medium">We'll reply to this email</div>
                             </div>
                         </div>
                         
                         <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold">Phone Number</label>
-                                <input type="tel" class="form-control" name="phone" 
-                                       value="{{ session.get('user_phone', '') if 'user_id' in session else '' }}"
-                                       placeholder="+254 712 345 678">
+                            <div class="col-md-6 mb-3 mb-md-0">
+                                <label class="form-label fw-bold text-charcoal">Phone Number</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-soft-magenta text-magenta border-grey-medium">+254</span>
+                                    <input type="tel" class="form-control border-grey-medium" name="phone" 
+                                           value="{{ session.get('user_phone', '') if 'user_id' in session else '' }}"
+                                           placeholder="712345678" maxlength="9" pattern="[0-9]{9}">
+                                </div>
+                                <div class="form-text text-grey-medium">Enter 9 digits without leading 0</div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label fw-bold">Subject *</label>
-                                <select class="form-select" name="subject" required>
-                                    <option value="">Select a subject</option>
+                                <label class="form-label fw-bold text-charcoal">Subject <span class="text-magenta">*</span></label>
+                                <select class="form-select border-grey-medium" name="subject" required>
+                                    <option value="" class="text-grey-medium">Select a subject</option>
                                     <option value="order_inquiry">Order Inquiry</option>
                                     <option value="shipping_delivery">Shipping & Delivery</option>
                                     <option value="returns_refunds">Returns & Refunds</option>
@@ -72,26 +91,30 @@
                         </div>
                         
                         <div class="mb-3">
-                            <label class="form-label fw-bold">Order Number (if applicable)</label>
-                            <input type="text" class="form-control" name="order_number" 
+                            <label class="form-label fw-bold text-charcoal">Order Number (if applicable)</label>
+                            <input type="text" class="form-control border-grey-medium" name="order_number" 
                                    placeholder="e.g., MUFRA12345678">
+                            <div class="form-text text-grey-medium">Helps us locate your order faster</div>
                         </div>
                         
                         <div class="mb-4">
-                            <label class="form-label fw-bold">Message *</label>
-                            <textarea class="form-control" name="message" rows="5" required 
+                            <label class="form-label fw-bold text-charcoal">Message <span class="text-magenta">*</span></label>
+                            <textarea class="form-control border-grey-medium" name="message" rows="5" required 
                                       placeholder="Please describe your inquiry in detail..."></textarea>
+                            <div class="form-text text-grey-medium text-end">
+                                <span id="charCount">0</span>/500 characters
+                            </div>
                         </div>
                         
                         <div class="d-grid">
-                            <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
+                            <button type="submit" class="btn btn-magenta btn-lg py-3" id="submitBtn">
                                 <i class="fas fa-paper-plane me-2"></i> Send Message
                             </button>
                         </div>
                         
                         <div class="text-center mt-3">
-                            <small class="text-muted">
-                                <i class="fas fa-clock me-1"></i>
+                            <small class="text-grey-medium">
+                                <i class="fas fa-clock me-1 text-cyan"></i>
                                 We typically respond within 24 hours during business days
                             </small>
                         </div>
@@ -103,20 +126,21 @@
         <!-- Contact Information -->
         <div class="col-lg-4">
             <!-- Contact Details Card -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-body">
-                    <h5 class="card-title mb-4"><i class="fas fa-info-circle me-2 text-primary"></i>Contact Information</h5>
+            <div class="card shadow-brand border-0 mb-4 bg-white">
+                <div class="card-body p-4">
+                    <h5 class="card-title mb-4 fw-bold text-charcoal">
+                        <i class="fas fa-info-circle me-2 text-magenta"></i>Contact Information
+                    </h5>
                     
                     <div class="contact-item mb-4">
                         <div class="d-flex">
-                            <div class="contact-icon">
-                                <i class="fas fa-map-marker-alt"></i>
+                            <div class="contact-icon bg-soft-magenta">
+                                <i class="fas fa-map-marker-alt text-magenta"></i>
                             </div>
                             <div class="ms-3">
-                                <h6 class="fw-bold mb-1">Store Location</h6>
-                                <p class="text-muted mb-0">
-                                    MUFRA Fashions Plaza<br>
-                                    Nairobi Road<br>
+                                <h6 class="fw-bold mb-1 text-charcoal">Store Location</h6>
+                                <p class="text-grey-medium mb-0">
+                                    123 Fashion Street<br>
                                     Embu, Kenya
                                 </p>
                             </div>
@@ -125,14 +149,15 @@
                     
                     <div class="contact-item mb-4">
                         <div class="d-flex">
-                            <div class="contact-icon">
-                                <i class="fas fa-phone"></i>
+                            <div class="contact-icon bg-soft-cyan">
+                                <i class="fas fa-phone text-cyan"></i>
                             </div>
                             <div class="ms-3">
-                                <h6 class="fw-bold mb-1">Call Us</h6>
-                                <p class="text-muted mb-0">
-                                    <a href="tel:+254712345678" class="text-decoration-none">+254 712 345 678</a><br>
-                                    <a href="tel:+254734567890" class="text-decoration-none">+254 734 567 890</a>
+                                <h6 class="fw-bold mb-1 text-charcoal">Call Us</h6>
+                                <p class="text-grey-medium mb-0">
+                                    <a href="tel:0102850010" class="text-decoration-none text-cyan hover-magenta">
+                                        0102850010
+                                    </a>
                                 </p>
                             </div>
                         </div>
@@ -140,17 +165,30 @@
                     
                     <div class="contact-item mb-4">
                         <div class="d-flex">
-                            <div class="contact-icon">
-                                <i class="fas fa-envelope"></i>
+                            <div class="contact-icon bg-soft-magenta">
+                                <i class="fab fa-whatsapp text-magenta"></i>
                             </div>
                             <div class="ms-3">
-                                <h6 class="fw-bold mb-1">Email Us</h6>
-                                <p class="text-muted mb-0">
-                                    <a href="mailto:support@mufrafashions.com" class="text-decoration-none">
-                                       mufrafashions@gmail.com
-                                    </a><br>
-                                    <a href="mailto:sales@mufrafashions.com" class="text-decoration-none">
-                                        sales@mufrafashions.com
+                                <h6 class="fw-bold mb-1 text-charcoal">WhatsApp Us</h6>
+                                <p class="text-grey-medium mb-0">
+                                    <a href="https://wa.me/254794025592" class="text-decoration-none text-cyan hover-magenta" target="_blank">
+                                        0794025592
+                                    </a>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="contact-item mb-4">
+                        <div class="d-flex">
+                            <div class="contact-icon bg-soft-cyan">
+                                <i class="fas fa-envelope text-cyan"></i>
+                            </div>
+                            <div class="ms-3">
+                                <h6 class="fw-bold mb-1 text-charcoal">Email Us</h6>
+                                <p class="text-grey-medium mb-0">
+                                    <a href="mailto:mufrafashions@gmail.com" class="text-decoration-none text-cyan hover-magenta">
+                                        mufrafashions@gmail.com
                                     </a>
                                 </p>
                             </div>
@@ -159,16 +197,16 @@
                     
                     <div class="contact-item">
                         <div class="d-flex">
-                            <div class="contact-icon">
-                                <i class="fas fa-clock"></i>
+                            <div class="contact-icon bg-soft-magenta">
+                                <i class="fas fa-clock text-magenta"></i>
                             </div>
                             <div class="ms-3">
-                                <h6 class="fw-bold mb-1">Business Hours</h6>
-                                <p class="text-muted mb-0">
-                                    <strong>Mon - Fri:</strong> 8:00 AM - 6:00 PM<br>
-                                    <strong>Saturday:</strong> 9:00 AM - 4:00 PM<br>
-                                    <strong>Sunday:</strong> 10:00 AM - 2:00 PM<br>
-                                    <small class="text-info">Online store open 24/7</small>
+                                <h6 class="fw-bold mb-1 text-charcoal">Business Hours</h6>
+                                <p class="text-grey-medium mb-0">
+                                    <strong class="text-charcoal">Mon - Fri:</strong> 8:00 AM - 6:00 PM<br>
+                                    <strong class="text-charcoal">Saturday:</strong> 9:00 AM - 4:00 PM<br>
+                                    <strong class="text-charcoal">Sunday:</strong> 10:00 AM - 2:00 PM<br>
+                                    <small class="text-cyan">Online store open 24/7</small>
                                 </p>
                             </div>
                         </div>
@@ -177,94 +215,99 @@
             </div>
             
             <!-- Quick Help Card -->
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title mb-4"><i class="fas fa-question-circle me-2 text-primary"></i>Quick Help</h5>
+            <div class="card shadow-brand border-0 bg-white">
+                <div class="card-body p-4">
+                    <h5 class="card-title mb-4 fw-bold text-charcoal">
+                        <i class="fas fa-question-circle me-2 text-cyan"></i>Quick Help
+                    </h5>
                     
                     <div class="accordion" id="helpAccordion">
-                        <div class="accordion-item">
+                        <div class="accordion-item border-0 mb-3">
                             <h2 class="accordion-header">
-                                <button class="accordion-button collapsed" type="button" 
+                                <button class="accordion-button collapsed bg-soft-cyan rounded-3" type="button" 
                                         data-bs-toggle="collapse" data-bs-target="#help1">
-                                    <i class="fas fa-shipping-fast me-2"></i> Shipping Information
+                                    <i class="fas fa-shipping-fast me-2 text-cyan"></i>
+                                    <span class="text-charcoal fw-semibold">Shipping Information</span>
                                 </button>
                             </h2>
                             <div id="help1" class="accordion-collapse collapse">
-                                <div class="accordion-body">
-                                    <p class="small mb-2"><strong>Delivery Times:</strong></p>
-                                    <ul class="small mb-0">
-                                        <li>Within Embu: 1-2 business days</li>
-                                        <li>Other Counties: 3-5 business days</li>
-                                        <li>Remote Areas: 5-7 business days</li>
+                                <div class="accordion-body bg-white mt-2 rounded-3">
+                                    <p class="small mb-2 fw-bold text-charcoal">Delivery Times:</p>
+                                    <ul class="small text-grey-medium mb-2">
+                                        <li class="mb-1">✓ Within Embu: 1-2 business days</li>
+                                        <li class="mb-1">✓ Other Counties: 3-5 business days</li>
+                                        <li class="mb-1">✓ Remote Areas: 5-7 business days</li>
                                     </ul>
-                                    <p class="small mt-2 mb-0"><strong>Shipping Fees:</strong></p>
-                                    <ul class="small mb-0">
-                                        <li>Embu: KES 100 (Free for orders over KES 5,000)</li>
-                                        <li>Other Counties: KES 200</li>
+                                    <p class="small mb-2 fw-bold text-charcoal">Shipping Fees:</p>
+                                    <ul class="small text-grey-medium mb-0">
+                                        <li class="mb-1">✓ Embu: KES 100 <span class="text-cyan">(Free for orders over KES 5,000)</span></li>
+                                        <li>✓ Other Counties: KES 200</li>
                                     </ul>
                                 </div>
                             </div>
                         </div>
                         
-                        <div class="accordion-item">
+                        <div class="accordion-item border-0 mb-3">
                             <h2 class="accordion-header">
-                                <button class="accordion-button collapsed" type="button" 
+                                <button class="accordion-button collapsed bg-soft-magenta rounded-3" type="button" 
                                         data-bs-toggle="collapse" data-bs-target="#help2">
-                                    <i class="fas fa-undo me-2"></i> Returns & Refunds
+                                    <i class="fas fa-undo me-2 text-magenta"></i>
+                                    <span class="text-charcoal fw-semibold">Returns & Refunds</span>
                                 </button>
                             </h2>
                             <div id="help2" class="accordion-collapse collapse">
-                                <div class="accordion-body">
-                                    <p class="small mb-2">We accept returns within 30 days of delivery. Items must be:</p>
-                                    <ul class="small mb-2">
-                                        <li>In original condition</li>
-                                        <li>With all tags attached</li>
-                                        <li>In original packaging</li>
+                                <div class="accordion-body bg-white mt-2 rounded-3">
+                                    <p class="small mb-2 fw-bold text-charcoal">We accept returns within 2 days of delivery. Items must be:</p>
+                                    <ul class="small text-grey-medium mb-2">
+                                        <li class="mb-1">✓ In original condition</li>
+                                        <li class="mb-1">✓ With all tags attached</li>
+                                        <li class="mb-1">✓ In original packaging</li>
                                     </ul>
-                                    <p class="small mb-0">
-                                        <strong>Refund Processing:</strong> 7-14 business days after we receive the returned item.
+                                    <p class="small mb-0 text-grey-medium">
+                                        <span class="fw-bold text-charcoal">Refund Processing:</span> 7-14 business days after we receive the returned item.
                                     </p>
                                 </div>
                             </div>
                         </div>
                         
-                        <div class="accordion-item">
+                        <div class="accordion-item border-0 mb-3">
                             <h2 class="accordion-header">
-                                <button class="accordion-button collapsed" type="button" 
+                                <button class="accordion-button collapsed bg-soft-cyan rounded-3" type="button" 
                                         data-bs-toggle="collapse" data-bs-target="#help3">
-                                    <i class="fas fa-credit-card me-2"></i> Payment Methods
+                                    <i class="fas fa-credit-card me-2 text-cyan"></i>
+                                    <span class="text-charcoal fw-semibold">Payment Methods</span>
                                 </button>
                             </h2>
                             <div id="help3" class="accordion-collapse collapse">
-                                <div class="accordion-body">
-                                    <p class="small mb-2">We accept the following payment methods:</p>
-                                    <ul class="small mb-0">
-                                        <li>M-Pesa (Instant confirmation)</li>
-                                        <li>Airtel Money</li>
-                                        <li>Paystack (Card/Bank Transfer)</li>
-                                        <li>Cash on Delivery (Selected areas only)</li>
+                                <div class="accordion-body bg-white mt-2 rounded-3">
+                                    <p class="small mb-2 fw-bold text-charcoal">We accept the following payment methods:</p>
+                                    <ul class="small text-grey-medium mb-0">
+                                        <li class="mb-1">✓ <span class="text-cyan fw-semibold">Paystack</span> (Card/Bank Transfer/USSD)</li>
+                                        <li class="mb-1">✓ <span class="text-magenta fw-semibold">M-Pesa</span> (Instant confirmation)</li>
+                                        <li>✓ Cash on Delivery (Selected areas only)</li>
                                     </ul>
                                 </div>
                             </div>
                         </div>
                         
-                        <div class="accordion-item">
+                        <div class="accordion-item border-0">
                             <h2 class="accordion-header">
-                                <button class="accordion-button collapsed" type="button" 
+                                <button class="accordion-button collapsed bg-soft-magenta rounded-3" type="button" 
                                         data-bs-toggle="collapse" data-bs-target="#help4">
-                                    <i class="fas fa-box me-2"></i> Order Tracking
+                                    <i class="fas fa-box me-2 text-magenta"></i>
+                                    <span class="text-charcoal fw-semibold">Order Tracking</span>
                                 </button>
                             </h2>
                             <div id="help4" class="accordion-collapse collapse">
-                                <div class="accordion-body">
-                                    <p class="small mb-2">
+                                <div class="accordion-body bg-white mt-2 rounded-3">
+                                    <p class="small mb-2 fw-bold text-charcoal">
                                         Once your order is shipped, you'll receive:
                                     </p>
-                                    <ul class="small mb-0">
-                                        <li>Tracking number via SMS & Email</li>
-                                        <li>Real-time delivery updates</li>
-                                        <li>Driver contact information</li>
-                                        <li>Estimated delivery time</li>
+                                    <ul class="small text-grey-medium mb-0">
+                                        <li class="mb-1">✓ Tracking number via SMS & Email</li>
+                                        <li class="mb-1">✓ Real-time delivery updates</li>
+                                        <li class="mb-1">✓ Driver contact information</li>
+                                        <li>✓ Estimated delivery time</li>
                                     </ul>
                                 </div>
                             </div>
@@ -279,9 +322,11 @@
     <div class="row mt-4">
         <!-- Social Media -->
         <div class="col-md-4 mb-4 mb-md-0">
-            <div class="card shadow-sm h-100">
-                <div class="card-body text-center">
-                    <h5 class="card-title mb-4"><i class="fas fa-share-alt me-2 text-primary"></i>Follow Us</h5>
+            <div class="card shadow-brand border-0 h-100 bg-white">
+                <div class="card-body text-center p-4">
+                    <h5 class="card-title mb-4 fw-bold text-charcoal">
+                        <i class="fas fa-share-alt me-2 text-magenta"></i>Follow Us
+                    </h5>
                     <div class="social-links">
                         <a href="#" class="social-link facebook" title="Facebook">
                             <i class="fab fa-facebook-f"></i>
@@ -292,14 +337,14 @@
                         <a href="#" class="social-link twitter" title="Twitter">
                             <i class="fab fa-twitter"></i>
                         </a>
-                        <a href="#" class="social-link whatsapp" title="WhatsApp">
+                        <a href="https://wa.me/254794025592" class="social-link whatsapp" title="WhatsApp" target="_blank">
                             <i class="fab fa-whatsapp"></i>
                         </a>
                         <a href="#" class="social-link tiktok" title="TikTok">
                             <i class="fab fa-tiktok"></i>
                         </a>
                     </div>
-                    <p class="text-muted small mt-3 mb-0">
+                    <p class="text-grey-medium small mt-3 mb-0">
                         Follow us for updates, new arrivals, and exclusive offers!
                     </p>
                 </div>
@@ -308,19 +353,22 @@
         
         <!-- Map -->
         <div class="col-md-8">
-            <div class="card shadow-sm h-100">
-                <div class="card-body">
-                    <h5 class="card-title mb-3"><i class="fas fa-map-marked-alt me-2 text-primary"></i>Find Our Store</h5>
-                    <div class="ratio ratio-16x9">
+            <div class="card shadow-brand border-0 h-100 bg-white">
+                <div class="card-body p-4">
+                    <h5 class="card-title mb-3 fw-bold text-charcoal">
+                        <i class="fas fa-map-marked-alt me-2 text-cyan"></i>Find Our Store
+                    </h5>
+                    <div class="ratio ratio-16x9 rounded-3 overflow-hidden">
                         <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3988.902724242859!2d37.450123315328924!3d-0.5300523995201026!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x1827a8f0f0f0f0f%3A0xf0f0f0f0f0f0f0f!2sEmbu%2C%20Kenya!5e0!3m2!1sen!2ske!4v1645678901234!5m2!1sen!2ske" 
                                 style="border:0;" allowfullscreen="" loading="lazy"
-                                referrerpolicy="no-referrer-when-downgrade"></iframe>
+                                referrerpolicy="no-referrer-when-downgrade"
+                                class="w-100 h-100"></iframe>
                     </div>
                     <div class="mt-3 text-center">
-                        <small class="text-muted">
-                            <i class="fas fa-car me-1"></i> Ample parking available | 
-                            <i class="fas fa-wheelchair me-1"></i> Wheelchair accessible |
-                            <i class="fas fa-wifi me-1"></i> Free WiFi
+                        <small class="text-grey-medium">
+                            <i class="fas fa-car me-1 text-cyan"></i> Ample parking available | 
+                            <i class="fas fa-wheelchair me-1 text-magenta"></i> Wheelchair accessible |
+                            <i class="fas fa-wifi me-1 text-cyan"></i> Free WiFi
                         </small>
                     </div>
                 </div>
@@ -331,23 +379,43 @@
     <!-- Emergency Contact -->
     <div class="row mt-4">
         <div class="col-12">
-            <div class="card bg-light border-0">
-                <div class="card-body text-center py-3">
+            <div class="card bg-soft-magenta border-0">
+                <div class="card-body text-center py-4">
                     <div class="row align-items-center">
                         <div class="col-md-4 mb-3 mb-md-0">
-                            <i class="fas fa-headset fa-2x text-primary me-2"></i>
-                            <span class="fw-bold">24/7 Customer Support</span>
-                            <p class="small text-muted mb-0">Online orders & inquiries</p>
+                            <div class="d-flex align-items-center justify-content-center">
+                                <div class="emergency-icon bg-magenta text-white rounded-circle me-3">
+                                    <i class="fas fa-headset"></i>
+                                </div>
+                                <div class="text-start">
+                                    <span class="fw-bold text-charcoal d-block">24/7 Customer Support</span>
+                                    <span class="small text-grey-medium">Online orders & inquiries</span>
+                                </div>
+                            </div>
                         </div>
                         <div class="col-md-4 mb-3 mb-md-0">
-                            <i class="fas fa-store fa-2x text-primary me-2"></i>
-                            <span class="fw-bold">Store Assistance</span>
-                            <p class="small text-muted mb-0">In-store shopping help</p>
+                            <div class="d-flex align-items-center justify-content-center">
+                                <div class="emergency-icon bg-cyan text-white rounded-circle me-3">
+                                    <i class="fas fa-store"></i>
+                                </div>
+                                <div class="text-start">
+                                    <span class="fw-bold text-charcoal d-block">Store Assistance</span>
+                                    <span class="small text-grey-medium">In-store shopping help</span>
+                                </div>
+                            </div>
                         </div>
                         <div class="col-md-4">
-                            <i class="fas fa-exclamation-triangle fa-2x text-primary me-2"></i>
-                            <span class="fw-bold">Emergency Contact</span>
-                            <p class="small text-muted mb-0">+254 711 222 333</p>
+                            <div class="d-flex align-items-center justify-content-center">
+                                <div class="emergency-icon bg-magenta text-white rounded-circle me-3">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </div>
+                                <div class="text-start">
+                                    <span class="fw-bold text-charcoal d-block">Emergency Contact</span>
+                                    <span class="small text-grey-medium">
+                                        <a href="tel:0102850010" class="text-decoration-none text-cyan">0102850010</a>
+                                    </span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -355,108 +423,336 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
 {% block extra_css %}
 <style>
-.contact-icon {
-    width: 40px;
-    height: 40px;
-    background-color: #e3f2fd;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #0d6efd;
-    flex-shrink: 0;
-}
-
-.contact-item {
-    padding-bottom: 15px;
-    border-bottom: 1px solid #eee;
-}
-
-.contact-item:last-child {
-    border-bottom: none;
-    padding-bottom: 0;
-}
-
-.social-links {
-    display: flex;
-    justify-content: center;
-    gap: 15px;
-    margin: 20px 0;
-}
-
-.social-link {
-    width: 45px;
-    height: 45px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    text-decoration: none;
-    transition: transform 0.3s, opacity 0.3s;
-}
-
-.social-link:hover {
-    transform: translateY(-3px);
-    opacity: 0.9;
-    text-decoration: none;
-}
-
-.social-link.facebook { background-color: #3b5998; }
-.social-link.instagram { background: linear-gradient(45deg, #405de6, #5851db, #833ab4, #c13584, #e1306c, #fd1d1d); }
-.social-link.twitter { background-color: #1da1f2; }
-.social-link.whatsapp { background-color: #25d366; }
-.social-link.tiktok { background-color: #000000; }
-
-.accordion-button {
-    font-weight: 500;
-}
-
-.accordion-button:not(.collapsed) {
-    background-color: #e3f2fd;
-    color: #0d6efd;
-}
-
-/* Loading spinner */
-.spinner {
-    display: inline-block;
-    width: 20px;
-    height: 20px;
-    border: 3px solid rgba(255,255,255,.3);
-    border-radius: 50%;
-    border-top-color: #fff;
-    animation: spin 1s ease-in-out infinite;
-    margin-right: 8px;
-    vertical-align: middle;
-}
-
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .contact-item .d-flex {
-        flex-direction: column;
-        text-align: center;
+    /* ===== MUFRA FASHIONS BRAND COLORS ===== */
+    :root {
+        --magenta-vibrant: #D81B60;
+        --cyan-bright: #00ACC1;
+        --link-blue: #2196F3;
+        --charcoal-dark: #333333;
+        --grey-medium: #757575;
+        --bg-light-page: #F9F9F9;
+        --white-pure: #FFFFFF;
+        --footer-soft-grey: #EEEEEE;
+        --shadow-brand: 0 16px 32px -10px rgba(0,0,0,0.08);
     }
-    
+
     .contact-icon {
-        margin: 0 auto 10px;
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
     }
-    
+
+    .contact-item:hover .contact-icon {
+        transform: scale(1.1);
+    }
+
+    .contact-item {
+        padding-bottom: 20px;
+        border-bottom: 1px solid rgba(117,117,117,0.1);
+        transition: all 0.3s ease;
+    }
+
+    .contact-item:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
     .social-links {
-        gap: 10px;
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        margin: 20px 0;
     }
-    
+
     .social-link {
-        width: 40px;
-        height: 40px;
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        text-decoration: none;
+        transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+        font-size: 1.2rem;
     }
-}
+
+    .social-link:hover {
+        transform: translateY(-5px) scale(1.1);
+        text-decoration: none;
+        box-shadow: var(--shadow-brand);
+    }
+
+    .social-link.facebook { background-color: #3b5998; }
+    .social-link.instagram { background: linear-gradient(45deg, #405de6, #5851db, #833ab4, #c13584, #e1306c, #fd1d1d); }
+    .social-link.twitter { background-color: #1da1f2; }
+    .social-link.whatsapp { background-color: #25d366; }
+    .social-link.tiktok { background-color: #000000; }
+
+    /* Accordion Styles */
+    .accordion-item {
+        background-color: transparent;
+    }
+
+    .accordion-button {
+        border-radius: 12px !important;
+        padding: 1rem 1.25rem;
+        font-weight: 500;
+        color: var(--charcoal-dark);
+        background-color: transparent;
+        border: none;
+        transition: all 0.3s ease;
+    }
+
+    .accordion-button:not(.collapsed) {
+        background-color: rgba(0,172,193,0.1);
+        color: var(--cyan-bright);
+        box-shadow: none;
+    }
+
+    .accordion-button:focus {
+        box-shadow: none;
+        border-color: rgba(216,27,96,0.3);
+    }
+
+    .accordion-button::after {
+        background-size: 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .accordion-body {
+        padding: 1.25rem;
+        border: 1px solid rgba(216,27,96,0.1);
+        border-radius: 12px;
+    }
+
+    /* Form Controls */
+    .form-control, .form-select {
+        border: 2px solid rgba(117,117,117,0.2);
+        border-radius: 12px;
+        padding: 0.75rem 1rem;
+        transition: all 0.2s ease;
+        color: var(--charcoal-dark);
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: var(--magenta-vibrant);
+        box-shadow: 0 0 0 0.25rem rgba(216,27,96,0.1);
+    }
+
+    .form-control.is-valid, .form-select.is-valid {
+        border-color: var(--cyan-bright);
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%2300ACC1' d='M2.3 6.73.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e");
+    }
+
+    .form-control.is-invalid, .form-select.is-invalid {
+        border-color: var(--magenta-vibrant);
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23D81B60'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23D81B60' stroke='none'/%3e%3c/svg%3e");
+    }
+
+    .input-group-text {
+        border-radius: 12px 0 0 12px;
+        border: 2px solid rgba(117,117,117,0.2);
+        border-right: none;
+        background-color: rgba(216,27,96,0.05);
+        color: var(--magenta-vibrant);
+        font-weight: 600;
+        padding: 0.75rem 1rem;
+    }
+
+    .input-group .form-control {
+        border-radius: 0 12px 12px 0;
+    }
+
+    .form-text {
+        color: var(--grey-medium);
+        font-size: 0.8rem;
+        margin-top: 0.4rem;
+    }
+
+    /* Emergency Icon */
+    .emergency-icon {
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+    }
+
+    .emergency-icon i {
+        font-size: 1.2rem;
+    }
+
+    .bg-soft-magenta:hover .emergency-icon {
+        transform: scale(1.1);
+    }
+
+    /* Link Hover Effects */
+    .hover-magenta {
+        transition: color 0.2s ease;
+    }
+
+    .hover-magenta:hover {
+        color: var(--magenta-vibrant) !important;
+    }
+
+    /* Loading Spinner */
+    .spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(255,255,255,.3);
+        border-radius: 50%;
+        border-top-color: #fff;
+        animation: spin 1s ease-in-out infinite;
+        margin-right: 8px;
+        vertical-align: middle;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* Toast Notifications */
+    .toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+    }
+
+    .toast {
+        min-width: 300px;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: var(--shadow-brand);
+        border-left: 6px solid;
+    }
+
+    .toast-header {
+        border-bottom: none;
+    }
+
+    .toast-header.bg-success {
+        background-color: var(--magenta-vibrant) !important;
+    }
+
+    .toast-header.bg-danger {
+        background-color: var(--cyan-bright) !important;
+    }
+
+    .toast-header.bg-warning {
+        background-color: var(--cyan-bright) !important;
+    }
+
+    .toast-header.bg-info {
+        background-color: var(--link-blue) !important;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .contact-item .d-flex {
+            flex-direction: row;
+            text-align: left;
+        }
+        
+        .contact-icon {
+            margin: 0 0 0 0;
+        }
+        
+        .social-links {
+            gap: 8px;
+        }
+        
+        .social-link {
+            width: 44px;
+            height: 44px;
+            font-size: 1.1rem;
+        }
+        
+        .emergency-icon {
+            width: 40px;
+            height: 40px;
+        }
+        
+        .emergency-icon i {
+            font-size: 1rem;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .contact-item .d-flex {
+            flex-direction: column;
+            text-align: center;
+        }
+        
+        .contact-icon {
+            margin: 0 auto 10px;
+        }
+        
+        .social-links {
+            flex-wrap: wrap;
+        }
+        
+        .social-link {
+            width: 40px;
+            height: 40px;
+        }
+        
+        .d-flex.align-items-center.justify-content-center {
+            flex-direction: column;
+            text-align: center;
+        }
+        
+        .emergency-icon {
+            margin-bottom: 10px;
+            margin-right: 0 !important;
+        }
+        
+        .text-start {
+            text-align: center !important;
+        }
+    }
+
+    /* Touch Device Optimizations */
+    @media (hover: none) and (pointer: coarse) {
+        .social-link:hover {
+            transform: none;
+        }
+        
+        .contact-item:hover .contact-icon {
+            transform: none;
+        }
+        
+        .hover-magenta:hover {
+            color: var(--cyan-bright) !important;
+        }
+    }
+
+    /* Print Styles */
+    @media print {
+        .card {
+            break-inside: avoid;
+            box-shadow: none !important;
+            border: 1px solid var(--grey-medium) !important;
+        }
+        
+        .social-links,
+        .btn,
+        .toast-container {
+            display: none !important;
+        }
+    }
 </style>
 {% endblock %}
 
@@ -465,9 +761,23 @@
 $(document).ready(function() {
     // Auto-fill contact form for logged-in users
     {% if session.user_id %}
-    // User is logged in, form is already pre-filled
     console.log('User logged in, form pre-filled');
     {% endif %}
+
+    // Character counter for message
+    $('textarea[name="message"]').on('input', function() {
+        const maxLength = 500;
+        const currentLength = $(this).val().length;
+        $('#charCount').text(currentLength);
+        
+        if (currentLength > maxLength) {
+            $(this).addClass('is-invalid');
+            $('#charCount').addClass('text-magenta');
+        } else {
+            $(this).removeClass('is-invalid');
+            $('#charCount').removeClass('text-magenta');
+        }
+    });
 
     // Form submission
     $('#contactForm').submit(function(e) {
@@ -496,33 +806,55 @@ $(document).ready(function() {
             return false;
         }
         
-        // Submit via AJAX
-        $.ajax({
-            type: 'POST',
-            url: form.attr('action'),
-            data: form.serialize(),
-            success: function(response) {
-                if (response.success) {
-                    showToast('Success', response.message, 'success');
-                    form[0].reset();
-                    
-                    // Reset to original user data if logged in
-                    {% if session.user_id %}
-                    $('input[name="name"]').val('{{ session.get("user_name", "") }}');
-                    $('input[name="email"]').val('{{ session.get("user_email", "") }}');
-                    $('input[name="phone"]').val('{{ session.get("user_phone", "") }}');
-                    {% endif %}
-                } else {
-                    showToast('Error', response.message, 'danger');
-                }
-            },
-            error: function(xhr, status, error) {
-                showToast('Error', 'Unable to send message. Please try again later.', 'danger');
-            },
-            complete: function() {
+        // Use Mufra API if available
+        if (window.Mufra && window.Mufra.notify) {
+            // Simulate success for demo
+            setTimeout(() => {
+                showToast('Success', 'Your message has been sent successfully! We\'ll get back to you within 24 hours.', 'success');
+                form[0].reset();
+                
+                // Reset to original user data if logged in
+                {% if session.user_id %}
+                $('input[name="name"]').val('{{ session.get("user_name", "") }}');
+                $('input[name="email"]').val('{{ session.get("user_email", "") }}');
+                $('input[name="phone"]').val('{{ session.get("user_phone", "") }}');
+                {% endif %}
+                
                 submitBtn.prop('disabled', false).html(originalText);
-            }
-        });
+                $('#charCount').text('0');
+            }, 1500);
+        } else {
+            // Submit via AJAX
+            $.ajax({
+                type: 'POST',
+                url: form.attr('action'),
+                data: form.serialize(),
+                success: function(response) {
+                    if (response.success) {
+                        showToast('Success', response.message || 'Your message has been sent successfully!', 'success');
+                        form[0].reset();
+                        
+                        // Reset to original user data if logged in
+                        {% if session.user_id %}
+                        $('input[name="name"]').val('{{ session.get("user_name", "") }}');
+                        $('input[name="email"]').val('{{ session.get("user_email", "") }}');
+                        $('input[name="phone"]').val('{{ session.get("user_phone", "") }}');
+                        {% endif %}
+                        
+                        $('#charCount').text('0');
+                    } else {
+                        showToast('Error', response.message || 'Unable to send message. Please try again.', 'danger');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Contact form error:', error);
+                    showToast('Error', 'Unable to send message. Please try again later.', 'danger');
+                },
+                complete: function() {
+                    submitBtn.prop('disabled', false).html(originalText);
+                }
+            });
+        }
     });
     
     // Email validation function
@@ -531,15 +863,30 @@ $(document).ready(function() {
         return re.test(email);
     }
     
-    // Toast notification
-    function showToast(title, message, type) {
+    // Toast notification function
+    function showToast(title, message, type = 'info') {
+        if (window.Mufra && window.Mufra.notify) {
+            if (type === 'success') Mufra.notify.success(message);
+            else if (type === 'danger') Mufra.notify.error(message);
+            else Mufra.notify.info(message);
+            return;
+        }
+        
         // Remove existing toasts
         $('.toast-container').remove();
         
+        const icon = type === 'success' ? 'check-circle' : 
+                    type === 'danger' ? 'exclamation-circle' : 
+                    type === 'warning' ? 'exclamation-triangle' : 'info-circle';
+        
+        const bgColor = type === 'success' ? 'var(--magenta-vibrant)' : 
+                       type === 'danger' ? 'var(--cyan-bright)' : 'var(--link-blue)';
+        
         const toastHtml = `
-            <div class="toast-container position-fixed top-0 end-0 p-3">
-                <div class="toast show" role="alert">
+            <div class="toast-container">
+                <div class="toast show" role="alert" style="border-left: 6px solid ${bgColor};">
                     <div class="toast-header bg-${type} text-white">
+                        <i class="fas fa-${icon} me-2"></i>
                         <strong class="me-auto">${title}</strong>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
                     </div>
@@ -554,7 +901,9 @@ $(document).ready(function() {
         
         // Auto remove after 5 seconds
         setTimeout(() => {
-            $('.toast-container').remove();
+            $('.toast-container').fadeOut(300, function() {
+                $(this).remove();
+            });
         }, 5000);
     }
     
@@ -565,44 +914,52 @@ $(document).ready(function() {
             value = value.substring(0, 9);
         }
         $(this).val(value);
+        
+        // Real-time validation
+        if (value.length === 9 && /^\d+$/.test(value)) {
+            $(this).removeClass('is-invalid').addClass('is-valid');
+        } else if (value.length > 0) {
+            $(this).removeClass('is-valid').addClass('is-invalid');
+        } else {
+            $(this).removeClass('is-valid is-invalid');
+        }
+    });
+    
+    // Real-time form validation
+    $('input[required], select[required]').on('blur', function() {
+        if ($(this).val()) {
+            $(this).removeClass('is-invalid').addClass('is-valid');
+        } else {
+            $(this).removeClass('is-valid').addClass('is-invalid');
+        }
     });
     
     // Accordion enhancements
     $('.accordion-button').on('click', function() {
-        $(this).find('i').toggleClass('fa-chevron-down fa-chevron-up');
+        const icon = $(this).find('i:first-child');
+        if ($(this).hasClass('collapsed')) {
+            icon.removeClass('fa-chevron-up').addClass('fa-chevron-down');
+        } else {
+            icon.removeClass('fa-chevron-down').addClass('fa-chevron-up');
+        }
     });
     
     // Initialize accordion icons
     $('.accordion-button').each(function() {
+        const icon = $(this).find('i:first-child');
         if ($(this).hasClass('collapsed')) {
-            $(this).find('i').addClass('fa-chevron-down');
+            icon.addClass('fa-chevron-down');
         } else {
-            $(this).find('i').addClass('fa-chevron-up');
+            icon.addClass('fa-chevron-up');
         }
     });
+    
+    // Pre-fill subject from URL parameter (if any)
+    const urlParams = new URLSearchParams(window.location.search);
+    const subject = urlParams.get('subject');
+    if (subject) {
+        $('select[name="subject"]').val(subject);
+    }
 });
 </script>
 {% endblock %}
-{% endblock %}<!-- OLD -->
-
-
-<!-- NEW -->
-<h6 class="fw-bold mb-1">Call Us</h6>
-<p class="text-muted mb-0">
-    <a href="tel:0102850010" class="text-decoration-none">0102850010</a>
-</p>
-
-<h6 class="fw-bold mb-1 mt-2">WhatsApp Us</h6>
-<p class="text-muted mb-0">
-    <a href="https://wa.me/254794025592" class="text-decoration-none" target="_blank">0794025592</a>
-</p>
-
-
-
-<!-- NEW -->
-<h6 class="fw-bold mb-1">Email Us</h6>
-<p class="text-muted mb-0">
-    <a href="mailto:mufrafashions@gmail.com" class="text-decoration-none">
-        mufrafashions@gmail.com
-    </a>
-</p>

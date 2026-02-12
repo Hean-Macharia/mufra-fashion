@@ -70,6 +70,9 @@
                 {% if product.is_new or (product.created_at and (datetime.utcnow() - product.created_at).days < 7) %}
                 <span class="badge bg-magenta"><i class="fas fa-bolt me-1"></i>New</span>
                 {% endif %}
+                {% if product.condition == 'Second Hand' %}
+                <span class="badge bg-grey-medium"><i class="fas fa-recycle me-1"></i>Pre-owned</span>
+                {% endif %}
               </div>
               
               {% set stock = product.stock|default(0)|int %}
@@ -80,8 +83,12 @@
               {% endif %}
               
               <div class="product-quick-actions">
-                <button class="quick-view-btn" data-bs-toggle="tooltip" title="Quick view"><i class="fas fa-eye"></i></button>
-                <button class="quick-wishlist-btn" data-bs-toggle="tooltip" title="Wishlist"><i class="far fa-heart"></i></button>
+                <button class="quick-view-btn" data-bs-toggle="tooltip" title="Quick view" onclick="Mufra?.notify?.info('Quick view coming soon')">
+                  <i class="fas fa-eye"></i>
+                </button>
+                <button class="quick-wishlist-btn wishlist-btn" data-product-id="{{ product._id }}" data-bs-toggle="tooltip" title="Add to wishlist">
+                  <i class="far fa-heart"></i>
+                </button>
               </div>
             </div>
             
@@ -116,7 +123,7 @@
                 </div>
                 
                 {% if stock > 0 and product._id %}
-                <form action="{{ url_for('add_to_cart', product_id=product._id) }}" method="POST" class="add-to-cart-form m-0">
+                <form class="add-to-cart-form m-0" data-product-id="{{ product._id }}">
                   {% set sizes = product.sizes|default(['M']) %}
                   {% set colors = product.colors|default(['Blue']) %}
                   <input type="hidden" name="size" value="{{ sizes[0] if sizes and sizes|length > 0 else 'M' }}">
@@ -197,6 +204,9 @@
                 {% if product.is_new or (product.created_at and (datetime.utcnow() - product.created_at).days < 7) %}
                 <span class="badge bg-magenta"><i class="fas fa-bolt me-1"></i>New</span>
                 {% endif %}
+                {% if product.condition == 'Second Hand' %}
+                <span class="badge bg-grey-medium"><i class="fas fa-recycle me-1"></i>Pre-owned</span>
+                {% endif %}
               </div>
               
               {% set stock = product.stock|default(0)|int %}
@@ -207,8 +217,12 @@
               {% endif %}
               
               <div class="product-quick-actions">
-                <button class="quick-view-btn" data-bs-toggle="tooltip" title="Quick view"><i class="fas fa-eye"></i></button>
-                <button class="quick-wishlist-btn" data-bs-toggle="tooltip" title="Wishlist"><i class="far fa-heart"></i></button>
+                <button class="quick-view-btn" data-bs-toggle="tooltip" title="Quick view" onclick="Mufra?.notify?.info('Quick view coming soon')">
+                  <i class="fas fa-eye"></i>
+                </button>
+                <button class="quick-wishlist-btn wishlist-btn" data-product-id="{{ product._id }}" data-bs-toggle="tooltip" title="Add to wishlist">
+                  <i class="far fa-heart"></i>
+                </button>
               </div>
             </div>
             
@@ -224,7 +238,7 @@
                 </div>
                 
                 {% if stock > 0 and product._id %}
-                <form action="{{ url_for('add_to_cart', product_id=product._id) }}" method="POST" class="add-to-cart-form m-0">
+                <form class="add-to-cart-form m-0" data-product-id="{{ product._id }}">
                   <input type="hidden" name="size" value="{{ product.sizes[0] if product.sizes and product.sizes|length > 0 else 'M' }}">
                   <input type="hidden" name="color" value="{{ product.colors[0] if product.colors and product.colors|length > 0 else 'Blue' }}">
                   <input type="hidden" name="quantity" value="1">
@@ -281,7 +295,6 @@
       <div class="row g-4 row-cols-2 row-cols-md-3 row-cols-xl-4">
         {% for product in shoes_products[:4] %}
         <div class="col">
-          <!-- PRODUCT CARD - FULL -->
           <div class="card product-card h-100 border-0" data-product-id="{{ product._id }}">
             <div class="position-relative">
               <a href="{{ url_for('product_details', product_id=product._id) if product._id else '#' }}" class="d-block overflow-hidden rounded-top-4">
@@ -320,6 +333,9 @@
                 {% if product.is_new or (product.created_at and (datetime.utcnow() - product.created_at).days < 7) %}
                 <span class="badge bg-magenta"><i class="fas fa-bolt me-1"></i>New</span>
                 {% endif %}
+                {% if product.condition == 'Second Hand' %}
+                <span class="badge bg-grey-medium"><i class="fas fa-recycle me-1"></i>Pre-owned</span>
+                {% endif %}
               </div>
               
               {% set stock = product.stock|default(0)|int %}
@@ -330,8 +346,12 @@
               {% endif %}
               
               <div class="product-quick-actions">
-                <button class="quick-view-btn" data-bs-toggle="tooltip" title="Quick view"><i class="fas fa-eye"></i></button>
-                <button class="quick-wishlist-btn" data-bs-toggle="tooltip" title="Wishlist"><i class="far fa-heart"></i></button>
+                <button class="quick-view-btn" data-bs-toggle="tooltip" title="Quick view" onclick="Mufra?.notify?.info('Quick view coming soon')">
+                  <i class="fas fa-eye"></i>
+                </button>
+                <button class="quick-wishlist-btn wishlist-btn" data-product-id="{{ product._id }}" data-bs-toggle="tooltip" title="Add to wishlist">
+                  <i class="far fa-heart"></i>
+                </button>
               </div>
             </div>
             
@@ -366,7 +386,7 @@
                 </div>
                 
                 {% if stock > 0 and product._id %}
-                <form action="{{ url_for('add_to_cart', product_id=product._id) }}" method="POST" class="add-to-cart-form m-0">
+                <form class="add-to-cart-form m-0" data-product-id="{{ product._id }}">
                   {% set sizes = product.sizes|default(['M']) %}
                   {% set colors = product.colors|default(['Blue']) %}
                   <input type="hidden" name="size" value="{{ sizes[0] if sizes and sizes|length > 0 else 'M' }}">
@@ -446,6 +466,9 @@
                 {% if product.is_new or (product.created_at and (datetime.utcnow() - product.created_at).days < 7) %}
                 <span class="badge bg-magenta"><i class="fas fa-bolt me-1"></i>New</span>
                 {% endif %}
+                {% if product.condition == 'Second Hand' %}
+                <span class="badge bg-grey-medium"><i class="fas fa-recycle me-1"></i>Pre-owned</span>
+                {% endif %}
               </div>
               
               {% set stock = product.stock|default(0)|int %}
@@ -456,8 +479,12 @@
               {% endif %}
               
               <div class="product-quick-actions">
-                <button class="quick-view-btn" data-bs-toggle="tooltip" title="Quick view"><i class="fas fa-eye"></i></button>
-                <button class="quick-wishlist-btn" data-bs-toggle="tooltip" title="Wishlist"><i class="far fa-heart"></i></button>
+                <button class="quick-view-btn" data-bs-toggle="tooltip" title="Quick view" onclick="Mufra?.notify?.info('Quick view coming soon')">
+                  <i class="fas fa-eye"></i>
+                </button>
+                <button class="quick-wishlist-btn wishlist-btn" data-product-id="{{ product._id }}" data-bs-toggle="tooltip" title="Add to wishlist">
+                  <i class="far fa-heart"></i>
+                </button>
               </div>
             </div>
             
@@ -473,7 +500,7 @@
                 </div>
                 
                 {% if stock > 0 and product._id %}
-                <form action="{{ url_for('add_to_cart', product_id=product._id) }}" method="POST" class="add-to-cart-form m-0">
+                <form class="add-to-cart-form m-0" data-product-id="{{ product._id }}">
                   <input type="hidden" name="size" value="{{ product.sizes[0] if product.sizes and product.sizes|length > 0 else 'M' }}">
                   <input type="hidden" name="color" value="{{ product.colors[0] if product.colors and product.colors|length > 0 else 'Blue' }}">
                   <input type="hidden" name="quantity" value="1">
@@ -576,8 +603,12 @@
               {% endif %}
               
               <div class="product-quick-actions">
-                <button class="quick-view-btn" data-bs-toggle="tooltip" title="Quick view"><i class="fas fa-eye"></i></button>
-                <button class="quick-wishlist-btn" data-bs-toggle="tooltip" title="Wishlist"><i class="far fa-heart"></i></button>
+                <button class="quick-view-btn" data-bs-toggle="tooltip" title="Quick view" onclick="Mufra?.notify?.info('Quick view coming soon')">
+                  <i class="fas fa-eye"></i>
+                </button>
+                <button class="quick-wishlist-btn wishlist-btn" data-product-id="{{ product._id }}" data-bs-toggle="tooltip" title="Add to wishlist">
+                  <i class="far fa-heart"></i>
+                </button>
               </div>
             </div>
             
@@ -612,7 +643,7 @@
                 </div>
                 
                 {% if stock > 0 and product._id %}
-                <form action="{{ url_for('add_to_cart', product_id=product._id) }}" method="POST" class="add-to-cart-form m-0">
+                <form class="add-to-cart-form m-0" data-product-id="{{ product._id }}">
                   {% set sizes = product.sizes|default(['M']) %}
                   {% set colors = product.colors|default(['Blue']) %}
                   <input type="hidden" name="size" value="{{ sizes[0] if sizes and sizes|length > 0 else 'M' }}">
@@ -677,8 +708,12 @@
               {% endif %}
               
               <div class="product-quick-actions">
-                <button class="quick-view-btn" data-bs-toggle="tooltip" title="Quick view"><i class="fas fa-eye"></i></button>
-                <button class="quick-wishlist-btn" data-bs-toggle="tooltip" title="Wishlist"><i class="far fa-heart"></i></button>
+                <button class="quick-view-btn" data-bs-toggle="tooltip" title="Quick view" onclick="Mufra?.notify?.info('Quick view coming soon')">
+                  <i class="fas fa-eye"></i>
+                </button>
+                <button class="quick-wishlist-btn wishlist-btn" data-product-id="{{ product._id }}" data-bs-toggle="tooltip" title="Add to wishlist">
+                  <i class="far fa-heart"></i>
+                </button>
               </div>
             </div>
             
@@ -694,7 +729,7 @@
                 </div>
                 
                 {% if stock > 0 and product._id %}
-                <form action="{{ url_for('add_to_cart', product_id=product._id) }}" method="POST" class="add-to-cart-form m-0">
+                <form class="add-to-cart-form m-0" data-product-id="{{ product._id }}">
                   <input type="hidden" name="size" value="{{ product.sizes[0] if product.sizes and product.sizes|length > 0 else 'M' }}">
                   <input type="hidden" name="color" value="{{ product.colors[0] if product.colors and product.colors|length > 0 else 'Blue' }}">
                   <input type="hidden" name="quantity" value="1">
@@ -786,6 +821,9 @@
                 {% if product.featured %}
                 <span class="badge bg-cyan mb-1"><i class="fas fa-star me-1"></i>Featured</span>
                 {% endif %}
+                {% if product.is_new or (product.created_at and (datetime.utcnow() - product.created_at).days < 7) %}
+                <span class="badge bg-magenta"><i class="fas fa-bolt me-1"></i>New</span>
+                {% endif %}
                 <span class="badge bg-grey-medium"><i class="fas fa-recycle me-1"></i>Pre-owned</span>
               </div>
               
@@ -797,8 +835,12 @@
               {% endif %}
               
               <div class="product-quick-actions">
-                <button class="quick-view-btn" data-bs-toggle="tooltip" title="Quick view"><i class="fas fa-eye"></i></button>
-                <button class="quick-wishlist-btn" data-bs-toggle="tooltip" title="Wishlist"><i class="far fa-heart"></i></button>
+                <button class="quick-view-btn" data-bs-toggle="tooltip" title="Quick view" onclick="Mufra?.notify?.info('Quick view coming soon')">
+                  <i class="fas fa-eye"></i>
+                </button>
+                <button class="quick-wishlist-btn wishlist-btn" data-product-id="{{ product._id }}" data-bs-toggle="tooltip" title="Add to wishlist">
+                  <i class="far fa-heart"></i>
+                </button>
               </div>
             </div>
             
@@ -833,7 +875,7 @@
                 </div>
                 
                 {% if stock > 0 and product._id %}
-                <form action="{{ url_for('add_to_cart', product_id=product._id) }}" method="POST" class="add-to-cart-form m-0">
+                <form class="add-to-cart-form m-0" data-product-id="{{ product._id }}">
                   {% set sizes = product.sizes|default(['M']) %}
                   {% set colors = product.colors|default(['Blue']) %}
                   <input type="hidden" name="size" value="{{ sizes[0] if sizes and sizes|length > 0 else 'M' }}">
@@ -887,6 +929,9 @@
                 {% if product.featured %}
                 <span class="badge bg-cyan mb-1"><i class="fas fa-star me-1"></i>Featured</span>
                 {% endif %}
+                {% if product.is_new or (product.created_at and (datetime.utcnow() - product.created_at).days < 7) %}
+                <span class="badge bg-magenta"><i class="fas fa-bolt me-1"></i>New</span>
+                {% endif %}
                 <span class="badge bg-grey-medium"><i class="fas fa-recycle me-1"></i>Pre-owned</span>
               </div>
               
@@ -898,8 +943,12 @@
               {% endif %}
               
               <div class="product-quick-actions">
-                <button class="quick-view-btn" data-bs-toggle="tooltip" title="Quick view"><i class="fas fa-eye"></i></button>
-                <button class="quick-wishlist-btn" data-bs-toggle="tooltip" title="Wishlist"><i class="far fa-heart"></i></button>
+                <button class="quick-view-btn" data-bs-toggle="tooltip" title="Quick view" onclick="Mufra?.notify?.info('Quick view coming soon')">
+                  <i class="fas fa-eye"></i>
+                </button>
+                <button class="quick-wishlist-btn wishlist-btn" data-product-id="{{ product._id }}" data-bs-toggle="tooltip" title="Add to wishlist">
+                  <i class="far fa-heart"></i>
+                </button>
               </div>
             </div>
             
@@ -915,7 +964,7 @@
                 </div>
                 
                 {% if stock > 0 and product._id %}
-                <form action="{{ url_for('add_to_cart', product_id=product._id) }}" method="POST" class="add-to-cart-form m-0">
+                <form class="add-to-cart-form m-0" data-product-id="{{ product._id }}">
                   <input type="hidden" name="size" value="{{ product.sizes[0] if product.sizes and product.sizes|length > 0 else 'M' }}">
                   <input type="hidden" name="color" value="{{ product.colors[0] if product.colors and product.colors|length > 0 else 'Blue' }}">
                   <input type="hidden" name="quantity" value="1">
@@ -963,17 +1012,30 @@
       <div class="row g-4">
         {% for product in recommended_products[:4] %}
         <div class="col-md-6 col-lg-3">
-          <div class="card product-card h-100 border-0">
+          <div class="card product-card h-100 border-0" data-product-id="{{ product._id }}">
             <div class="position-relative">
               <a href="{{ url_for('product_details', product_id=product._id) if product._id else '#' }}" class="d-block">
                 <div class="product-image-container" style="height:200px;">
                   <img src="{{ get_product_main_image(product) }}" class="product-image w-100 h-100" style="object-fit:cover;" alt="{{ product.name }}">
                 </div>
               </a>
+              
+              <div class="product-badges">
+                {% if product.condition == 'Second Hand' %}
+                <span class="badge bg-grey-medium"><i class="fas fa-recycle me-1"></i>Pre-owned</span>
+                {% endif %}
+              </div>
+              
               {% set stock = product.stock|default(0)|int %}
               {% if stock == 0 %}
               <div class="out-of-stock-overlay"><span class="badge bg-charcoal">Out of Stock</span></div>
               {% endif %}
+              
+              <div class="product-quick-actions">
+                <button class="quick-wishlist-btn wishlist-btn" data-product-id="{{ product._id }}" data-bs-toggle="tooltip" title="Add to wishlist">
+                  <i class="far fa-heart"></i>
+                </button>
+              </div>
             </div>
             <div class="card-body">
               <h5 class="product-name fw-semibold mb-2 text-cyan">{{ product.name|truncate(25) }}</h5>
@@ -981,12 +1043,17 @@
                 <span class="product-price fs-5">{{ format_price(product.price|default(0)) }}</span>
                 <span class="small text-muted"><i class="fas fa-shipping-fast text-cyan"></i> free</span>
               </div>
-              <div class="mt-3">
-                {% if product._id %}
-                <a href="{{ url_for('product_details', product_id=product._id) }}" class="btn btn-outline-brand w-100 rounded-pill">
-                  <i class="fas fa-eye me-2"></i>View
-                </a>
+              <div class="mt-3 d-flex gap-2">
+                {% if stock > 0 and product._id %}
+                <button class="btn btn-magenta rounded-pill flex-grow-1 quick-add-btn" 
+                        data-product-id="{{ product._id }}"
+                        onclick="Mufra.cart.add('{{ product._id }}')">
+                  <i class="fas fa-cart-plus me-2"></i>Add
+                </button>
                 {% endif %}
+                <a href="{{ url_for('product_details', product_id=product._id) }}" class="btn btn-outline-brand rounded-pill">
+                  <i class="fas fa-eye"></i>
+                </a>
               </div>
             </div>
           </div>
@@ -1000,17 +1067,30 @@
       <div class="horizontal-scroll-container">
         {% for product in recommended_products[:6] %}
         <div class="horizontal-scroll-item" style="width: 260px;">
-          <div class="card product-card h-100 border-0">
+          <div class="card product-card h-100 border-0" data-product-id="{{ product._id }}">
             <div class="position-relative">
               <a href="{{ url_for('product_details', product_id=product._id) if product._id else '#' }}" class="d-block">
                 <div class="product-image-container" style="height:180px;">
                   <img src="{{ get_product_main_image(product) }}" class="product-image w-100 h-100" style="object-fit:cover;" alt="{{ product.name }}">
                 </div>
               </a>
+              
+              <div class="product-badges">
+                {% if product.condition == 'Second Hand' %}
+                <span class="badge bg-grey-medium"><i class="fas fa-recycle me-1"></i>Pre-owned</span>
+                {% endif %}
+              </div>
+              
               {% set stock = product.stock|default(0)|int %}
               {% if stock == 0 %}
               <div class="out-of-stock-overlay"><span class="badge bg-charcoal">Out of Stock</span></div>
               {% endif %}
+              
+              <div class="product-quick-actions">
+                <button class="quick-wishlist-btn wishlist-btn" data-product-id="{{ product._id }}" data-bs-toggle="tooltip" title="Add to wishlist">
+                  <i class="far fa-heart"></i>
+                </button>
+              </div>
             </div>
             <div class="card-body">
               <h5 class="product-name fw-semibold mb-2 text-cyan">{{ product.name|truncate(20) }}</h5>
@@ -1018,9 +1098,16 @@
                 <span class="product-price fs-6">{{ format_price(product.price|default(0)) }}</span>
                 <span class="small text-muted"><i class="fas fa-shipping-fast text-cyan"></i></span>
               </div>
-              <div class="mt-2">
-                <a href="{{ url_for('product_details', product_id=product._id) }}" class="btn btn-outline-brand w-100 rounded-pill btn-sm">
-                  View
+              <div class="mt-2 d-flex gap-2">
+                {% if stock > 0 and product._id %}
+                <button class="btn btn-magenta rounded-pill btn-sm flex-grow-1 quick-add-btn" 
+                        data-product-id="{{ product._id }}"
+                        onclick="Mufra.cart.add('{{ product._id }}')">
+                  <i class="fas fa-cart-plus"></i>
+                </button>
+                {% endif %}
+                <a href="{{ url_for('product_details', product_id=product._id) }}" class="btn btn-outline-brand rounded-pill btn-sm">
+                  <i class="fas fa-eye"></i>
                 </a>
               </div>
             </div>
@@ -1052,13 +1139,13 @@
               <div class="card category-card border-0 h-100">
                 <div class="card-body text-center py-5">
                   <div class="category-icon mx-auto mb-4">
-                    {% if category.name == 'Shoes' %}
+                    {% if category.name|lower == 'shoes' %}
                       <i class="fas fa-shoe-prints fa-3x" style="color:#00ACC1;"></i>
-                    {% elif category.name == 'Clothes' %}
+                    {% elif category.name|lower == 'clothes' %}
                       <i class="fas fa-tshirt fa-3x" style="color:#00ACC1;"></i>
-                    {% elif category.name == 'New Arrivals' or category.name == 'New' %}
+                    {% elif 'new' in category.name|lower %}
                       <i class="fas fa-tag fa-3x" style="color:#00ACC1;"></i>
-                    {% elif category.name == 'Second Hand' or 'Second' in category.name %}
+                    {% elif 'second' in category.name|lower or 'used' in category.name|lower %}
                       <i class="fas fa-recycle fa-3x" style="color:#00ACC1;"></i>
                     {% else %}
                       <i class="fas fa-box fa-3x" style="color:#00ACC1;"></i>
@@ -1109,13 +1196,13 @@
               <div class="card category-card border-0">
                 <div class="card-body text-center py-4">
                   <div class="category-icon mx-auto mb-3" style="width: 70px; height: 70px;">
-                    {% if category.name == 'Shoes' %}
+                    {% if category.name|lower == 'shoes' %}
                       <i class="fas fa-shoe-prints fa-2x" style="color:#00ACC1;"></i>
-                    {% elif category.name == 'Clothes' %}
+                    {% elif category.name|lower == 'clothes' %}
                       <i class="fas fa-tshirt fa-2x" style="color:#00ACC1;"></i>
-                    {% elif category.name == 'New Arrivals' or category.name == 'New' %}
+                    {% elif 'new' in category.name|lower %}
                       <i class="fas fa-tag fa-2x" style="color:#00ACC1;"></i>
-                    {% elif category.name == 'Second Hand' or 'Second' in category.name %}
+                    {% elif 'second' in category.name|lower or 'used' in category.name|lower %}
                       <i class="fas fa-recycle fa-2x" style="color:#00ACC1;"></i>
                     {% else %}
                       <i class="fas fa-box fa-2x" style="color:#00ACC1;"></i>
@@ -1212,9 +1299,9 @@
             <p class="mb-0 text-white-80">Subscribe and get 10% off your first order.</p>
           </div>
           <div class="col-lg-4">
-            <form class="newsletter-form">
+            <form class="newsletter-form" id="newsletterForm">
               <div class="input-group">
-                <input type="email" class="form-control border-0" placeholder="Your email" required>
+                <input type="email" class="form-control border-0" placeholder="Your email" id="newsletterEmail" required>
                 <button class="btn bg-white text-charcoal px-4" type="submit">
                   <i class="fas fa-paper-plane"></i>
                 </button>
@@ -1238,7 +1325,7 @@
 {% endblock %}
 
 {% block extra_css %}
-<!-- ===== STYLES ===== -->
+<!-- ===== ADDITIONAL STYLES ===== -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
   body { font-family: 'Inter', sans-serif; background: #F9F9F9; }
@@ -1259,9 +1346,20 @@
 
   .section-mini-title { letter-spacing: 5px; font-size: 0.8rem; color: var(--magenta); }
   .section-title { position: relative; }
-  .section-title::after { content: ''; display: block; width: 100px; height: 4px; background: linear-gradient(90deg, var(--magenta), var(--cyan)); border-radius: 4px; margin-top: 8px; }
+  .section-title::after { 
+    content: ''; 
+    display: block; 
+    width: 100px; 
+    height: 4px; 
+    background: linear-gradient(90deg, var(--magenta), var(--cyan)); 
+    border-radius: 4px; 
+    margin-top: 8px; 
+  }
   @media (max-width:768px){ 
-    .section-title::after { margin-left: auto; margin-right: auto; }
+    .section-title::after { 
+      margin-left: auto; 
+      margin-right: auto; 
+    }
     .section-title { text-align: center; }
   }
 
@@ -1549,16 +1647,38 @@
     width: 100%;
     min-width: 260px;
   }
+
+  /* Loading state for add to cart */
+  .product-card.loading {
+    opacity: 0.8;
+    pointer-events: none;
+  }
+
+  .product-card.added-to-cart .btn-magenta {
+    background: #28a745 !important;
+  }
+
+  /* Quick add button */
+  .quick-add-btn {
+    transition: all 0.3s ease;
+  }
+
+  .quick-add-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(216,27,96,0.3);
+  }
 </style>
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
 $(document).ready(function(){
-  $('[data-bs-toggle="tooltip"]').each(function(){ new bootstrap.Tooltip(this); });
+  // Initialize tooltips
+  $('[data-bs-toggle="tooltip"]').each(function(){ 
+    new bootstrap.Tooltip(this); 
+  });
 
+  // Live notification simulation
   var buyers = ['Mary', 'James', 'Aisha', 'Kim', 'Wanjiku', 'Otieno'];
   var products = ['Mint Sneakers', 'Forest Hoodie', 'Rose Bag', 'Eco Tee'];
   setInterval(function(){
@@ -1567,84 +1687,30 @@ $(document).ready(function(){
     $('.live-notification').fadeIn(200).delay(3500).fadeOut(200);
   }, 9000);
 
-  $('.quick-wishlist-btn').on('click', function(e){
-    e.preventDefault(); e.stopPropagation();
-    var icon = $(this).find('i');
-    if(icon.hasClass('far')){ 
-      icon.removeClass('far').addClass('fas text-cyan'); 
-      showToast('❤️', 'Added to wishlist', 'success'); 
-    }
-    else { 
-      icon.removeClass('fas text-cyan').addClass('far'); 
-    }
-  });
-
-  $('.quick-view-btn').on('click', function(e){ 
-    e.preventDefault(); 
-    showToast('🔍', 'Quick view coming soon', 'cyan'); 
-  });
-
-  $('.newsletter-form').submit(function(e){
+  // Newsletter form submission
+  $('#newsletterForm').submit(function(e){
     e.preventDefault();
-    var email = $(this).find('input[type="email"]').val();
+    var email = $('#newsletterEmail').val();
     if(!email || !email.includes('@')) { 
-      showToast('Verification', 'Valid email required', 'warning'); 
+      if (window.Mufra) {
+        Mufra.notify.error('Please enter a valid email address');
+      } else {
+        alert('Please enter a valid email address');
+      }
       return; 
     }
     var btn = $(this).find('button');
     btn.html('<span class="spinner-border spinner-border-sm"></span>');
     setTimeout(function(){
       btn.html('<i class="fas fa-paper-plane"></i>');
-      showToast('Welcome', 'Check your inbox for 10% off!', 'success');
-      $('.newsletter-form')[0].reset();
+      if (window.Mufra) {
+        Mufra.notify.success('Check your inbox for 10% off!');
+      } else {
+        alert('Thank you for subscribing! Check your inbox for 10% off.');
+      }
+      $('#newsletterForm')[0].reset();
     }, 1300);
   });
-
-  $('.add-to-cart-form').submit(function(e) {
-    e.preventDefault();
-    const form = $(this);
-    const button = form.find('.add-to-cart-btn');
-    const productId = button.data('product-id');
-    const originalHtml = button.html();
-    button.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
-    const card = form.closest('.product-card');
-    card.addClass('loading');
-    $.ajax({
-      type: 'POST', url: form.attr('action'), data: form.serialize(),
-      success: function(response) {
-        if (response.success) {
-          button.html('<i class="fas fa-check"></i>');
-          card.addClass('added-to-cart');
-          showToast('MUFRA FASHIONS', response.message, 'success');
-          const cartCount = response.cart_count || 0;
-          $('.badge.bg-danger, .mobile-cart-badge').text(cartCount);
-          $('.badge.bg-danger, .mobile-cart-badge').addClass('pulse');
-          setTimeout(() => { $('.badge.bg-danger, .mobile-cart-badge').removeClass('pulse'); }, 1000);
-          setTimeout(() => { button.prop('disabled', false).html(originalHtml); card.removeClass('added-to-cart loading'); }, 1500);
-        } else {
-          showToast('Notice', response.message, 'warning');
-          button.prop('disabled', false).html(originalHtml);
-          card.removeClass('loading');
-        }
-      },
-      error: function() {
-        showToast('Error', 'Network error. Please try again.', 'danger');
-        button.prop('disabled', false).html(originalHtml);
-        card.removeClass('loading');
-      }
-    });
-  });
-
-  function showToast(title, message, type) {
-    $('.toast-container').remove();
-    const bgColor = type === 'success' ? '#D81B60' : (type === 'danger' ? '#00ACC1' : (type === 'cyan' ? '#00ACC1' : '#757575'));
-    const toastHtml = `<div class="toast-container position-fixed top-0 end-0 m-4" style="z-index:9999;"><div class="toast show" role="alert" style="border-radius: 24px; border-left: 6px solid ${bgColor};"><div class="toast-header" style="background:white;"><strong class="me-auto" style="color:#333333;">${title}</strong><button type="button" class="btn-close" data-bs-dismiss="toast"></button></div><div class="toast-body" style="color:#333333;">${message}</div></div></div>`;
-    $('body').append(toastHtml);
-    setTimeout(() => { $('.toast-container').fadeOut(300, function(){ $(this).remove(); }); }, 3500);
-  }
-
-  const cartCount = $('.badge.bg-danger').text();
-  if (cartCount && cartCount !== '') { $('.mobile-cart-badge').text(cartCount); }
 });
 </script>
 {% endblock %}

@@ -1,88 +1,258 @@
 {% extends "base.html" %}
 
-{% block title %}Register - MUFRA FASHIONS{% endblock %}
+{% block title %}Create Account - MUFRA FASHIONS{% endblock %}
 
 {% block content %}
 <div class="container py-5">
     <div class="row justify-content-center">
-        <div class="col-lg-6">
-            <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <h3 class="mb-0"><i class="fas fa-user-plus me-2"></i>Create Account</h3>
+        <div class="col-lg-6 col-md-8">
+            <div class="card shadow-brand border-0 bg-white">
+                <div class="card-header bg-magenta text-white text-center py-4 border-0 rounded-top">
+                    <div class="register-icon mb-3 bg-soft-magenta">
+                        <i class="fas fa-user-plus fa-3x text-magenta"></i>
+                    </div>
+                    <h3 class="mb-0 fw-bold">Create Account</h3>
+                    <p class="text-white-80 mt-2 mb-0 small">Join MUFRA FASHIONS today</p>
                 </div>
-                <div class="card-body">
-                    <form method="POST" action="{{ url_for('register') }}">
-                        <div class="mb-3">
-                            <label class="form-label">Full Name *</label>
-                            <input type="text" class="form-control" name="name" 
-                                   value="{{ request.form.name if request.form }}" required>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">Email Address *</label>
-                            <input type="email" class="form-control" name="email" 
-                                   value="{{ request.form.email if request.form }}" required>
-                            <!-- CHANGED: Updated email description -->
-                            <div class="form-text">Used for order notifications and account recovery</div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">Phone Number *</label>
-                            <div class="input-group">
-                                <span class="input-group-text">+254</span>
-                                <input type="tel" class="form-control" name="phone" 
-                                       value="{{ request.form.phone if request.form }}" 
-                                       pattern="[0-9]{9}" placeholder="712345678" required>
+                <div class="card-body p-4 p-lg-5">
+                    <!-- Flash Messages -->
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ 'success' if category == 'success' else 'warning' if category == 'danger' else category }} alert-dismissible fade show mb-4 rounded-3" role="alert">
+                                    <div class="d-flex align-items-center">
+                                        {% if category == 'success' %}
+                                            <i class="fas fa-check-circle me-2 fs-5 text-magenta"></i>
+                                        {% elif category == 'danger' %}
+                                            <i class="fas fa-exclamation-circle me-2 fs-5 text-cyan"></i>
+                                        {% elif category == 'warning' %}
+                                            <i class="fas fa-exclamation-triangle me-2 fs-5 text-cyan"></i>
+                                        {% elif category == 'info' %}
+                                            <i class="fas fa-info-circle me-2 fs-5 text-link-blue"></i>
+                                        {% endif %}
+                                        <div class="text-charcoal">{{ message }}</div>
+                                    </div>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                    
+                    <!-- Instant Registration Notice -->
+                    <div class="alert bg-soft-cyan border-0 mb-4 rounded-3">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-bolt fa-2x text-cyan"></i>
                             </div>
-                            <div class="form-text">Enter your 9-digit phone number without the leading 0</div>
+                            <div class="flex-grow-1 ms-3">
+                                <h6 class="fw-bold text-charcoal mb-1">✨ Instant Registration</h6>
+                                <p class="small text-charcoal mb-0">
+                                    Your account is created immediately. No email verification needed!
+                                </p>
+                            </div>
                         </div>
-                        
+                    </div>
+                    
+                    <form method="POST" action="{{ url_for('register') }}" id="registerForm">
+                        <!-- Full Name -->
                         <div class="mb-3">
-                            <label class="form-label">Password *</label>
-                            <input type="password" class="form-control" name="password" 
-                                   id="password" required>
-                            <!-- CHANGED: Updated password requirements -->
-                            <div class="form-text">Minimum 6 characters</div>
+                            <label class="form-label fw-bold text-charcoal">
+                                <i class="fas fa-user me-2 text-magenta"></i>Full Name <span class="text-magenta">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-soft-magenta text-magenta border-grey-medium">
+                                    <i class="fas fa-user"></i>
+                                </span>
+                                <input type="text" class="form-control border-grey-medium" name="name" 
+                                       id="name" value="{{ request.form.name if request.form.name else '' }}" 
+                                       required placeholder="John Doe">
+                            </div>
+                            <div class="form-text text-grey-medium">
+                                <i class="fas fa-info-circle me-1 text-cyan"></i>
+                                Enter your full name as it appears on your ID
+                            </div>
                         </div>
                         
+                        <!-- Email Address -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-charcoal">
+                                <i class="fas fa-envelope me-2 text-cyan"></i>Email Address <span class="text-magenta">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-soft-cyan text-cyan border-grey-medium">
+                                    <i class="fas fa-envelope"></i>
+                                </span>
+                                <input type="email" class="form-control border-grey-medium" name="email" 
+                                       id="email" value="{{ request.form.email if request.form.email else '' }}" 
+                                       required placeholder="you@example.com">
+                            </div>
+                            <div class="form-text text-grey-medium">
+                                <i class="fas fa-shield-alt me-1 text-cyan"></i>
+                                Used for order notifications and account recovery
+                            </div>
+                        </div>
+                        
+                        <!-- Phone Number -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-charcoal">
+                                <i class="fas fa-phone me-2 text-magenta"></i>Phone Number <span class="text-magenta">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-soft-magenta text-magenta border-grey-medium">
+                                    +254
+                                </span>
+                                <input type="tel" class="form-control border-grey-medium" name="phone" 
+                                       id="phone" value="{{ request.form.phone if request.form.phone else '' }}" 
+                                       pattern="[0-9]{9}" placeholder="712345678" maxlength="9" required>
+                            </div>
+                            <div class="form-text text-grey-medium">
+                                <i class="fas fa-info-circle me-1 text-cyan"></i>
+                                Enter your 9-digit phone number without the leading 0
+                            </div>
+                        </div>
+                        
+                        <!-- Password -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-charcoal">
+                                <i class="fas fa-lock me-2 text-cyan"></i>Password <span class="text-magenta">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-soft-cyan text-cyan border-grey-medium">
+                                    <i class="fas fa-lock"></i>
+                                </span>
+                                <input type="password" class="form-control border-grey-medium" name="password" 
+                                       id="password" required placeholder="Create a password">
+                                <button class="btn btn-outline-grey-medium toggle-password" type="button">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="form-text text-grey-medium">
+                                <i class="fas fa-check-circle me-1 text-cyan"></i>
+                                Minimum <strong class="text-charcoal">6 characters</strong>
+                            </div>
+                            <div class="password-strength mt-2 d-none" id="passwordStrength">
+                                <div class="d-flex align-items-center">
+                                    <div class="strength-bar me-2" style="width: 100px; height: 6px; background-color: rgba(117,117,117,0.2); border-radius: 3px;">
+                                        <div class="strength-fill" style="width: 0%; height: 100%; background-color: var(--cyan-bright); border-radius: 3px;"></div>
+                                    </div>
+                                    <span class="small text-grey-medium" id="strengthText">Weak</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Confirm Password -->
                         <div class="mb-4">
-                            <label class="form-label">Confirm Password *</label>
-                            <input type="password" class="form-control" name="confirm_password" 
-                                   id="confirm_password" required>
-                            <div class="invalid-feedback" id="password-error">
+                            <label class="form-label fw-bold text-charcoal">
+                                <i class="fas fa-lock me-2 text-magenta"></i>Confirm Password <span class="text-magenta">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-soft-magenta text-magenta border-grey-medium">
+                                    <i class="fas fa-lock"></i>
+                                </span>
+                                <input type="password" class="form-control border-grey-medium" name="confirm_password" 
+                                       id="confirm_password" required placeholder="Confirm your password">
+                                <button class="btn btn-outline-grey-medium toggle-password" type="button">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="invalid-feedback d-block" id="password-error" style="display: none !important;">
+                                <i class="fas fa-exclamation-circle me-1 text-magenta"></i>
                                 Passwords do not match
                             </div>
+                            <div class="valid-feedback d-none" id="password-match">
+                                <i class="fas fa-check-circle me-1 text-cyan"></i>
+                                Passwords match
+                            </div>
                         </div>
                         
-                        <div class="form-check mb-4">
-                            <input class="form-check-input" type="checkbox" id="terms" required>
-                            <label class="form-check-label" for="terms">
-                                I agree to the <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal">Terms and Conditions</a> and <a href="#" data-bs-toggle="modal" data-bs-target="#privacyModal">Privacy Policy</a> *
-                            </label>
+                        <!-- Terms and Conditions -->
+                        <div class="mb-4 p-3 bg-soft-magenta rounded-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="terms" required>
+                                <label class="form-check-label small text-charcoal" for="terms">
+                                    I agree to the 
+                                    <a href="#" class="text-cyan hover-magenta text-decoration-none fw-semibold" data-bs-toggle="modal" data-bs-target="#termsModal">
+                                        Terms and Conditions
+                                    </a> 
+                                    and 
+                                    <a href="#" class="text-cyan hover-magenta text-decoration-none fw-semibold" data-bs-toggle="modal" data-bs-target="#privacyModal">
+                                        Privacy Policy
+                                    </a> *
+                                </label>
+                            </div>
                         </div>
                         
+                        <!-- Submit Button -->
                         <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary btn-lg">
+                            <button type="submit" class="btn btn-magenta btn-lg py-3" id="registerBtn">
                                 <i class="fas fa-user-plus me-2"></i> Create Account
                             </button>
                         </div>
                         
-                        <!-- ADDED: Instant registration notice -->
-                        <div class="alert alert-info mt-3" role="alert">
-                            <i class="fas fa-info-circle me-2"></i>
-                            <strong>Instant Registration:</strong> Your account is created immediately. No email verification needed!
-                        </div>
-                        
-                        <hr class="my-4">
-                        
-                        <div class="text-center">
-                            <p class="mb-0">Already have an account? 
-                                <a href="{{ url_for('login') }}" class="text-decoration-none">
+                        <!-- Login Link -->
+                        <div class="text-center mt-4 pt-3 border-top border-grey-medium border-opacity-25">
+                            <p class="mb-0 text-charcoal">
+                                Already have an account? 
+                                <a href="{{ url_for('login') }}" class="fw-bold text-cyan text-decoration-none hover-magenta">
                                     Login here
                                 </a>
                             </p>
                         </div>
                     </form>
+                </div>
+                
+                <!-- Security Footer -->
+                <div class="card-footer bg-soft-cyan border-0 py-3 rounded-bottom">
+                    <div class="d-flex align-items-center justify-content-center">
+                        <i class="fas fa-shield-alt text-cyan me-2"></i>
+                        <small class="text-charcoal">
+                            Your information is encrypted and secure
+                        </small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Benefits Card -->
+            <div class="card shadow-brand border-0 mt-4 bg-white">
+                <div class="card-body p-4">
+                    <h6 class="fw-bold text-charcoal mb-3">
+                        <i class="fas fa-gift me-2 text-magenta"></i>
+                        Why create an account?
+                    </h6>
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="d-flex align-items-center">
+                                <div class="benefit-icon bg-soft-cyan rounded-circle p-2 me-2">
+                                    <i class="fas fa-bolt text-cyan"></i>
+                                </div>
+                                <span class="small text-charcoal">Faster checkout</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="d-flex align-items-center">
+                                <div class="benefit-icon bg-soft-magenta rounded-circle p-2 me-2">
+                                    <i class="fas fa-heart text-magenta"></i>
+                                </div>
+                                <span class="small text-charcoal">Save wishlist</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="d-flex align-items-center">
+                                <div class="benefit-icon bg-soft-cyan rounded-circle p-2 me-2">
+                                    <i class="fas fa-clock text-cyan"></i>
+                                </div>
+                                <span class="small text-charcoal">Order history</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="d-flex align-items-center">
+                                <div class="benefit-icon bg-soft-magenta rounded-circle p-2 me-2">
+                                    <i class="fas fa-tag text-magenta"></i>
+                                </div>
+                                <span class="small text-charcoal">Exclusive offers</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -90,153 +260,844 @@
 </div>
 
 <!-- Terms Modal -->
-<div class="modal fade" id="termsModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Terms and Conditions</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<div class="modal fade" id="termsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0">
+            <div class="modal-header bg-magenta text-white border-0">
+                <h5 class="modal-title"><i class="fas fa-file-contract me-2"></i>Terms and Conditions</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
-                <h6>1. Acceptance of Terms</h6>
-                <p>By creating an account with MUFRA FASHIONS, you agree to be bound by these terms and conditions.</p>
+            <div class="modal-body p-4">
+                <div class="mb-4">
+                    <h6 class="fw-bold text-charcoal mb-3">1. Acceptance of Terms</h6>
+                    <p class="text-grey-medium">By creating an account with MUFRA FASHIONS, you agree to be bound by these terms and conditions.</p>
+                </div>
                 
-                <h6>2. Account Registration</h6>
-                <p>You must provide accurate and complete information when creating an account. You are responsible for maintaining the confidentiality of your account credentials.</p>
+                <div class="mb-4">
+                    <h6 class="fw-bold text-charcoal mb-3">2. Account Registration</h6>
+                    <p class="text-grey-medium">You must provide accurate and complete information when creating an account. You are responsible for maintaining the confidentiality of your account credentials.</p>
+                </div>
                 
-                <h6>3. Ordering and Payment</h6>
-                <p>All orders are subject to availability and confirmation of the order price. We reserve the right to refuse any order.</p>
+                <div class="mb-4">
+                    <h6 class="fw-bold text-charcoal mb-3">3. Ordering and Payment</h6>
+                    <p class="text-grey-medium">All orders are subject to availability and confirmation of the order price. We reserve the right to refuse any order. Payment is processed securely via Paystack.</p>
+                </div>
                 
-                <h6>4. Delivery</h6>
-                <p>Delivery times are estimates and not guaranteed. Risk of loss passes to you upon delivery.</p>
+                <div class="mb-4">
+                    <h6 class="fw-bold text-charcoal mb-3">4. Delivery</h6>
+                    <p class="text-grey-medium">Delivery times are estimates and not guaranteed. Risk of loss passes to you upon delivery. Free shipping applies to orders over KES 5,000 within Embu.</p>
+                </div>
                 
-                <h6>5. Returns and Refunds</h6>
-                <p>Returns are accepted within 7 days of delivery for items in original condition. Refunds will be processed within 14 business days.</p>
+                <div class="mb-4">
+                    <h6 class="fw-bold text-charcoal mb-3">5. Returns and Refunds</h6>
+                    <p class="text-grey-medium">Returns are accepted within 2 days of delivery for items in original condition with tags attached. Refunds will be processed within 7-14 business days.</p>
+                </div>
                 
-                <h6>6. Privacy</h6>
-                <p>Your personal information will be handled in accordance with our Privacy Policy.</p>
+                <div class="mb-4">
+                    <h6 class="fw-bold text-charcoal mb-3">6. Privacy</h6>
+                    <p class="text-grey-medium">Your personal information will be handled in accordance with our Privacy Policy. We never share your information with third parties without consent.</p>
+                </div>
                 
-                <h6>7. Modifications</h6>
-                <p>We reserve the right to modify these terms at any time. Continued use of the service constitutes acceptance of modified terms.</p>
+                <div class="mb-4">
+                    <h6 class="fw-bold text-charcoal mb-3">7. Modifications</h6>
+                    <p class="text-grey-medium">We reserve the right to modify these terms at any time. Continued use of the service constitutes acceptance of modified terms.</p>
+                </div>
                 
-                <h6>8. Limitation of Liability</h6>
-                <p>MUFRA FASHIONS shall not be liable for any indirect, incidental, or consequential damages arising from your use of our services.</p>
+                <div class="mb-4">
+                    <h6 class="fw-bold text-charcoal mb-3">8. Limitation of Liability</h6>
+                    <p class="text-grey-medium">MUFRA FASHIONS shall not be liable for any indirect, incidental, or consequential damages arising from your use of our services.</p>
+                </div>
+                
+                <div class="mb-4">
+                    <h6 class="fw-bold text-charcoal mb-3">9. Contact Information</h6>
+                    <p class="text-grey-medium">
+                        MUFRA FASHIONS<br>
+                        Email: mufrafashions@gmail.com<br>
+                        Phone: 0102850010<br>
+                        Address: 123 Fashion Street, Embu, Kenya
+                    </p>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-magenta" data-bs-dismiss="modal">I Understand</button>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Privacy Modal -->
-<div class="modal fade" id="privacyModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Privacy Policy</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<div class="modal fade" id="privacyModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0">
+            <div class="modal-header bg-cyan text-white border-0">
+                <h5 class="modal-title"><i class="fas fa-shield-alt me-2"></i>Privacy Policy</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
-                <h6>1. Information We Collect</h6>
-                <p>We collect personal information you provide when registering, placing orders, or contacting us, including name, email, phone number, and shipping address.</p>
+            <div class="modal-body p-4">
+                <div class="mb-4">
+                    <h6 class="fw-bold text-charcoal mb-3">1. Information We Collect</h6>
+                    <p class="text-grey-medium">We collect personal information you provide when registering, placing orders, or contacting us, including name, email, phone number, and shipping address.</p>
+                </div>
                 
-                <h6>2. How We Use Your Information</h6>
-                <p>To process orders, communicate with you about your orders, improve our services, and send promotional materials (with your consent).</p>
+                <div class="mb-4">
+                    <h6 class="fw-bold text-charcoal mb-3">2. How We Use Your Information</h6>
+                    <p class="text-grey-medium">To process orders, communicate with you about your orders, improve our services, and send promotional materials (with your consent).</p>
+                </div>
                 
-                <h6>3. Information Sharing</h6>
-                <p>We do not sell your personal information. We may share with payment processors, delivery services, and fraud prevention services as necessary to fulfill orders.</p>
+                <div class="mb-4">
+                    <h6 class="fw-bold text-charcoal mb-3">3. Information Sharing</h6>
+                    <p class="text-grey-medium">We do not sell your personal information. We may share with payment processors (Paystack), delivery services, and fraud prevention services as necessary to fulfill orders.</p>
+                </div>
                 
-                <h6>4. Data Security</h6>
-                <p>We implement industry-standard security measures to protect your personal information from unauthorized access, alteration, or destruction.</p>
+                <div class="mb-4">
+                    <h6 class="fw-bold text-charcoal mb-3">4. Data Security</h6>
+                    <p class="text-grey-medium">We implement industry-standard security measures to protect your personal information from unauthorized access, alteration, or destruction. All transactions are encrypted via SSL.</p>
+                </div>
                 
-                <h6>5. Your Rights</h6>
-                <p>You can access, correct, or delete your personal information through your account settings. You may also opt-out of marketing communications at any time.</p>
+                <div class="mb-4">
+                    <h6 class="fw-bold text-charcoal mb-3">5. Your Rights</h6>
+                    <p class="text-grey-medium">You can access, correct, or delete your personal information through your account settings. You may also opt-out of marketing communications at any time.</p>
+                </div>
                 
-                <h6>6. Cookies and Tracking</h6>
-                <p>We use cookies to improve your browsing experience and analyze website traffic. You can control cookies through your browser settings.</p>
+                <div class="mb-4">
+                    <h6 class="fw-bold text-charcoal mb-3">6. Cookies and Tracking</h6>
+                    <p class="text-grey-medium">We use cookies to improve your browsing experience and analyze website traffic. You can control cookies through your browser settings.</p>
+                </div>
                 
-                <h6>7. Children's Privacy</h6>
-                <p>Our services are not directed to individuals under 18. We do not knowingly collect personal information from children.</p>
+                <div class="mb-4">
+                    <h6 class="fw-bold text-charcoal mb-3">7. Children's Privacy</h6>
+                    <p class="text-grey-medium">Our services are not directed to individuals under 18. We do not knowingly collect personal information from children.</p>
+                </div>
                 
-                <h6>8. Changes to Privacy Policy</h6>
-                <p>We may update this policy periodically. Continued use of our services constitutes acceptance of the updated policy.</p>
+                <div class="mb-4">
+                    <h6 class="fw-bold text-charcoal mb-3">8. Changes to Privacy Policy</h6>
+                    <p class="text-grey-medium">We may update this policy periodically. Continued use of our services constitutes acceptance of the updated policy.</p>
+                </div>
+                
+                <div class="mb-4">
+                    <h6 class="fw-bold text-charcoal mb-3">9. Contact Us</h6>
+                    <p class="text-grey-medium">
+                        For privacy-related inquiries, contact us at:<br>
+                        Email: mufrafashions@gmail.com<br>
+                        Phone: 0102850010
+                    </p>
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-cyan" data-bs-dismiss="modal">I Understand</button>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ===== MUFRA FASHIONS BRAND COLORS ===== */
+    :root {
+        --magenta-vibrant: #D81B60;
+        --cyan-bright: #00ACC1;
+        --link-blue: #2196F3;
+        --charcoal-dark: #333333;
+        --grey-medium: #757575;
+        --bg-light-page: #F9F9F9;
+        --white-pure: #FFFFFF;
+        --footer-soft-grey: #EEEEEE;
+        --shadow-brand: 0 16px 32px -10px rgba(0,0,0,0.08);
+    }
+
+    .register-icon {
+        width: 100px;
+        height: 100px;
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+        transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+    }
+
+    .card-header:hover .register-icon {
+        transform: scale(1.1);
+        background: rgba(255, 255, 255, 0.25);
+    }
+
+    .register-icon i {
+        transition: all 0.3s ease;
+    }
+
+    .card-header:hover .register-icon i {
+        transform: rotate(10deg);
+    }
+
+    /* Form Controls */
+    .form-control, .form-select {
+        border: 2px solid rgba(117,117,117,0.2);
+        border-radius: 12px;
+        padding: 0.75rem 1rem;
+        transition: all 0.2s ease;
+        color: var(--charcoal-dark);
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: var(--magenta-vibrant);
+        box-shadow: 0 0 0 0.25rem rgba(216,27,96,0.1);
+    }
+
+    .form-control.is-valid, .form-select.is-valid {
+        border-color: var(--cyan-bright);
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%2300ACC1' d='M2.3 6.73.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e");
+    }
+
+    .form-control.is-invalid, .form-select.is-invalid {
+        border-color: var(--magenta-vibrant);
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23D81B60'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23D81B60' stroke='none'/%3e%3c/svg%3e");
+    }
+
+    .input-group-text {
+        border-radius: 12px 0 0 12px;
+        border: 2px solid rgba(117,117,117,0.2);
+        border-right: none;
+        background-color: rgba(216,27,96,0.05);
+        color: var(--magenta-vibrant);
+        font-weight: 600;
+        padding: 0.75rem 1rem;
+    }
+
+    .input-group .form-control {
+        border-radius: 0 12px 12px 0;
+    }
+
+    .input-group .btn-outline-grey-medium {
+        border: 2px solid rgba(117,117,117,0.2);
+        border-left: none;
+        border-radius: 0 12px 12px 0;
+        color: var(--grey-medium);
+        background: white;
+        transition: all 0.2s ease;
+    }
+
+    .input-group .btn-outline-grey-medium:hover {
+        background-color: var(--cyan-bright);
+        color: white;
+        border-color: var(--cyan-bright);
+    }
+
+    .form-text {
+        color: var(--grey-medium);
+        font-size: 0.8rem;
+        margin-top: 0.4rem;
+    }
+
+    /* Password Strength Bar */
+    .strength-bar {
+        background-color: rgba(117,117,117,0.1);
+        border-radius: 3px;
+        overflow: hidden;
+    }
+
+    .strength-fill {
+        height: 100%;
+        width: 0%;
+        border-radius: 3px;
+        transition: width 0.3s ease;
+    }
+
+    /* Checkbox Styling */
+    .form-check-input {
+        width: 1.2em;
+        height: 1.2em;
+        margin-top: 0.15em;
+        border: 2px solid rgba(117,117,117,0.3);
+        transition: all 0.2s ease;
+    }
+
+    .form-check-input:checked {
+        background-color: var(--magenta-vibrant);
+        border-color: var(--magenta-vibrant);
+    }
+
+    .form-check-input:focus {
+        border-color: var(--magenta-vibrant);
+        box-shadow: 0 0 0 0.25rem rgba(216,27,96,0.1);
+    }
+
+    /* Button Styles */
+    .btn-magenta {
+        background-color: var(--magenta-vibrant);
+        color: white;
+        border: none;
+        transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+        border-radius: 12px;
+        font-weight: 600;
+    }
+
+    .btn-magenta:hover {
+        background-color: #B21550;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 16px rgba(216,27,96,0.3);
+    }
+
+    .btn-magenta:active {
+        transform: translateY(0);
+    }
+
+    .btn-magenta:disabled {
+        background-color: rgba(216,27,96,0.5);
+        transform: none;
+        box-shadow: none;
+    }
+
+    .btn-cyan {
+        background-color: var(--cyan-bright);
+        color: white;
+        border: none;
+        transition: all 0.3s ease;
+        border-radius: 12px;
+        font-weight: 600;
+    }
+
+    .btn-cyan:hover {
+        background-color: #008B9F;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 16px rgba(0,172,193,0.3);
+    }
+
+    /* Link Hover Effects */
+    .hover-magenta {
+        transition: color 0.2s ease;
+    }
+
+    .hover-magenta:hover {
+        color: var(--magenta-vibrant) !important;
+    }
+
+    /* Alert Styles */
+    .alert {
+        border-radius: 12px;
+        border: none;
+    }
+
+    .alert-info {
+        background-color: rgba(216,27,96,0.05);
+        color: var(--charcoal-dark);
+    }
+
+    /* Modal Styles */
+    .modal-content {
+        border-radius: 20px;
+        overflow: hidden;
+    }
+
+    .modal-header {
+        padding: 1.5rem;
+    }
+
+    .modal-body {
+        padding: 1.5rem;
+    }
+
+    .modal-footer {
+        padding: 1.5rem;
+        border-top: none;
+    }
+
+    /* Text Colors */
+    .text-magenta {
+        color: var(--magenta-vibrant) !important;
+    }
+
+    .text-cyan {
+        color: var(--cyan-bright) !important;
+    }
+
+    .text-link-blue {
+        color: var(--link-blue) !important;
+    }
+
+    .text-charcoal {
+        color: var(--charcoal-dark) !important;
+    }
+
+    .text-grey-medium {
+        color: var(--grey-medium) !important;
+    }
+
+    .text-white-80 {
+        color: rgba(255, 255, 255, 0.85);
+    }
+
+    /* Background Colors */
+    .bg-magenta {
+        background-color: var(--magenta-vibrant) !important;
+    }
+
+    .bg-cyan {
+        background-color: var(--cyan-bright) !important;
+    }
+
+    .bg-soft-magenta {
+        background-color: rgba(216,27,96,0.05) !important;
+    }
+
+    .bg-soft-cyan {
+        background-color: rgba(0,172,193,0.05) !important;
+    }
+
+    .bg-white {
+        background-color: var(--white-pure) !important;
+    }
+
+    /* Border Colors */
+    .border-magenta {
+        border-color: var(--magenta-vibrant) !important;
+    }
+
+    .border-cyan {
+        border-color: var(--cyan-bright) !important;
+    }
+
+    .border-grey-medium {
+        border-color: rgba(117,117,117,0.2) !important;
+    }
+
+    .border-opacity-25 {
+        opacity: 0.25;
+    }
+
+    /* Shadow */
+    .shadow-brand {
+        box-shadow: var(--shadow-brand) !important;
+    }
+
+    /* Benefit Icons */
+    .benefit-icon {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+    }
+
+    .benefit-icon:hover {
+        transform: scale(1.1);
+    }
+
+    /* Toast Notifications */
+    .toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+    }
+
+    .toast {
+        min-width: 300px;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: var(--shadow-brand);
+        border-left: 6px solid;
+    }
+
+    .toast-header {
+        border-bottom: none;
+    }
+
+    .toast-header.bg-success {
+        background-color: var(--magenta-vibrant) !important;
+    }
+
+    .toast-header.bg-danger {
+        background-color: var(--cyan-bright) !important;
+    }
+
+    .toast-header.bg-warning {
+        background-color: var(--cyan-bright) !important;
+    }
+
+    .toast-header.bg-info {
+        background-color: var(--link-blue) !important;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .card-body {
+            padding: 1.5rem !important;
+        }
+        
+        .btn-lg {
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+        }
+        
+        .register-icon {
+            width: 80px;
+            height: 80px;
+        }
+        
+        .register-icon i {
+            font-size: 2rem;
+        }
+        
+        .card-header h3 {
+            font-size: 1.5rem;
+        }
+    }
+
+    /* Touch Device Optimizations */
+    @media (hover: none) and (pointer: coarse) {
+        .btn-magenta:hover,
+        .btn-cyan:hover,
+        .btn-outline-grey-medium:hover {
+            transform: none;
+        }
+        
+        .card-header:hover .register-icon {
+            transform: none;
+        }
+        
+        .hover-magenta:hover {
+            color: var(--cyan-bright) !important;
+        }
+        
+        .benefit-icon:hover {
+            transform: none;
+        }
+    }
+
+    /* Print Styles */
+    @media print {
+        .card {
+            break-inside: avoid;
+            box-shadow: none !important;
+            border: 1px solid var(--grey-medium) !important;
+        }
+        
+        .btn,
+        .toast-container,
+        .modal,
+        .card-footer,
+        .benefit-card {
+            display: none !important;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block extra_js %}
 <script>
 $(document).ready(function() {
-    // Password confirmation
-    $('#confirm_password').on('input', function() {
-        const password = $('#password').val();
-        const confirm = $(this).val();
+    // ===== TOGGLE PASSWORD VISIBILITY =====
+    $('.toggle-password').click(function() {
+        const input = $(this).closest('.input-group').find('input');
+        const icon = $(this).find('i');
         
-        if (password !== confirm) {
-            $(this).addClass('is-invalid');
-            $('#password-error').show();
+        if (input.attr('type') === 'password') {
+            input.attr('type', 'text');
+            icon.removeClass('fa-eye').addClass('fa-eye-slash');
         } else {
-            $(this).removeClass('is-invalid');
-            $('#password-error').hide();
+            input.attr('type', 'password');
+            icon.removeClass('fa-eye-slash').addClass('fa-eye');
         }
     });
-    
-    // Form validation - UPDATED for 6 character minimum
-    $('form').submit(function(e) {
+
+    // ===== PASSWORD STRENGTH CHECKER =====
+    $('#password').on('input', function() {
+        const password = $(this).val();
+        const strengthBar = $('.strength-fill');
+        const strengthText = $('#strengthText');
+        
+        if (password.length > 0) {
+            $('#passwordStrength').removeClass('d-none');
+            
+            let strength = 0;
+            let color = '';
+            
+            // Length check
+            if (password.length >= 6) strength += 25;
+            if (password.length >= 8) strength += 15;
+            
+            // Complexity checks
+            if (/[a-z]/.test(password)) strength += 15;
+            if (/[A-Z]/.test(password)) strength += 15;
+            if (/[0-9]/.test(password)) strength += 15;
+            if (/[^a-zA-Z0-9]/.test(password)) strength += 15;
+            
+            // Cap at 100
+            strength = Math.min(strength, 100);
+            
+            // Update bar
+            strengthBar.css('width', strength + '%');
+            
+            // Determine strength level and color
+            if (strength < 30) {
+                strengthBar.css('background-color', 'var(--magenta-vibrant)');
+                strengthText.text('Weak').css('color', 'var(--magenta-vibrant)');
+            } else if (strength < 60) {
+                strengthBar.css('background-color', 'var(--cyan-bright)');
+                strengthText.text('Fair').css('color', 'var(--cyan-bright)');
+            } else if (strength < 80) {
+                strengthBar.css('background-color', 'var(--cyan-bright)');
+                strengthText.text('Good').css('color', 'var(--cyan-bright)');
+            } else {
+                strengthBar.css('background-color', 'var(--magenta-vibrant)');
+                strengthText.text('Strong').css('color', 'var(--magenta-vibrant)');
+            }
+        } else {
+            $('#passwordStrength').addClass('d-none');
+        }
+    });
+
+    // ===== PASSWORD CONFIRMATION CHECK =====
+    $('#confirm_password, #password').on('input', function() {
         const password = $('#password').val();
         const confirm = $('#confirm_password').val();
         
-        if (password !== confirm) {
-            e.preventDefault();
-            showToast('Error', 'Passwords do not match', 'error');
+        if (confirm.length > 0) {
+            if (password !== confirm) {
+                $('#confirm_password').addClass('is-invalid').removeClass('is-valid');
+                $('#password-error').css('display', 'block');
+                $('#password-match').addClass('d-none');
+            } else {
+                $('#confirm_password').addClass('is-valid').removeClass('is-invalid');
+                $('#password-error').css('display', 'none');
+                $('#password-match').removeClass('d-none');
+            }
+        } else {
+            $('#confirm_password').removeClass('is-valid is-invalid');
+            $('#password-error').css('display', 'none');
+            $('#password-match').addClass('d-none');
+        }
+    });
+
+    // ===== PHONE NUMBER FORMATTING =====
+    $('#phone').on('input', function() {
+        let value = $(this).val().replace(/\D/g, '');
+        if (value.length > 9) {
+            value = value.substring(0, 9);
+        }
+        $(this).val(value);
+        
+        // Real-time validation
+        if (value.length === 9 && /^\d+$/.test(value)) {
+            $(this).removeClass('is-invalid').addClass('is-valid');
+        } else if (value.length > 0) {
+            $(this).removeClass('is-valid').addClass('is-invalid');
+        } else {
+            $(this).removeClass('is-valid is-invalid');
+        }
+    });
+
+    // ===== EMAIL VALIDATION =====
+    $('#email').on('input', function() {
+        const email = $(this).val();
+        const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        
+        if (email.length > 0) {
+            if (isValid) {
+                $(this).removeClass('is-invalid').addClass('is-valid');
+            } else {
+                $(this).removeClass('is-valid').addClass('is-invalid');
+            }
+        } else {
+            $(this).removeClass('is-valid is-invalid');
+        }
+    });
+
+    // ===== NAME VALIDATION =====
+    $('#name').on('input', function() {
+        const name = $(this).val();
+        if (name.length > 0) {
+            $(this).removeClass('is-invalid').addClass('is-valid');
+        } else {
+            $(this).removeClass('is-valid').addClass('is-invalid');
+        }
+    });
+
+    // ===== FORM VALIDATION AND SUBMISSION =====
+    $('#registerForm').submit(function(e) {
+        e.preventDefault();
+        
+        const form = $(this);
+        const submitBtn = $('#registerBtn');
+        const originalText = submitBtn.html();
+        
+        // Get form data
+        const name = $('#name').val();
+        const email = $('#email').val();
+        const phone = $('#phone').val();
+        const password = $('#password').val();
+        const confirm = $('#confirm_password').val();
+        
+        // Validation
+        if (!name || name.length < 2) {
+            showToast('Error', 'Please enter your full name', 'danger');
+            $('#name').focus();
             return false;
         }
         
-        // CHANGED: Updated to 6 characters minimum
+        if (!isValidEmail(email)) {
+            showToast('Error', 'Please enter a valid email address', 'danger');
+            $('#email').focus();
+            return false;
+        }
+        
+        if (!phone || phone.length !== 9 || !/^\d+$/.test(phone)) {
+            showToast('Error', 'Please enter a valid 9-digit phone number', 'danger');
+            $('#phone').focus();
+            return false;
+        }
+        
         if (password.length < 6) {
-            e.preventDefault();
-            showToast('Error', 'Password must be at least 6 characters', 'error');
+            showToast('Error', 'Password must be at least 6 characters', 'danger');
+            $('#password').focus();
+            return false;
+        }
+        
+        if (password !== confirm) {
+            showToast('Error', 'Passwords do not match', 'danger');
+            $('#confirm_password').focus();
             return false;
         }
         
         if (!$('#terms').is(':checked')) {
-            e.preventDefault();
-            showToast('Error', 'Please accept the terms and conditions', 'error');
+            showToast('Error', 'Please accept the terms and conditions', 'danger');
+            $('#terms').focus();
             return false;
         }
+        
+        // Show loading state
+        submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>Creating Account...');
+        
+        // Submit form
+        $.ajax({
+            type: 'POST',
+            url: form.attr('action'),
+            data: form.serialize(),
+            success: function(response) {
+                if (response.success) {
+                    showToast('Success', 'Account created successfully! Redirecting...', 'success');
+                    
+                    // Redirect to home page
+                    setTimeout(() => {
+                        window.location.href = response.redirect_url || '/';
+                    }, 1500);
+                } else {
+                    showToast('Error', response.message || 'Registration failed. Please try again.', 'danger');
+                    submitBtn.prop('disabled', false).html(originalText);
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Registration error:', error);
+                
+                let errorMessage = 'Network error. Please check your connection and try again.';
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    if (response.message) {
+                        errorMessage = response.message;
+                    }
+                } catch (e) {
+                    // Use default error message
+                }
+                
+                showToast('Error', errorMessage, 'danger');
+                submitBtn.prop('disabled', false).html(originalText);
+            }
+        });
     });
-    
-    // Show toast notification function
+
+    // ===== EMAIL VALIDATION HELPER =====
+    function isValidEmail(email) {
+        const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return re.test(email);
+    }
+
+    // ===== TOAST NOTIFICATION FUNCTION =====
     function showToast(title, message, type = 'info') {
-        // Create toast element
-        const toastId = 'toast-' + Date.now();
+        if (window.Mufra && window.Mufra.notify) {
+            if (type === 'success') Mufra.notify.success(message);
+            else if (type === 'danger') Mufra.notify.error(message);
+            else Mufra.notify.info(message);
+            return;
+        }
+        
+        // Remove existing toasts
+        $('.toast-container').remove();
+        
+        const icon = type === 'success' ? 'check-circle' : 
+                    type === 'danger' ? 'exclamation-circle' : 
+                    type === 'warning' ? 'exclamation-triangle' : 'info-circle';
+        
+        const bgColor = type === 'success' ? 'var(--magenta-vibrant)' : 
+                       type === 'danger' ? 'var(--cyan-bright)' : 'var(--link-blue)';
+        
         const toastHtml = `
-            <div id="${toastId}" class="toast align-items-center text-white bg-${type === 'error' ? 'danger' : type} border-0" role="alert">
-                <div class="d-flex">
-                    <div class="toast-body">
-                        <strong>${title}</strong><br>${message}
+            <div class="toast-container">
+                <div class="toast show" role="alert" style="border-left: 6px solid ${bgColor};">
+                    <div class="toast-header bg-${type} text-white">
+                        <i class="fas fa-${icon} me-2"></i>
+                        <strong class="me-auto">${title}</strong>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
                     </div>
-                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    <div class="toast-body">
+                        ${message}
+                    </div>
                 </div>
             </div>
         `;
         
-        // Add to toast container
-        if (!$('.toast-container').length) {
-            $('body').append('<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999"></div>');
+        $('body').append(toastHtml);
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            $('.toast-container').fadeOut(300, function() {
+                $(this).remove();
+            });
+        }, 5000);
+    }
+
+    // ===== INITIAL FOCUS =====
+    $('#name').focus();
+
+    // ===== KEYBOARD SHORTCUTS =====
+    $(document).keydown(function(e) {
+        // Alt + N to focus name
+        if (e.altKey && e.key === 'n') {
+            e.preventDefault();
+            $('#name').focus();
         }
-        
-        $('.toast-container').append(toastHtml);
-        
-        // Show toast
-        const toast = new bootstrap.Toast(document.getElementById(toastId));
-        toast.show();
-        
-        // Remove after hide
-        document.getElementById(toastId).addEventListener('hidden.bs.toast', function () {
-            this.remove();
-        });
+        // Alt + E to focus email
+        if (e.altKey && e.key === 'e') {
+            e.preventDefault();
+            $('#email').focus();
+        }
+        // Alt + P to focus phone
+        if (e.altKey && e.key === 'p') {
+            e.preventDefault();
+            $('#phone').focus();
+        }
+        // Alt + S to submit form
+        if (e.altKey && e.key === 's') {
+            e.preventDefault();
+            $('#registerBtn').click();
+        }
+    });
+
+    // ===== CLEAR FORM ON PAGE UNLOAD =====
+    $(window).on('beforeunload', function() {
+        // Clear sensitive data
+        $('#password').val('');
+        $('#confirm_password').val('');
+    });
+
+    // ===== PRE-FILL FROM URL PARAMETERS (for testing) =====
+    const urlParams = new URLSearchParams(window.location.search);
+    const testEmail = urlParams.get('email');
+    if (testEmail) {
+        $('#email').val(testEmail);
     }
 });
 </script>
-{% endblock %}
 {% endblock %}

@@ -2,8 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0, user-scalable=yes">
     <title>MUFRA FASHIONS - {% block title %}{% endblock %}</title>
+    
+    <!-- Performance Optimization -->
+    <link rel="dns-prefetch" href="//cdn.jsdelivr.net">
+    <link rel="dns-prefetch" href="//cdnjs.cloudflare.com">
+    <link rel="dns-prefetch" href="//fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
     
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -35,7 +41,7 @@
             --bs-link-color: var(--link-blue);
             --bs-link-hover-color: #1565C0;
             
-            /* Shadows & transitions – keeping original structure */
+            /* Shadows & transitions */
             --shadow-brand: 0 16px 32px -10px rgba(0,0,0,0.08);
             --shadow-soft: 0 12px 28px -8px rgba(0,0,0,0.05);
             --radius-card: 28px;
@@ -43,13 +49,22 @@
             --transition-brand: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
         }
 
-        /* ===== GLOBAL STYLES – NEW PALETTE ===== */
+        /* ===== GLOBAL STYLES ===== */
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+            touch-action: manipulation;
+        }
+
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background-color: var(--bg-light-page);
             color: var(--charcoal-dark);
             line-height: 1.6;
             scroll-behavior: smooth;
+            position: relative;
         }
 
         /* ===== TYPOGRAPHY ===== */
@@ -58,8 +73,25 @@
             letter-spacing: -0.02em;
             color: var(--charcoal-dark);
         }
+        
+        /* ===== TOUCH & INTERACTION FIXES ===== */
+        button, a, input, select, textarea, [role="button"] {
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        img {
+            touch-action: manipulation;
+            -webkit-user-select: none;
+            user-select: none;
+            pointer-events: auto;
+        }
+        
+        * {
+            -webkit-touch-callout: none;
+        }
 
-        /* ===== DESKTOP NAVIGATION – VIBRANT MAGENTA ===== */
+        /* ===== DESKTOP NAVIGATION ===== */
         .navbar-desktop {
             background: var(--magenta-vibrant) !important;
             box-shadow: 0 10px 28px -6px rgba(216,27,96,0.25);
@@ -138,7 +170,6 @@
             margin-right: 8px;
         }
 
-        /* Desktop Search – Magenta accent */
         .navbar-desktop .input-group {
             width: 300px;
             box-shadow: 0 10px 22px -6px rgba(216,27,96,0.18);
@@ -181,7 +212,7 @@
             color: white;
         }
 
-        /* ===== DROPDOWNS – Clean White ===== */
+        /* ===== DROPDOWNS ===== */
         .dropdown-menu {
             background: var(--white-pure);
             backdrop-filter: blur(16px);
@@ -212,7 +243,7 @@
             margin: 0.5rem 1rem;
         }
 
-        /* ===== BADGES – Vibrant Magenta accent ===== */
+        /* ===== BADGES ===== */
         .badge.bg-danger,
         .mobile-cart-badge {
             background-color: var(--magenta-vibrant) !important;
@@ -231,7 +262,7 @@
             color: white;
         }
 
-        /* ===== MOBILE TOP SEARCH – Magenta ===== */
+        /* ===== MOBILE TOP SEARCH ===== */
         .mobile-top-search {
             display: none;
             background: var(--magenta-vibrant);
@@ -291,6 +322,8 @@
             align-items: center;
             z-index: 1050;
             border-top: 1px solid rgba(216,27,96,0.15);
+            touch-action: manipulation;
+            pointer-events: auto;
         }
         
         .mobile-bottom-item {
@@ -306,6 +339,7 @@
             flex: 0 1 auto;
             min-width: 64px;
             font-weight: 600;
+            position: relative;
         }
         
         .mobile-bottom-item i {
@@ -330,7 +364,6 @@
             text-shadow: 0 2px 10px rgba(216,27,96,0.2);
         }
         
-        /* Wishlist heart – using cyan bright for distinction */
         .mobile-bottom-item:nth-child(4) i {
             color: var(--cyan-bright);
         }
@@ -357,7 +390,7 @@
             box-shadow: 0 2px 8px rgba(216,27,96,0.3);
         }
 
-        /* ===== FOOTER – SOFT GREY, DARK CHARCOAL HEADINGS ===== */
+        /* ===== FOOTER ===== */
         footer {
             background: var(--footer-soft-grey) !important;
             margin-top: auto;
@@ -415,7 +448,7 @@
             opacity: 0.2;
         }
 
-        /* ===== WHATSAPP BUTTON – Magenta accent (brand primary) ===== */
+        /* ===== WHATSAPP BUTTON ===== */
         .whatsapp-float {
             position: fixed;
             width: 62px;
@@ -434,6 +467,8 @@
             transition: var(--transition-brand);
             text-decoration: none;
             border: 3px solid rgba(255, 255, 255, 0.6);
+            touch-action: manipulation;
+            cursor: pointer;
         }
         
         .whatsapp-float:hover {
@@ -490,7 +525,7 @@
             }
         }
 
-        /* ===== SPLASH SCREEN – Magenta & Cyan ===== */
+        /* ===== SPLASH SCREEN ===== */
         .splash-screen {
             position: fixed;
             top: 0;
@@ -499,12 +534,20 @@
             height: 100%;
             background: linear-gradient(145deg, #B21550, var(--magenta-vibrant));
             z-index: 99999;
-            display: flex;
+            display: none;
             align-items: center;
             justify-content: center;
             color: white;
             text-align: center;
             transition: opacity 0.8s ease;
+            pointer-events: auto;
+            opacity: 1;
+        }
+        
+        .splash-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+            z-index: -1;
         }
         
         .splash-content {
@@ -557,7 +600,7 @@
             height: 100%;
             background: var(--cyan-bright);
             border-radius: 10px;
-            transition: width 3s linear;
+            transition: width 1.5s linear;
         }
         
         @keyframes splashFadeInUp {
@@ -609,7 +652,7 @@
             filter: brightness(0.5);
         }
 
-        /* ===== UTILITY CLASSES – updated palette ===== */
+        /* ===== UTILITY CLASSES ===== */
         .bg-soft-magenta {
             background-color: rgba(216,27,96,0.05);
         }
@@ -642,7 +685,7 @@
             box-shadow: var(--shadow-soft) !important;
         }
 
-        /* ===== RESPONSIVE BREAKPOINTS (unchanged) ===== */
+        /* ===== RESPONSIVE BREAKPOINTS ===== */
         @media (max-width: 768px) {
             .desktop-only {
                 display: none !important;
@@ -661,7 +704,10 @@
             }
             
             main {
-                padding-bottom: 100px !important;
+                padding-bottom: 80px !important;
+                overflow-x: hidden;
+                -webkit-overflow-scrolling: touch;
+                width: 100%;
             }
             
             footer {
@@ -735,7 +781,7 @@
             }
         }
 
-        /* ===== ANIMATIONS (unchanged) ===== */
+        /* ===== ANIMATIONS ===== */
         @keyframes fadeIn {
             from {
                 opacity: 0;
@@ -903,7 +949,7 @@
             animation: pulse 0.5s ease-in-out;
         }
 
-        /* ===== PRODUCT TITLES – Bright Cyan/Teal ===== */
+        /* ===== PRODUCT TITLES ===== */
         .product-title, 
         .product-name,
         .card-title,
@@ -911,7 +957,7 @@
             color: var(--cyan-bright) !important;
         }
 
-        /* ===== SELL ONLINE LINKS – Standard Link Blue ===== */
+        /* ===== SELL ONLINE LINKS ===== */
         .sell-online-link,
         .action-link {
             color: var(--link-blue) !important;
@@ -924,7 +970,7 @@
             color: #1565C0 !important;
         }
 
-        /* ===== PRICE TAGS, FOOTER LINKS – Medium Grey ===== */
+        /* ===== PRICE TAGS, FOOTER LINKS ===== */
         .price-tag,
         .product-price,
         .footer-link,
@@ -933,24 +979,108 @@
             color: var(--grey-medium) !important;
         }
 
-        /* ===== FOOTER HEADERS – Dark Charcoal ===== */
+        /* ===== FOOTER HEADERS ===== */
         footer h5 {
             color: var(--charcoal-dark) !important;
+        }
+
+        /* ===== NOTIFICATION TOAST STYLES ===== */
+        .notification-toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+
+        .notification-toast {
+            animation: slideIn 0.3s ease;
+            margin-bottom: 10px;
+            min-width: 250px;
+            box-shadow: var(--shadow-brand);
+            border-left: 4px solid;
+            border-radius: 12px;
+        }
+
+        .notification-toast.success {
+            border-left-color: var(--magenta-vibrant);
+        }
+
+        .notification-toast.error {
+            border-left-color: var(--cyan-bright);
+        }
+
+        .notification-toast.info {
+            border-left-color: var(--link-blue);
+        }
+
+        .add-to-cart-btn:disabled,
+        .btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        /* ===== PRODUCT CARD STYLES ===== */
+        .product-card {
+            transition: var(--transition-brand);
+            border-radius: var(--radius-card);
+            overflow: hidden;
+            background: var(--white-pure);
+            height: 100%;
+        }
+
+        .product-card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-brand);
+        }
+
+        .product-image-container {
+            position: relative;
+            overflow: hidden;
+            padding-top: 100%;
+        }
+
+        .product-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+
+        .product-card:hover .product-image {
+            transform: scale(1.05);
+        }
+
+        .quick-add-btn {
+            position: absolute;
+            bottom: -50px;
+            left: 50%;
+            transform: translateX(-50%);
+            transition: bottom 0.3s ease;
+            border-radius: 30px;
+            padding: 8px 20px;
+            background: var(--magenta-vibrant);
+            color: white;
+            border: none;
+            white-space: nowrap;
+        }
+
+        .product-card:hover .quick-add-btn {
+            bottom: 20px;
         }
     </style>
     
     {% block extra_css %}{% endblock %}
 </head>
-<body class="d-flex flex-column min-vh-100">
+<body class="d-flex flex-column min-vh-100 {% if session.user_id %}user-logged-in{% endif %}">
     <!-- SPLASH SCREEN -->
     <div id="splash-screen" class="splash-screen">
         <div class="splash-content">
             <div class="splash-brand d-flex align-items-center justify-content-center mb-4">
-                <i class="fas fa-tshirt fa-4x me-3"></i>
-                <span style="font-size: 3.5rem; font-weight: 800;">MF</span>
-            </div>
-            <div class="splash-icon">
-                <i class="fas fa-leaf" style="color: var(--cyan-bright); font-size: 5rem;"></i>
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="MUFRA FASHIONS Logo" style="height: 120px; width: auto; object-fit: contain; filter: drop-shadow(0 8px 16px rgba(216,27,96,0.3));">
             </div>
             <h1 class="splash-title">MUFRA FASHIONS</h1>
             <p class="splash-tagline">A style that speaks</p>
@@ -963,40 +1093,45 @@
     </div>
 
     <script>
+        // Non-blocking splash screen - hide by default to allow page to load
         (function() {
-            function hideSplashScreen() {
-                const splash = document.getElementById('splash-screen');
-                if (splash) {
-                    splash.style.opacity = '0';
-                    setTimeout(() => {
-                        splash.style.display = 'none';
-                    }, 800);
-                }
+            const isSplashAlreadyShown = sessionStorage.getItem('mufraSplashShown');
+            const splashElement = document.getElementById('splash-screen');
+            
+            if (!splashElement) return;
+            
+            if (isSplashAlreadyShown) {
+                // User has already seen splash, hide it immediately
+                splashElement.style.display = 'none';
+                splashElement.style.opacity = '0';
+                splashElement.style.pointerEvents = 'none';
+                return;
             }
             
-            if (!sessionStorage.getItem('mufraSplashShown')) {
-                sessionStorage.setItem('mufraSplashShown', 'true');
-                window.addEventListener('load', function() {
-                    const progressBar = document.getElementById('splash-progress-bar');
-                    if (progressBar) {
-                        setTimeout(() => {
-                            progressBar.style.width = '100%';
-                        }, 100);
-                    }
-                    setTimeout(hideSplashScreen, 3000);
-                });
-            } else {
-                document.addEventListener('DOMContentLoaded', function() {
-                    const splash = document.getElementById('splash-screen');
-                    if (splash) {
-                        splash.style.display = 'none';
-                    }
-                });
+            // First time visitor - show splash briefly
+            sessionStorage.setItem('mufraSplashShown', 'true');
+            splashElement.style.display = 'flex';
+            
+            // Animate progress bar
+            const progressBar = document.getElementById('splash-progress-bar');
+            if (progressBar) {
+                setTimeout(() => {
+                    progressBar.style.width = '100%';
+                }, 50);
             }
+            
+            // Hide splash after 1.2 seconds
+            setTimeout(() => {
+                if (splashElement) {
+                    splashElement.classList.add('hidden');
+                    splashElement.style.display = 'none';
+                    splashElement.style.pointerEvents = 'none';
+                }
+            }, 1200);
         })();
     </script>
 
-    <!-- DESKTOP NAVIGATION - MAGENTA -->
+    <!-- DESKTOP NAVIGATION -->
     <nav class="navbar navbar-expand-lg navbar-dark desktop-only navbar-desktop">
         <div class="container">
             <a class="navbar-brand brand-logo" href="{{ url_for('home') }}">
@@ -1077,7 +1212,7 @@
                             <i class="fas fa-shopping-cart"></i>
                             {% set cart_count = get_cart_count() %}
                             {% if cart_count > 0 %}
-                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger cart-count-badge">
                                     {{ cart_count }}
                                 </span>
                             {% endif %}
@@ -1087,9 +1222,6 @@
             </div>
         </div>
     </nav>
-
-    <!-- ORIGINAL MOBILE NAV (HIDDEN) -->
-    <div class="mobile-only mobile-nav-wrapper fade-in" style="display: none !important;"></div>
 
     <!-- MOBILE TOP SEARCH -->
     <div class="mobile-top-search mobile-only">
@@ -1148,11 +1280,11 @@
             <span>Cart</span>
             {% set cart_count = get_cart_count() %}
             {% if cart_count > 0 %}
-                <span class="mobile-cart-badge">{{ cart_count }}</span>
+                <span class="mobile-cart-badge cart-count-badge">{{ cart_count }}</span>
             {% endif %}
         </a>
         <a class="mobile-bottom-item {% if request.endpoint == 'wishlist' %}active{% endif %}" 
-           href="{% if session.user_id %}{{ url_for('wishlist') if 'wishlist' in url_for('home', _external=False) else '#' }}{% else %}{{ url_for('login') }}{% endif %}">
+           href="{% if session.user_id %}{{ url_for('wishlist') }}{% else %}{{ url_for('login') }}{% endif %}">
             <i class="fas fa-heart"></i>
             <span>Wishlist</span>
         </a>
@@ -1163,7 +1295,7 @@
         </a>
     </div>
 
-    <!-- FOOTER – SOFT GREY, DARK CHARCOAL HEADINGS -->
+    <!-- FOOTER -->
     <footer class="text-white py-5 mt-5">
         <div class="container">
             <div class="row g-4">
@@ -1252,7 +1384,7 @@
             
             <div class="row align-items-center">
                 <div class="col-md-6 text-center text-md-start">
-                    <p class="mb-0 small opacity-75" style="color: var(--grey-medium);">&copy; 2024 MUFRA FASHIONS. All rights reserved.</p>
+                    <p class="mb-0 small opacity-75" style="color: var(--grey-medium);">&copy; 2026 MUFRA FASHIONS. All rights reserved.</p>
                 </div>
                 <div class="col-md-6 text-center text-md-end mt-3 mt-md-0">
                     <p class="mb-0 small opacity-75" style="color: var(--grey-medium);">
@@ -1263,7 +1395,7 @@
         </div>
     </footer>
 
-    <!-- WHATSAPP BUTTON – MAGENTA PRIMARY -->
+    <!-- WHATSAPP BUTTON -->
     <a href="https://wa.me/254794025592?text=Hello%20MUFRA%20FASHIONS%2C%20I%20need%20assistance%20with%20your%20products" 
        class="whatsapp-float" 
        target="_blank" 
@@ -1277,10 +1409,558 @@
         <p class="small mb-0">Click the WhatsApp button — we reply in minutes.</p>
     </div>
 
+    <!-- NOTIFICATION TOAST CONTAINER -->
+    <div class="notification-toast-container"></div>
+
     <!-- SCRIPTS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script defer src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     
+    <!-- USER SESSION DATA -->
+    <script>
+        window.userLoggedIn = {% if session.user_id %}true{% else %}false{% endif %};
+        window.userId = "{{ session.user_id|default('') }}";
+        window.userName = "{{ session.user_name|default('') }}";
+        window.userRole = "{{ session.user_role|default('') }}";
+        window.initialCartCount = {{ get_cart_count() }};
+        window.paystackPublicKey = "{{ get_paystack_public_key() }}";
+    </script>
+    
+    <!-- MAIN APPLICATION JAVASCRIPT -->
+    <script>
+        /**
+         * MUFRA FASHIONS - Core JavaScript
+         * Handles all frontend interactions including cart, wishlist, notifications
+         */
+        
+        // ========== NOTIFICATION SYSTEM ==========
+        const NotificationSystem = {
+            show: function(message, type = 'success') {
+                const container = document.querySelector('.notification-toast-container');
+                if (!container) return;
+                
+                const toast = document.createElement('div');
+                toast.className = `alert alert-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'info'} notification-toast alert-dismissible fade show`;
+                
+                let icon = 'fa-check-circle';
+                let color = 'var(--magenta-vibrant)';
+                
+                if (type === 'error') {
+                    icon = 'fa-exclamation-circle';
+                    color = 'var(--cyan-bright)';
+                } else if (type === 'info') {
+                    icon = 'fa-info-circle';
+                    color = 'var(--link-blue)';
+                }
+                
+                toast.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <i class="fas ${icon} me-2" style="color: ${color}"></i>
+                        <span>${message}</span>
+                        <button type="button" class="btn-close ms-3" onclick="this.parentElement.parentElement.remove()"></button>
+                    </div>
+                `;
+                
+                container.appendChild(toast);
+                
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    setTimeout(() => toast.remove(), 300);
+                }, 3000);
+            },
+            
+            success: function(message) {
+                this.show(message, 'success');
+            },
+            
+            error: function(message) {
+                this.show(message, 'error');
+            },
+            
+            info: function(message) {
+                this.show(message, 'info');
+            }
+        };
+
+        // ========== CART MANAGEMENT ==========
+        const CartManager = {
+            updateCount: function(count) {
+                // Update desktop badge
+                const desktopBadges = document.querySelectorAll('.navbar-desktop .cart-count-badge');
+                desktopBadges.forEach(badge => {
+                    if (count > 0) {
+                        badge.textContent = count;
+                        badge.style.display = 'flex';
+                        badge.classList.add('pulse');
+                        setTimeout(() => badge.classList.remove('pulse'), 500);
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                });
+                
+                // Update mobile badge
+                const mobileCart = document.querySelector('.mobile-bottom-item [href*="cart"]');
+                if (mobileCart) {
+                    let badge = mobileCart.querySelector('.mobile-cart-badge');
+                    if (!badge && count > 0) {
+                        badge = document.createElement('span');
+                        badge.className = 'mobile-cart-badge cart-count-badge';
+                        mobileCart.appendChild(badge);
+                    }
+                    if (badge) {
+                        if (count > 0) {
+                            badge.textContent = count;
+                            badge.classList.add('pulse');
+                            setTimeout(() => badge.classList.remove('pulse'), 500);
+                        } else {
+                            badge.remove();
+                        }
+                    }
+                }
+            },
+            
+            animateIcon: function() {
+                const cartIcons = document.querySelectorAll('.fa-shopping-cart');
+                cartIcons.forEach(icon => {
+                    icon.style.transform = 'scale(1.3)';
+                    icon.style.transition = 'transform 0.2s ease';
+                    setTimeout(() => {
+                        icon.style.transform = 'scale(1)';
+                    }, 200);
+                });
+            },
+            
+            add: function(productId, quantity = 1, size = '', color = '') {
+                return new Promise((resolve, reject) => {
+                    const formData = new FormData();
+                    formData.append('quantity', quantity);
+                    if (size) formData.append('size', size);
+                    if (color) formData.append('color', color);
+                    
+                    fetch(`/add-to-cart/${productId}`, {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            this.updateCount(data.cart_count);
+                            this.animateIcon();
+                            NotificationSystem.success('✓ Added to cart!');
+                            resolve(data);
+                        } else {
+                            NotificationSystem.error(data.message || 'Failed to add to cart');
+                            reject(data);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error adding to cart:', error);
+                        NotificationSystem.error('Network error. Please try again.');
+                        reject(error);
+                    });
+                });
+            },
+            
+            updateQuantity: function(itemIndex, quantity) {
+                return new Promise((resolve, reject) => {
+                    const formData = new FormData();
+                    formData.append('item_index', itemIndex);
+                    formData.append('quantity', quantity);
+                    
+                    fetch('/update-cart', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Update the displayed quantity and price
+                            const row = document.querySelector(`tr[data-item-index="${itemIndex}"]`);
+                            if (row) {
+                                const priceElement = row.querySelector('.item-price');
+                                const totalElement = row.querySelector('.item-total');
+                                const qtyInput = row.querySelector('.cart-quantity');
+                                
+                                if (priceElement && totalElement) {
+                                    const price = parseFloat(priceElement.dataset.price || priceElement.textContent.replace(/[^0-9.-]+/g, ''));
+                                    totalElement.textContent = `KES ${(price * quantity).toLocaleString()}`;
+                                }
+                                
+                                if (qtyInput) {
+                                    qtyInput.value = quantity;
+                                }
+                            }
+                            
+                            // Recalculate cart totals
+                            this.recalculateTotals();
+                            
+                            NotificationSystem.success('Cart updated');
+                            resolve(data);
+                        } else {
+                            NotificationSystem.error(data.message || 'Failed to update cart');
+                            reject(data);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error updating cart:', error);
+                        NotificationSystem.error('Network error. Please try again.');
+                        reject(error);
+                    });
+                });
+            },
+            
+            remove: function(itemIndex) {
+                if (!confirm('Remove this item from cart?')) {
+                    return Promise.reject('User cancelled');
+                }
+                
+                return new Promise((resolve, reject) => {
+                    fetch(`/remove-from-cart/${itemIndex}`)
+                    .then(response => {
+                        if (response.redirected) {
+                            window.location.href = response.url;
+                            resolve({ success: true });
+                        } else {
+                            return response.json();
+                        }
+                    })
+                    .then(data => {
+                        if (data && data.success) {
+                            NotificationSystem.success('Item removed from cart');
+                            resolve(data);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error removing from cart:', error);
+                        NotificationSystem.error('Error removing item');
+                        reject(error);
+                    });
+                });
+            },
+            
+            recalculateTotals: function() {
+                const cartRows = document.querySelectorAll('tr[data-item-index]');
+                let subtotal = 0;
+                
+                cartRows.forEach(row => {
+                    const totalElement = row.querySelector('.item-total');
+                    if (totalElement) {
+                        const totalText = totalElement.textContent.replace('KES', '').replace(/,/g, '').trim();
+                        const total = parseFloat(totalText) || 0;
+                        subtotal += total;
+                    }
+                });
+                
+                // Update subtotal display
+                const subtotalElement = document.querySelector('.cart-subtotal');
+                if (subtotalElement) {
+                    subtotalElement.textContent = `KES ${subtotal.toLocaleString()}`;
+                    subtotalElement.dataset.subtotal = subtotal;
+                }
+                
+                // Update shipping based on county
+                const countySelect = document.querySelector('#county');
+                if (countySelect) {
+                    this.updateDeliveryFee(countySelect.value, subtotal);
+                }
+                
+                // Update total
+                this.updateTotal(subtotal);
+            },
+            
+            updateDeliveryFee: function(county, subtotal = null) {
+                if (!county) return;
+                
+                if (!subtotal) {
+                    const subtotalElement = document.querySelector('.cart-subtotal');
+                    if (subtotalElement) {
+                        subtotal = parseFloat(subtotalElement.dataset.subtotal || 
+                            subtotalElement.textContent.replace('KES', '').replace(/,/g, '').trim()) || 0;
+                    }
+                }
+                
+                let deliveryFee = 200;
+                if (county.toLowerCase().includes('embu')) {
+                    deliveryFee = subtotal >= 5000 ? 0 : 100;
+                }
+                
+                const deliveryElement = document.querySelector('.delivery-fee');
+                if (deliveryElement) {
+                    deliveryElement.textContent = `KES ${deliveryFee.toLocaleString()}`;
+                    deliveryElement.dataset.fee = deliveryFee;
+                }
+                
+                this.updateTotal(subtotal, deliveryFee);
+            },
+            
+            updateTotal: function(subtotal, deliveryFee = null) {
+                if (!deliveryFee) {
+                    const deliveryElement = document.querySelector('.delivery-fee');
+                    if (deliveryElement) {
+                        deliveryFee = parseFloat(deliveryElement.dataset.fee) || 
+                                     parseFloat(deliveryElement.textContent.replace('KES', '').replace(/,/g, '').trim()) || 0;
+                    }
+                }
+                
+                const total = subtotal + (deliveryFee || 0);
+                
+                const totalElement = document.querySelector('.cart-total');
+                if (totalElement) {
+                    totalElement.textContent = `KES ${total.toLocaleString()}`;
+                    totalElement.dataset.total = total;
+                }
+            }
+        };
+
+        // ========== WISHLIST MANAGEMENT ==========
+        const WishlistManager = {
+            toggle: function(productId) {
+                if (!window.userLoggedIn) {
+                    if (confirm('Please login to add items to your wishlist')) {
+                        window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
+                    }
+                    return Promise.reject('Not logged in');
+                }
+                
+                return new Promise((resolve, reject) => {
+                    fetch(`/toggle-wishlist/${productId}`, {
+                        method: 'POST'
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const heartIcon = document.querySelector(`.wishlist-btn[data-product-id="${productId}"] i`);
+                            if (heartIcon) {
+                                if (data.in_wishlist) {
+                                    heartIcon.classList.remove('far');
+                                    heartIcon.classList.add('fas');
+                                    heartIcon.style.color = '#00ACC1';
+                                    NotificationSystem.success('Added to wishlist');
+                                } else {
+                                    heartIcon.classList.remove('fas');
+                                    heartIcon.classList.add('far');
+                                    heartIcon.style.color = '';
+                                    NotificationSystem.info('Removed from wishlist');
+                                }
+                            }
+                            resolve(data);
+                        } else {
+                            reject(data);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error toggling wishlist:', error);
+                        NotificationSystem.error('Error updating wishlist');
+                        reject(error);
+                    });
+                });
+            }
+        };
+
+        // ========== PRODUCT GALLERY ==========
+        const ProductGallery = {
+            init: function() {
+                const mainImage = document.getElementById('main-product-image');
+                const thumbnails = document.querySelectorAll('.product-thumbnail');
+                
+                if (mainImage && thumbnails.length) {
+                    thumbnails.forEach(thumb => {
+                        thumb.addEventListener('click', function() {
+                            const imageUrl = this.dataset.image || this.src;
+                            mainImage.src = imageUrl;
+                            
+                            thumbnails.forEach(t => t.classList.remove('active'));
+                            this.classList.add('active');
+                        });
+                    });
+                }
+            }
+        };
+
+        // ========== CHECKOUT HELPERS ==========
+        const CheckoutManager = {
+            init: function() {
+                const countySelect = document.querySelector('#county');
+                if (countySelect) {
+                    countySelect.addEventListener('change', function() {
+                        CartManager.updateDeliveryFee(this.value);
+                    });
+                }
+            }
+        };
+
+        // ========== INITIALIZATION ==========
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('MUFRA FASHIONS initialized');
+            
+            // Set initial cart count
+            if (window.initialCartCount !== undefined) {
+                CartManager.updateCount(window.initialCartCount);
+            }
+            
+            // ===== ADD TO CART BUTTONS =====
+            document.querySelectorAll('.add-to-cart-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const productId = this.dataset.productId;
+                    if (!productId) return;
+                    
+                    // Store original text
+                    if (!this.dataset.originalText) {
+                        this.dataset.originalText = this.innerHTML;
+                    }
+                    
+                    // Disable button
+                    this.disabled = true;
+                    this.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Adding...';
+                    
+                    CartManager.add(productId)
+                        .finally(() => {
+                            this.disabled = false;
+                            this.innerHTML = this.dataset.originalText;
+                        });
+                });
+            });
+            
+            // ===== QUICK ADD BUTTONS =====
+            document.querySelectorAll('.quick-add-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const productId = this.dataset.productId;
+                    if (productId) {
+                        CartManager.add(productId);
+                    }
+                });
+            });
+            
+            // ===== ADD TO CART FORMS =====
+            document.querySelectorAll('.add-to-cart-form').forEach(form => {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    const productId = this.dataset.productId;
+                    const formData = new FormData(this);
+                    
+                    const submitBtn = this.querySelector('button[type="submit"]');
+                    if (submitBtn) {
+                        if (!submitBtn.dataset.originalText) {
+                            submitBtn.dataset.originalText = submitBtn.innerHTML;
+                        }
+                        submitBtn.disabled = true;
+                        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Adding...';
+                    }
+                    
+                    const quantity = formData.get('quantity') || 1;
+                    const size = formData.get('size') || '';
+                    const color = formData.get('color') || '';
+                    
+                    CartManager.add(productId, quantity, size, color)
+                        .finally(() => {
+                            if (submitBtn) {
+                                submitBtn.disabled = false;
+                                submitBtn.innerHTML = submitBtn.dataset.originalText;
+                            }
+                        });
+                });
+            });
+            
+            // ===== CART QUANTITY INPUTS =====
+            document.querySelectorAll('.cart-quantity').forEach(input => {
+                input.addEventListener('change', function() {
+                    const row = this.closest('tr[data-item-index]');
+                    if (row) {
+                        const itemIndex = row.dataset.itemIndex;
+                        const quantity = parseInt(this.value) || 1;
+                        if (quantity > 0) {
+                            CartManager.updateQuantity(itemIndex, quantity);
+                        }
+                    }
+                });
+                
+                input.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        this.blur();
+                    }
+                });
+            });
+            
+            // ===== QUANTITY INCREMENT/DECREMENT =====
+            document.querySelectorAll('.qty-increment').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const row = this.closest('tr[data-item-index]');
+                    if (row) {
+                        const input = row.querySelector('.cart-quantity');
+                        const max = parseInt(input.max) || 99;
+                        const newValue = Math.min(parseInt(input.value) + 1, max);
+                        input.value = newValue;
+                        input.dispatchEvent(new Event('change'));
+                    }
+                });
+            });
+            
+            document.querySelectorAll('.qty-decrement').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const row = this.closest('tr[data-item-index]');
+                    if (row) {
+                        const input = row.querySelector('.cart-quantity');
+                        const newValue = Math.max(parseInt(input.value) - 1, 1);
+                        input.value = newValue;
+                        input.dispatchEvent(new Event('change'));
+                    }
+                });
+            });
+            
+            // ===== REMOVE FROM CART BUTTONS =====
+            document.querySelectorAll('.remove-from-cart-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const itemIndex = this.dataset.itemIndex;
+                    if (itemIndex) {
+                        CartManager.remove(itemIndex);
+                    }
+                });
+            });
+            
+            // ===== WISHLIST BUTTONS =====
+            document.querySelectorAll('.wishlist-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const productId = this.dataset.productId;
+                    if (productId) {
+                        WishlistManager.toggle(productId);
+                    }
+                });
+            });
+            
+            // ===== PRODUCT GALLERY =====
+            ProductGallery.init();
+            
+            // ===== CHECKOUT MANAGER =====
+            CheckoutManager.init();
+            
+            // ===== MOBILE BOTTOM NAV ACTIVE STATE =====
+            const currentPath = window.location.pathname;
+            document.querySelectorAll('.mobile-bottom-item').forEach(item => {
+                const href = item.getAttribute('href');
+                if (href && href !== '#' && currentPath.includes(href.split('?')[0])) {
+                    item.classList.add('active');
+                }
+            });
+        });
+
+        // Export to global scope
+        window.Mufra = {
+            cart: CartManager,
+            wishlist: WishlistManager,
+            notify: NotificationSystem,
+            gallery: ProductGallery,
+            checkout: CheckoutManager
+        };
+    </script>
+    
+    <!-- jQuery based scripts -->
     <script>
         $(document).ready(function() {
             // Bootstrap tooltips
@@ -1357,7 +2037,6 @@
             }
             
             // Scroll effects
-            let lastScrollTop = 0;
             $(window).scroll(function() {
                 const scrollTop = $(this).scrollTop();
                 if (scrollTop > 100) {
@@ -1365,13 +2044,6 @@
                 } else {
                     whatsappBtn.removeClass('mini');
                 }
-                lastScrollTop = scrollTop;
-            });
-            
-            // Mobile bottom nav active state
-            $('.mobile-bottom-item').on('click', function() {
-                $('.mobile-bottom-item').removeClass('active');
-                $(this).addClass('active');
             });
             
             // Set search placeholder

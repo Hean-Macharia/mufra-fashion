@@ -5,63 +5,148 @@
 {% block content %}
 <div class="container py-5">
     <div class="row justify-content-center">
-        <div class="col-lg-6">
-            <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <h3 class="mb-0"><i class="fas fa-sign-in-alt me-2"></i>Login</h3>
+        <div class="col-lg-6 col-md-8">
+            <div class="card shadow-brand border-0 bg-white">
+                <div class="card-header bg-magenta text-white text-center py-4 border-0 rounded-top">
+                    <div class="login-icon mb-3 bg-soft-magenta">
+                        <i class="fas fa-sign-in-alt fa-3x text-magenta"></i>
+                    </div>
+                    <h3 class="mb-0 fw-bold">Welcome Back</h3>
+                    <p class="text-white-80 mt-2 mb-0 small">Login to your MUFRA FASHIONS account</p>
                 </div>
-                <div class="card-body">
-                    <form method="POST" action="{{ url_for('login') }}">
+                <div class="card-body p-4 p-lg-5">
+                    <!-- Flash Messages -->
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ 'success' if category == 'success' else 'warning' if category == 'danger' else category }} alert-dismissible fade show mb-4 rounded-3" role="alert">
+                                    <div class="d-flex align-items-center">
+                                        {% if category == 'success' %}
+                                            <i class="fas fa-check-circle me-2 fs-5 text-magenta"></i>
+                                        {% elif category == 'danger' %}
+                                            <i class="fas fa-exclamation-circle me-2 fs-5 text-cyan"></i>
+                                        {% elif category == 'warning' %}
+                                            <i class="fas fa-exclamation-triangle me-2 fs-5 text-cyan"></i>
+                                        {% elif category == 'info' %}
+                                            <i class="fas fa-info-circle me-2 fs-5 text-link-blue"></i>
+                                        {% endif %}
+                                        <div class="text-charcoal">{{ message }}</div>
+                                    </div>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                    
+                    <form method="POST" action="{{ url_for('login') }}" id="loginForm">
                         <div class="mb-4">
-                            <label class="form-label">Email Address *</label>
-                            <input type="email" class="form-control" name="email" 
-                                   value="{{ request.form.email if request.form }}" required>
+                            <label class="form-label fw-bold text-charcoal">Email Address <span class="text-magenta">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-soft-magenta text-magenta border-grey-medium">
+                                    <i class="fas fa-envelope"></i>
+                                </span>
+                                <input type="email" class="form-control border-grey-medium" name="email" 
+                                       id="email" value="{{ request.form.email if request.form.email else '' }}" 
+                                       required placeholder="you@example.com">
+                            </div>
+                            <div class="form-text text-grey-medium">
+                                <i class="fas fa-info-circle me-1 text-cyan"></i>
+                                Enter your registered email address
+                            </div>
                         </div>
                         
                         <div class="mb-4">
-    <label class="form-label">Password *</label>
-    <input type="password" class="form-control" name="password" required>
-    <div class="text-end">
-        <a href="{{ url_for('forgot_password') }}" class="text-decoration-none small">
-            Forgot Password?
-        </a>
-    </div>
-</div>
-                        
-                        <div class="form-check mb-4">
-                            <input class="form-check-input" type="checkbox" id="remember">
-                            <label class="form-check-label" for="remember">
-                                Remember me
-                            </label>
-                        </div>
-                        
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary btn-lg">
-                                <i class="fas fa-sign-in-alt me-2"></i> Login
-                            </button>
-                        </div>
-                        
-                        <hr class="my-4">
-                        
-                        <div class="text-center">
-                            <p class="mb-3">Or login with</p>
-                            <div class="d-grid gap-2">
-                                <a href="#" class="btn btn-outline-danger">
-                                    <i class="fab fa-google me-2"></i> Google
+                            <label class="form-label fw-bold text-charcoal">Password <span class="text-magenta">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-soft-cyan text-cyan border-grey-medium">
+                                    <i class="fas fa-lock"></i>
+                                </span>
+                                <input type="password" class="form-control border-grey-medium" name="password" 
+                                       id="password" required placeholder="Enter your password">
+                                <button class="btn btn-outline-grey-medium toggle-password" type="button">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="text-end mt-2">
+                                <a href="{{ url_for('forgot_password') }}" class="text-cyan text-decoration-none small hover-magenta">
+                                    <i class="fas fa-key me-1"></i> Forgot Password?
                                 </a>
                             </div>
                         </div>
                         
-                        <hr class="my-4">
+                        <div class="mb-4 d-flex justify-content-between align-items-center">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="remember">
+                                <label class="form-check-label text-charcoal small" for="remember">
+                                    Remember me
+                                </label>
+                            </div>
+                            <div>
+                                <a href="{{ url_for('register') }}" class="text-cyan text-decoration-none small hover-magenta">
+                                    <i class="fas fa-user-plus me-1"></i> Create account
+                                </a>
+                            </div>
+                        </div>
                         
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-magenta btn-lg py-3" id="loginBtn">
+                                <i class="fas fa-sign-in-alt me-2"></i> Login
+                            </button>
+                        </div>
+                        
+                        <!-- Demo Credentials -->
+                        <div class="mt-4 p-3 bg-soft-cyan rounded-3">
+                            <p class="small mb-2 fw-bold text-charcoal">
+                                <i class="fas fa-flask me-2 text-cyan"></i>Demo Credentials:
+                            </p>
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <div class="d-flex align-items-center">
+                                        <span class="badge bg-cyan me-2">Admin</span>
+                                        <span class="small text-charcoal">admin@mufra.com</span>
+                                    </div>
+                                    <div class="small text-grey-medium ms-4">Password: admin123</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="d-flex align-items-center">
+                                        <span class="badge bg-magenta me-2">Customer</span>
+                                        <span class="small text-charcoal">customer@example.com</span>
+                                    </div>
+                                    <div class="small text-grey-medium ms-4">Password: customer123</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <hr class="my-4" style="border-color: rgba(117,117,117,0.2);">
+                        
+                        <!-- Social Login -->
                         <div class="text-center">
-                            <p class="mb-0">Don't have an account? 
-                                <a href="{{ url_for('register') }}" class="text-decoration-none">
+                            <p class="text-grey-medium mb-3 small fw-semibold">Or continue with</p>
+                            <div class="d-grid gap-2">
+                                <button type="button" class="btn btn-outline-magenta" id="googleLoginBtn" disabled>
+                                    <i class="fab fa-google me-2"></i> Google
+                                    <span class="badge bg-soft-magenta text-magenta ms-2 small">Coming Soon</span>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="text-center mt-4 pt-3 border-top border-grey-medium border-opacity-25">
+                            <p class="mb-0 text-charcoal">
+                                Don't have an account? 
+                                <a href="{{ url_for('register') }}" class="fw-bold text-cyan text-decoration-none hover-magenta">
                                     Register here
                                 </a>
                             </p>
                         </div>
                     </form>
+                </div>
+                
+                <!-- Security Info -->
+                <div class="card-footer bg-soft-magenta border-0 py-3 rounded-bottom">
+                    <div class="d-flex align-items-center justify-content-center">
+                        <i class="fas fa-shield-alt text-magenta me-2"></i>
+                        <small class="text-charcoal">Your login is secured with 256-bit encryption</small>
+                    </div>
                 </div>
             </div>
         </div>
@@ -69,61 +154,703 @@
 </div>
 
 <!-- Forgot Password Modal -->
-<div class="modal fade" id="forgotPassword" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Reset Password</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<div class="modal fade" id="forgotPasswordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0">
+            <div class="modal-header bg-magenta text-white border-0">
+                <h5 class="modal-title"><i class="fas fa-key me-2"></i>Reset Password</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
-                <p>Enter your email address and we'll send you a link to reset your password.</p>
+            <div class="modal-body p-4">
+                <div class="text-center mb-4">
+                    <div class="password-reset-icon bg-soft-magenta mx-auto mb-3">
+                        <i class="fas fa-envelope fa-2x text-magenta"></i>
+                    </div>
+                    <p class="text-charcoal small">
+                        Enter your email address and we'll send you a secure link to reset your password.
+                    </p>
+                </div>
                 <form id="resetPasswordForm">
                     <div class="mb-3">
-                        <label class="form-label">Email Address</label>
-                        <input type="email" class="form-control" id="resetEmail" required>
+                        <label class="form-label fw-bold text-charcoal">Email Address <span class="text-magenta">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-soft-magenta text-magenta border-grey-medium">
+                                <i class="fas fa-envelope"></i>
+                            </span>
+                            <input type="email" class="form-control border-grey-medium" id="resetEmail" 
+                                   required placeholder="you@example.com">
+                        </div>
                     </div>
                     <div class="d-grid">
-                        <button type="submit" class="btn btn-primary">Send Reset Link</button>
+                        <button type="submit" class="btn btn-magenta" id="resetPasswordBtn">
+                            <i class="fas fa-paper-plane me-2"></i> Send Reset Link
+                        </button>
                     </div>
                 </form>
+            </div>
+            <div class="modal-footer bg-soft-cyan border-0">
+                <small class="text-charcoal">
+                    <i class="fas fa-clock me-1 text-cyan"></i>
+                    Reset link expires in 1 hour
+                </small>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ===== MUFRA FASHIONS BRAND COLORS ===== */
+    :root {
+        --magenta-vibrant: #D81B60;
+        --cyan-bright: #00ACC1;
+        --link-blue: #2196F3;
+        --charcoal-dark: #333333;
+        --grey-medium: #757575;
+        --bg-light-page: #F9F9F9;
+        --white-pure: #FFFFFF;
+        --footer-soft-grey: #EEEEEE;
+        --shadow-brand: 0 16px 32px -10px rgba(0,0,0,0.08);
+    }
+
+    .login-icon {
+        width: 100px;
+        height: 100px;
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+        transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+    }
+
+    .card-header:hover .login-icon {
+        transform: scale(1.1);
+        background: rgba(255, 255, 255, 0.25);
+    }
+
+    .login-icon i {
+        transition: all 0.3s ease;
+    }
+
+    .card-header:hover .login-icon i {
+        transform: rotate(10deg);
+    }
+
+    .password-reset-icon {
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Form Controls */
+    .form-control, .form-select {
+        border: 2px solid rgba(117,117,117,0.2);
+        border-radius: 12px;
+        padding: 0.75rem 1rem;
+        transition: all 0.2s ease;
+        color: var(--charcoal-dark);
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: var(--magenta-vibrant);
+        box-shadow: 0 0 0 0.25rem rgba(216,27,96,0.1);
+    }
+
+    .form-control.is-valid, .form-select.is-valid {
+        border-color: var(--cyan-bright);
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%2300ACC1' d='M2.3 6.73.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e");
+    }
+
+    .form-control.is-invalid, .form-select.is-invalid {
+        border-color: var(--magenta-vibrant);
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23D81B60'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23D81B60' stroke='none'/%3e%3c/svg%3e");
+    }
+
+    .input-group-text {
+        border-radius: 12px 0 0 12px;
+        border: 2px solid rgba(117,117,117,0.2);
+        border-right: none;
+        background-color: rgba(216,27,96,0.05);
+        color: var(--magenta-vibrant);
+        font-weight: 600;
+        padding: 0.75rem 1rem;
+    }
+
+    .input-group .form-control {
+        border-radius: 0 12px 12px 0;
+    }
+
+    .input-group .btn-outline-grey-medium {
+        border: 2px solid rgba(117,117,117,0.2);
+        border-left: none;
+        border-radius: 0 12px 12px 0;
+        color: var(--grey-medium);
+        background: white;
+    }
+
+    .input-group .btn-outline-grey-medium:hover {
+        background-color: var(--cyan-bright);
+        color: white;
+        border-color: var(--cyan-bright);
+    }
+
+    .form-text {
+        color: var(--grey-medium);
+        font-size: 0.8rem;
+        margin-top: 0.4rem;
+    }
+
+    /* Checkbox Styling */
+    .form-check-input {
+        width: 1.2em;
+        height: 1.2em;
+        margin-top: 0.15em;
+        border: 2px solid rgba(117,117,117,0.3);
+        transition: all 0.2s ease;
+    }
+
+    .form-check-input:checked {
+        background-color: var(--magenta-vibrant);
+        border-color: var(--magenta-vibrant);
+    }
+
+    .form-check-input:focus {
+        border-color: var(--magenta-vibrant);
+        box-shadow: 0 0 0 0.25rem rgba(216,27,96,0.1);
+    }
+
+    /* Button Styles */
+    .btn-magenta {
+        background-color: var(--magenta-vibrant);
+        color: white;
+        border: none;
+        transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+        border-radius: 12px;
+        font-weight: 600;
+    }
+
+    .btn-magenta:hover {
+        background-color: #B21550;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 16px rgba(216,27,96,0.3);
+    }
+
+    .btn-magenta:active {
+        transform: translateY(0);
+    }
+
+    .btn-magenta:disabled {
+        background-color: rgba(216,27,96,0.5);
+        transform: none;
+        box-shadow: none;
+    }
+
+    .btn-outline-magenta {
+        border: 2px solid var(--magenta-vibrant);
+        color: var(--charcoal-dark);
+        background: transparent;
+        transition: all 0.3s ease;
+        border-radius: 12px;
+        font-weight: 600;
+    }
+
+    .btn-outline-magenta:hover {
+        background: var(--magenta-vibrant);
+        color: white;
+        transform: translateY(-2px);
+    }
+
+    .btn-outline-magenta:disabled {
+        opacity: 0.6;
+        transform: none;
+    }
+
+    .btn-outline-cyan {
+        border: 2px solid var(--cyan-bright);
+        color: var(--charcoal-dark);
+        background: transparent;
+        transition: all 0.3s ease;
+        border-radius: 12px;
+        font-weight: 600;
+    }
+
+    .btn-outline-cyan:hover {
+        background: var(--cyan-bright);
+        color: white;
+        transform: translateY(-2px);
+    }
+
+    /* Link Hover Effects */
+    .hover-magenta {
+        transition: color 0.2s ease;
+    }
+
+    .hover-magenta:hover {
+        color: var(--magenta-vibrant) !important;
+    }
+
+    /* Loading Spinner */
+    .spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(255,255,255,.3);
+        border-radius: 50%;
+        border-top-color: #fff;
+        animation: spin 1s ease-in-out infinite;
+        margin-right: 8px;
+        vertical-align: middle;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* Toast Notifications */
+    .toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+    }
+
+    .toast {
+        min-width: 300px;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: var(--shadow-brand);
+        border-left: 6px solid;
+    }
+
+    .toast-header {
+        border-bottom: none;
+    }
+
+    .toast-header.bg-success {
+        background-color: var(--magenta-vibrant) !important;
+    }
+
+    .toast-header.bg-danger {
+        background-color: var(--cyan-bright) !important;
+    }
+
+    .toast-header.bg-warning {
+        background-color: var(--cyan-bright) !important;
+    }
+
+    .toast-header.bg-info {
+        background-color: var(--link-blue) !important;
+    }
+
+    /* Alert Styles */
+    .alert {
+        border-radius: 12px;
+        border: none;
+        border-left: 6px solid;
+    }
+
+    .alert-success {
+        background-color: rgba(216,27,96,0.05);
+        border-left-color: var(--magenta-vibrant);
+    }
+
+    .alert-danger, .alert-warning {
+        background-color: rgba(0,172,193,0.05);
+        border-left-color: var(--cyan-bright);
+    }
+
+    .alert-info {
+        background-color: rgba(33,150,243,0.05);
+        border-left-color: var(--link-blue);
+    }
+
+    /* Modal Styles */
+    .modal-content {
+        border-radius: 20px;
+        overflow: hidden;
+    }
+
+    .modal-header {
+        padding: 1.5rem;
+    }
+
+    .modal-body {
+        padding: 1.5rem;
+    }
+
+    .modal-footer {
+        padding: 1rem 1.5rem;
+    }
+
+    /* Text Colors */
+    .text-magenta {
+        color: var(--magenta-vibrant) !important;
+    }
+
+    .text-cyan {
+        color: var(--cyan-bright) !important;
+    }
+
+    .text-link-blue {
+        color: var(--link-blue) !important;
+    }
+
+    .text-charcoal {
+        color: var(--charcoal-dark) !important;
+    }
+
+    .text-grey-medium {
+        color: var(--grey-medium) !important;
+    }
+
+    .text-white-80 {
+        color: rgba(255, 255, 255, 0.85);
+    }
+
+    /* Background Colors */
+    .bg-magenta {
+        background-color: var(--magenta-vibrant) !important;
+    }
+
+    .bg-cyan {
+        background-color: var(--cyan-bright) !important;
+    }
+
+    .bg-soft-magenta {
+        background-color: rgba(216,27,96,0.05) !important;
+    }
+
+    .bg-soft-cyan {
+        background-color: rgba(0,172,193,0.05) !important;
+    }
+
+    .bg-white {
+        background-color: var(--white-pure) !important;
+    }
+
+    /* Border Colors */
+    .border-magenta {
+        border-color: var(--magenta-vibrant) !important;
+    }
+
+    .border-cyan {
+        border-color: var(--cyan-bright) !important;
+    }
+
+    .border-grey-medium {
+        border-color: rgba(117,117,117,0.2) !important;
+    }
+
+    .border-opacity-25 {
+        opacity: 0.25;
+    }
+
+    /* Shadow */
+    .shadow-brand {
+        box-shadow: var(--shadow-brand) !important;
+    }
+
+    /* Badge Styles */
+    .badge.bg-cyan {
+        background-color: var(--cyan-bright) !important;
+    }
+
+    .badge.bg-magenta {
+        background-color: var(--magenta-vibrant) !important;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .card-body {
+            padding: 1.5rem !important;
+        }
+        
+        .btn-lg {
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+        }
+        
+        .login-icon {
+            width: 80px;
+            height: 80px;
+        }
+        
+        .login-icon i {
+            font-size: 2rem;
+        }
+        
+        .card-header h3 {
+            font-size: 1.5rem;
+        }
+    }
+
+    /* Touch Device Optimizations */
+    @media (hover: none) and (pointer: coarse) {
+        .btn-magenta:hover,
+        .btn-outline-magenta:hover,
+        .btn-outline-cyan:hover {
+            transform: none;
+        }
+        
+        .card-header:hover .login-icon {
+            transform: none;
+        }
+        
+        .hover-magenta:hover {
+            color: var(--cyan-bright) !important;
+        }
+    }
+
+    /* Print Styles */
+    @media print {
+        .card {
+            break-inside: avoid;
+            box-shadow: none !important;
+            border: 1px solid var(--grey-medium) !important;
+        }
+        
+        .btn,
+        .toast-container,
+        .modal {
+            display: none !important;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block extra_js %}
 <script>
 $(document).ready(function() {
-    // Forgot password form
-    $('#resetPasswordForm').submit(function(e) {
-        e.preventDefault();
-        const email = $('#resetEmail').val();
+    // ===== TOGGLE PASSWORD VISIBILITY =====
+    $('.toggle-password').click(function() {
+        const passwordInput = $('#password');
+        const icon = $(this).find('i');
         
-        // Simulate API call
-        setTimeout(function() {
-            $('#forgotPassword').modal('hide');
-            showToast('Success', 'Password reset link sent to your email', 'success');
-            $('#resetPasswordForm')[0].reset();
-        }, 1000);
+        if (passwordInput.attr('type') === 'password') {
+            passwordInput.attr('type', 'text');
+            icon.removeClass('fa-eye').addClass('fa-eye-slash');
+        } else {
+            passwordInput.attr('type', 'password');
+            icon.removeClass('fa-eye-slash').addClass('fa-eye');
+        }
     });
     
-    // Remember me functionality
+    // ===== LOGIN FORM SUBMISSION =====
+    $('#loginForm').submit(function(e) {
+        e.preventDefault();
+        
+        const form = $(this);
+        const submitBtn = $('#loginBtn');
+        const originalText = submitBtn.html();
+        
+        // Validation
+        const email = $('#email').val();
+        const password = $('#password').val();
+        
+        if (!isValidEmail(email)) {
+            showToast('Error', 'Please enter a valid email address', 'danger');
+            $('#email').focus();
+            return false;
+        }
+        
+        if (!password || password.length < 6) {
+            showToast('Error', 'Password must be at least 6 characters', 'danger');
+            $('#password').focus();
+            return false;
+        }
+        
+        // Show loading state
+        submitBtn.prop('disabled', true).html('<span class="spinner"></span> Logging in...');
+        
+        // Submit form
+        $.ajax({
+            type: 'POST',
+            url: form.attr('action'),
+            data: form.serialize(),
+            success: function(response) {
+                if (response.success) {
+                    showToast('Success', 'Login successful! Redirecting...', 'success');
+                    
+                    // Save remember me
+                    if ($('#remember').is(':checked')) {
+                        localStorage.setItem('rememberEmail', $('#email').val());
+                    } else {
+                        localStorage.removeItem('rememberEmail');
+                    }
+                    
+                    // Redirect to appropriate page
+                    setTimeout(() => {
+                        if (response.redirect_url) {
+                            window.location.href = response.redirect_url;
+                        } else if (response.user_role === 'admin') {
+                            window.location.href = "{{ url_for('admin_dashboard') }}";
+                        } else {
+                            window.location.href = "{{ url_for('home') }}";
+                        }
+                    }, 1500);
+                } else {
+                    showToast('Error', response.message || 'Invalid email or password', 'danger');
+                    submitBtn.prop('disabled', false).html(originalText);
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Login error:', error);
+                
+                let errorMessage = 'Network error. Please try again.';
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    if (response.message) {
+                        errorMessage = response.message;
+                    }
+                } catch (e) {
+                    // Use default error message
+                }
+                
+                showToast('Error', errorMessage, 'danger');
+                submitBtn.prop('disabled', false).html(originalText);
+            }
+        });
+    });
+    
+    // ===== REMEMBER ME FUNCTIONALITY =====
     const savedEmail = localStorage.getItem('rememberEmail');
     if (savedEmail) {
-        $('input[name="email"]').val(savedEmail);
+        $('#email').val(savedEmail);
         $('#remember').prop('checked', true);
     }
     
-    // Save email if remember is checked
-    $('form').submit(function() {
-        if ($('#remember').is(':checked')) {
-            localStorage.setItem('rememberEmail', $('input[name="email"]').val());
+    // ===== EMAIL VALIDATION =====
+    function isValidEmail(email) {
+        const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return re.test(email);
+    }
+    
+    // Real-time email validation
+    $('#email').on('input', function() {
+        const email = $(this).val();
+        if (email && isValidEmail(email)) {
+            $(this).removeClass('is-invalid').addClass('is-valid');
+        } else if (email) {
+            $(this).removeClass('is-valid').addClass('is-invalid');
         } else {
-            localStorage.removeItem('rememberEmail');
+            $(this).removeClass('is-valid is-invalid');
         }
+    });
+    
+    // Real-time password validation
+    $('#password').on('input', function() {
+        const password = $(this).val();
+        if (password && password.length >= 6) {
+            $(this).removeClass('is-invalid').addClass('is-valid');
+        } else if (password) {
+            $(this).removeClass('is-valid').addClass('is-invalid');
+        } else {
+            $(this).removeClass('is-valid is-invalid');
+        }
+    });
+    
+    // ===== TOAST NOTIFICATION =====
+    function showToast(title, message, type = 'info') {
+        if (window.Mufra && window.Mufra.notify) {
+            if (type === 'success') Mufra.notify.success(message);
+            else if (type === 'danger') Mufra.notify.error(message);
+            else Mufra.notify.info(message);
+            return;
+        }
+        
+        // Remove existing toasts
+        $('.toast-container').remove();
+        
+        const icon = type === 'success' ? 'check-circle' : 
+                    type === 'danger' ? 'exclamation-circle' : 
+                    type === 'warning' ? 'exclamation-triangle' : 'info-circle';
+        
+        const bgColor = type === 'success' ? 'var(--magenta-vibrant)' : 
+                       type === 'danger' ? 'var(--cyan-bright)' : 'var(--link-blue)';
+        
+        const toastHtml = `
+            <div class="toast-container">
+                <div class="toast show" role="alert" style="border-left: 6px solid ${bgColor};">
+                    <div class="toast-header bg-${type} text-white">
+                        <i class="fas fa-${icon} me-2"></i>
+                        <strong class="me-auto">${title}</strong>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+                    </div>
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        $('body').append(toastHtml);
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            $('.toast-container').fadeOut(300, function() {
+                $(this).remove();
+            });
+        }, 5000);
+    }
+    
+    // ===== FORGOT PASSWORD MODAL =====
+    $('#resetPasswordForm').submit(function(e) {
+        e.preventDefault();
+        
+        const email = $('#resetEmail').val();
+        const submitBtn = $('#resetPasswordBtn');
+        const originalText = submitBtn.html();
+        
+        if (!isValidEmail(email)) {
+            showToast('Error', 'Please enter a valid email address', 'danger');
+            return false;
+        }
+        
+        // Show loading state
+        submitBtn.prop('disabled', true).html('<span class="spinner"></span> Sending...');
+        
+        // Simulate API call (replace with actual AJAX)
+        setTimeout(function() {
+            $('#forgotPasswordModal').modal('hide');
+            showToast('Success', 'Password reset link sent to your email!', 'success');
+            $('#resetPasswordForm')[0].reset();
+            submitBtn.prop('disabled', false).html('<i class="fas fa-paper-plane me-2"></i> Send Reset Link');
+        }, 1500);
+    });
+    
+    // ===== FOCUS ON EMAIL FIELD =====
+    $('#email').focus();
+    
+    // ===== KEYBOARD SHORTCUTS =====
+    $(document).keydown(function(e) {
+        // Alt + L to focus email
+        if (e.altKey && e.key === 'l') {
+            e.preventDefault();
+            $('#email').focus();
+        }
+        // Alt + P to focus password
+        if (e.altKey && e.key === 'p') {
+            e.preventDefault();
+            $('#password').focus();
+        }
+        // Alt + S to submit form
+        if (e.altKey && e.key === 's') {
+            e.preventDefault();
+            $('#loginBtn').click();
+        }
+    });
+    
+    // ===== CLEAR FORM ON PAGE UNLOAD =====
+    $(window).on('beforeunload', function() {
+        // Clear sensitive data
+        $('#password').val('');
     });
 });
 </script>
-{% endblock %}
 {% endblock %}
