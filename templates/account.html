@@ -425,6 +425,73 @@
                                             </div>
                                         </div>
                                         
+                                        <!-- Order Status Timeline -->
+                                        <div class="mt-3 pt-3 border-top border-grey-medium border-opacity-25">
+                                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                                <h6 class="mb-0 fw-semibold text-charcoal small">
+                                                    <i class="fas fa-history me-2 text-cyan"></i>Status Progress
+                                                </h6>
+                                                <button class="btn btn-sm btn-link text-cyan p-0" 
+                                                        onclick="toggleOrderTimeline('order-{{ order.order_id }}')">
+                                                    <i class="fas fa-chevron-down"></i> History
+                                                </button>
+                                            </div>
+                                            
+                                            <!-- Status Badges -->
+                                            <div class="d-flex flex-wrap gap-2 mb-3">
+                                                <span class="badge bg-{{ 'warning' if order.status == 'pending' else 'secondary' }} px-3 py-2">
+                                                    <i class="fas fa-hourglass-start me-1"></i>Pending
+                                                </span>
+                                                <span class="badge bg-{{ 'info' if order.status == 'processing' else 'secondary' }} px-3 py-2">
+                                                    <i class="fas fa-cog me-1"></i>Processing
+                                                </span>
+                                                <span class="badge bg-{{ 'primary' if order.status == 'shipped' else 'secondary' }} px-3 py-2">
+                                                    <i class="fas fa-truck me-1"></i>Shipped
+                                                </span>
+                                                <span class="badge bg-{{ 'success' if order.status == 'delivered' else 'secondary' }} px-3 py-2">
+                                                    <i class="fas fa-check-circle me-1"></i>Delivered
+                                                </span>
+                                            </div>
+                                            
+                                            <!-- Timeline Popup -->
+                                            <div id="timeline-order-{{ order.order_id }}" class="status-timeline-popup collapse">
+                                                <div class="bg-soft-cyan p-3 rounded-3 mt-2">
+                                                    <div class="timeline-container">
+                                                        {% if order.status_history %}
+                                                            {% for history in order.status_history|reverse %}
+                                                            <div class="timeline-item d-flex gap-3 mb-3 {% if not loop.last %}pb-3 border-bottom border-grey-medium border-opacity-25{% endif %}">
+                                                                <div class="timeline-marker flex-shrink-0">
+                                                                    <div class="timeline-dot bg-magenta"></div>
+                                                                </div>
+                                                                <div class="flex-grow-1">
+                                                                    <div class="d-flex justify-content-between align-items-start">
+                                                                        <div>
+                                                                            <h6 class="mb-1 fw-semibold text-cyan">{{ history.status|title }}</h6>
+                                                                            <small class="text-grey-medium d-block">
+                                                                                <i class="fas fa-calendar me-1"></i>
+                                                                                {{ format_date(history.timestamp, '%B %d, %Y %I:%M %p') if history.timestamp else 'N/A' }}
+                                                                            </small>
+                                                                            {% if history.updated_by %}
+                                                                            <small class="text-grey-medium d-block">
+                                                                                <i class="fas fa-user-circle me-1"></i>
+                                                                                By: {{ history.updated_by }}
+                                                                            </small>
+                                                                            {% endif %}
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            {% endfor %}
+                                                        {% else %}
+                                                            <div class="text-center text-grey-medium py-2">
+                                                                <small>No status history available yet</small>
+                                                            </div>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
                                         <!-- Order Items -->
                                         <div class="mt-3 pt-3 border-top border-grey-medium border-opacity-25">
                                             <h6 class="mb-3 fw-semibold text-charcoal small">Order Items:</h6>
@@ -1550,12 +1617,114 @@ $(document).ready(function() {
         }, 3000);
     }
     
-    // ===== IMAGE ERROR HANDLING =====
-    $('img').on('error', function() {
-        const altText = $(this).attr('alt') || 'MF';
-        const size = $(this).width() || 80;
-        $(this).attr('src', `https://via.placeholder.com/${size}x${size}?text=${encodeURIComponent(altText)}`);
-    });
+    // ===== ORDER STATUS TIMELINE =====
+    function toggleOrderTimeline(orderId) {
+        const timelineId = `timeline-${orderId}`;
+        const timelineElement = document.getElementById(timelineId);
+        
+        if (timelineElement) {
+            if (timelineElement.classList.contains('show')) {
+                timelineElement.classList.remove('show');
+            } else {
+                timelineElement.classList.add('show');
+                // Fetch latest status from server (optional real-time update)
+                updateOrderStatus(orderId);
+            }
+        }
+    }
+    
+    function updateOrderStatus(orderId) {
+        fetch(`/api/order-status/${orderId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.order) {
+                    // Update the status badge in the UI
+                    const orderCard = document.querySelector(`[data-status]`);
+                    if (orderCard) {
+                        orderCard.setAttribute('data-status', data.order.status);
+                    }
+                    console.log('Order status updated:', data.order.status);
+                }
+            })
+            .catch(error => console.log('Error updating status:', error));
+    }
+    
+    // Auto-refresh order statuses every 30 seconds
+    setInterval(() => {
+        const orderCards = document.querySelectorAll('.order-card');
+        orderCards.forEach(card => {
+            const orderId = card.getAttribute('data-order-id') || 
+                           card.querySelector('h6')?.textContent?.match(/#(\w+)/)?.[1];
+            if (orderId) {
+                updateOrderStatus(orderId);
+            }
+        });
+    }, 30000);
 });
+
+// Add CSS for timeline
+const style = document.createElement('style');
+style.textContent = `
+    .status-timeline-popup {
+        transition: all 0.3s ease;
+    }
+    
+    .status-timeline-popup.collapse:not(.show) {
+        display: none !important;
+    }
+    
+    .status-timeline-popup.collapse.show {
+        display: block !important;
+    }
+    
+    .timeline-container {
+        position: relative;
+        padding: 0;
+    }
+    
+    .timeline-item {
+        position: relative;
+    }
+    
+    .timeline-item .timeline-marker {
+        min-width: 30px;
+    }
+    
+    .timeline-dot {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background-color: var(--magenta-vibrant);
+        border: 3px solid rgba(216, 27, 96, 0.2);
+        position: relative;
+        display: inline-block;
+    }
+    
+    .timeline-item:first-child .timeline-dot {
+        width: 20px;
+        height: 20px;
+        border-width: 2px;
+        box-shadow: 0 0 0 4px rgba(216, 27, 96, 0.1);
+    }
+    
+    .timeline-item .timeline-marker::before {
+        content: '';
+        position: absolute;
+        left: 7px;
+        top: 16px;
+        width: 2px;
+        height: calc(100% + 12px);
+        background: linear-gradient(to bottom, var(--magenta-vibrant), transparent);
+        opacity: 0.3;
+    }
+    
+    .status-progress-bar {
+        background: linear-gradient(to right, var(--magenta-vibrant) 0%, var(--magenta-vibrant) calc(var(--progress) * 100%), rgba(216, 27, 96, 0.2) calc(var(--progress) * 100%), rgba(216, 27, 96, 0.2) 100%);
+        height: 4px;
+        border-radius: 2px;
+        margin-bottom: 1rem;
+    }
+`;
+document.head.appendChild(style);
 </script>
 {% endblock %}

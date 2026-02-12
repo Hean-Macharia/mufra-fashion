@@ -158,6 +158,16 @@
                                     </a>
                                 </li>
                                 
+                                <!-- Newsletter -->
+                                <li class="nav-item mb-2">
+                                    <a class="nav-link {% if request.endpoint == 'admin_newsletter' %}active{% endif %}" href="{{ url_for('admin_newsletter') }}">
+                                        <i class="fas fa-envelope me-2"></i>
+                                        <span>Newsletter</span>
+                                        {% set active_subs = get_collection('newsletter_subscriptions').count_documents({'subscribed': True}) %}
+                                        <span class="badge bg-success float-end">{{ active_subs }}</span>
+                                    </a>
+                                </li>
+                                
                                 <!-- Reviews -->
                                 <li class="nav-item mb-2">
                                     <a class="nav-link" href="#">

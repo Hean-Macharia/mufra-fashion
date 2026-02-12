@@ -1551,6 +1551,35 @@
                 </div>
             </div>
             
+            <!-- NEWSLETTER SUBSCRIPTION -->
+            <div class="row my-5 py-4 rounded" style="background: linear-gradient(135deg, rgba(216, 27, 96, 0.1) 0%, rgba(178, 21, 80, 0.05) 100%);">
+                <div class="col-lg-6">
+                    <h5 class="mb-3" style="color: var(--magenta-vibrant);">
+                        <i class="fas fa-envelope me-2"></i>Subscribe to Our Newsletter
+                    </h5>
+                    <p class="small opacity-75" style="color: var(--grey-medium);">Get exclusive offers, style tips, and fashion trends delivered to your inbox!</p>
+                </div>
+                <div class="col-lg-6">
+                    <form id="newsletter-footer-form" class="d-flex gap-2">
+                        <input 
+                            type="email" 
+                            class="form-control form-control-sm" 
+                            id="newsletter-email-footer"
+                            placeholder="Enter your email..." 
+                            required
+                            style="background: rgba(255,255,255,0.95);">
+                        <button 
+                            type="submit" 
+                            class="btn btn-sm px-4" 
+                            style="background-color: var(--magenta-vibrant); color: white; flex-shrink: 0;"
+                            id="newsletter-submit-btn">
+                            <i class="fas fa-paper-plane me-1"></i><span class="d-none d-sm-inline">Subscribe</span>
+                        </button>
+                    </form>
+                    <div id="newsletter-feedback-footer" class="small mt-2"></div>
+                </div>
+            </div>
+            
             <hr class="opacity-25 my-4" style="background-color: var(--grey-medium);">
             
             <div class="row align-items-center">
@@ -2238,6 +2267,62 @@
             } else {
                 $('.whatsapp-float').css('bottom', '100px');
             }
+        });
+        
+        // ========== NEWSLETTER SUBSCRIPTION ==========
+        document.addEventListener('DOMContentLoaded', function() {
+            const newsletterForm = document.getElementById('newsletter-footer-form');
+            if (!newsletterForm) return;
+            
+            newsletterForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const emailInput = document.getElementById('newsletter-email-footer');
+                const submitBtn = document.getElementById('newsletter-submit-btn');
+                const feedback = document.getElementById('newsletter-feedback-footer');
+                const email = emailInput.value.trim();
+                
+                if (!email) {
+                    feedback.innerHTML = '<span style="color: var(--cyan-bright);"><i class="fas fa-exclamation-circle me-1"></i>Please enter your email</span>';
+                    return;
+                }
+                
+                // Show loading state
+                submitBtn.disabled = true;
+                const originalHTML = submitBtn.innerHTML;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Subscribing...';
+                feedback.innerHTML = '';
+                
+                // Send subscription request
+                fetch('/subscribe-newsletter', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email: email })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        feedback.innerHTML = '<span style="color: #28a745;"><i class="fas fa-check-circle me-1"></i>Thank you for subscribing!</span>';
+                        emailInput.value = '';
+                        emailInput.placeholder = 'Successfully subscribed!';
+                        setTimeout(() => {
+                            emailInput.placeholder = 'Enter your email...';
+                        }, 3000);
+                    } else {
+                        feedback.innerHTML = `<span style="color: var(--cyan-bright);"><i class="fas fa-exclamation-circle me-1"></i>${data.message || 'Subscription failed'}</span>`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    feedback.innerHTML = '<span style="color: var(--cyan-bright);"><i class="fas fa-exclamation-circle me-1"></i>An error occurred. Please try again.</span>';
+                })
+                .finally(() => {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalHTML;
+                });
+            });
         });
     </script>
     

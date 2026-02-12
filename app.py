@@ -2376,6 +2376,298 @@ def admin_users():
         flash('Error loading users', 'danger')
         return render_template('admin/users.html', users=[])
 
+# ========== REAL-TIME ADMIN FEATURES ==========
+
+@app.route('/admin/orders-api')
+@admin_required
+def admin_orders_api():
+    """API for real-time admin orders management"""
+    try:
+        orders_collection = get_collection('orders')
+        orders = list(orders_collection.find().sort('created_at', -1).limit(100))
+        
+        # Convert ObjectId to string for JSON serialization
+        for order in orders:
+            order['_id'] = str(order['_id'])
+            order['created_at'] = order['created_at'].isoformat() if order.get('created_at') else ''
+            order['updated_at'] = order['updated_at'].isoformat() if order.get('updated_at') else ''
+        
+        return jsonify({
+            'success': True,
+            'orders': orders,
+            'total': orders_collection.count_documents({})
+        })
+    except Exception as e:
+        print(f"Error in admin_orders_api: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+@app.route('/admin/update-status/<order_id>', methods=['POST'])
+@admin_required
+def admin_update_status(order_id):
+    """Update order status with real-time notification"""
+    try:
+        data = request.get_json()
+        new_status = data.get('status')
+        
+        if not new_status:
+            return jsonify({'success': False, 'error': 'Status required'}), 400
+        
+        orders_collection = get_collection('orders')
+        
+        # Get order info
+        order = orders_collection.find_one({'order_id': order_id})
+        if not order:
+            return jsonify({'success': False, 'error': 'Order not found'}), 404
+        
+        # Update order status
+        orders_collection.update_one(
+            {'order_id': order_id},
+            {'$set': {
+                'status': new_status,
+                'updated_at': datetime.utcnow(),
+                'status_history': order.get('status_history', []) + [{
+                    'status': new_status,
+                    'timestamp': datetime.utcnow(),
+                    'updated_by': session.get('user_name', 'Admin')
+                }]
+            }}
+        )
+        
+        # Send email notification to user
+        user = get_collection('users').find_one({'_id': order.get('user_id')})
+        if user and 'status_updated' in order or True:  # Always send
+            try:
+                email_status_map = {
+                    'processing': 'Processing',
+                    'shipped': 'Shipped',
+                    'delivered': 'Delivered',
+                    'cancelled': 'Cancelled'
+                }
+                
+                msg = Message(
+                    subject=f'Order {order_id} Status Update - {email_status_map.get(new_status, new_status)}',
+                    recipients=[user.get('email', '')],
+                    html=f'''
+                    <h2>Order Status Update</h2>
+                    <p>Hi {user.get('first_name', 'Customer')},</p>
+                    <p>Your order <strong>{order_id}</strong> status has been updated to:</p>
+                    <h3 style="color: #D81B60;">{email_status_map.get(new_status, new_status)}</h3>
+                    <p>Items: {len(order.get('items', []))} items</p>
+                    <p>Total: KES {order.get('total', 0)}</p>
+                    <p><a href="{url_for('order_confirmation', order_id=order_id, _external=True)}">View Order Details</a></p>
+                    <p>Thank you for shopping at MUFRA FASHIONS!</p>
+                    '''
+                )
+                mail.send(msg)
+            except Exception as email_error:
+                print(f"Error sending email: {email_error}")
+        
+        return jsonify({
+            'success': True,
+            'message': f'Order status updated to {new_status}',
+            'order_id': order_id
+        })
+    except Exception as e:
+        print(f"Error in admin_update_status: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+@app.route('/api/order-status/<order_id>')
+def get_order_status(order_id):
+    """Get order status in real-time (for users)"""
+    try:
+        orders_collection = get_collection('orders')
+        order = orders_collection.find_one({'order_id': order_id})
+        
+        if not order:
+            return jsonify({'success': False, 'error': 'Order not found'}), 404
+        
+        return jsonify({
+            'success': True,
+            'status': order.get('status'),
+            'status_history': [
+                {
+                    'status': h.get('status'),
+                    'timestamp': h.get('timestamp').isoformat() if h.get('timestamp') else '',
+                    'updated_by': h.get('updated_by')
+                }
+                for h in order.get('status_history', [])
+            ],
+            'updated_at': order.get('updated_at').isoformat() if order.get('updated_at') else ''
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+# ========== NEWSLETTER SYSTEM ==========
+
+@app.route('/subscribe-newsletter', methods=['POST'])
+def subscribe_newsletter():
+    """Subscribe to newsletter"""
+    try:
+        # Handle both JSON and form data
+        if request.is_json:
+            email = request.get_json().get('email', '').strip().lower()
+        else:
+            email = request.form.get('email', '').strip().lower()
+        
+        if not email or '@' not in email:
+            return jsonify({'success': False, 'message': 'Invalid email address'}), 400
+        
+        subscriptions = get_collection('newsletter_subscriptions')
+        
+        # Check if already subscribed
+        existing = subscriptions.find_one({'email': email})
+        if existing and existing.get('subscribed'):
+            return jsonify({'success': False, 'message': 'You\'re already subscribed!'}), 400
+        
+        # Add or update subscription
+        subscriptions.update_one(
+            {'email': email},
+            {'$set': {
+                'email': email,
+                'subscribed': True,
+                'subscribed_at': datetime.utcnow()
+            }},
+            upsert=True
+        )
+        
+        return jsonify({
+            'success': True,
+            'message': 'Successfully subscribed to newsletter!'
+        })
+    except Exception as e:
+        print(f"Error in subscribe_newsletter: {e}")
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 400
+
+@app.route('/unsubscribe-newsletter/<token>', methods=['GET'])
+def unsubscribe_newsletter(token):
+    """Unsubscribe from newsletter"""
+    try:
+        # Decode token (simple implementation)
+        subscriptions = get_collection('newsletter_subscriptions')
+        result = subscriptions.update_one(
+            {'_id': ObjectId(token)},
+            {'$set': {'subscribed': False, 'unsubscribed_at': datetime.utcnow()}}
+        )
+        
+        if result.modified_count:
+            flash('You have been unsubscribed from our newsletter', 'info')
+        else:
+            flash('Unsubscribe token invalid or already unsubscribed', 'warning')
+        
+        return redirect(url_for('home'))
+    except Exception as e:
+        print(f"Error in unsubscribe_newsletter: {e}")
+        flash('Error unsubscribing', 'danger')
+        return redirect(url_for('home'))
+
+@app.route('/admin/newsletter')
+@admin_required
+def admin_newsletter():
+    """Admin newsletter management"""
+    try:
+        subscriptions = get_collection('newsletter_subscriptions')
+        active_subs = subscriptions.count_documents({'subscribed': True})
+        total_subs = subscriptions.count_documents({})
+        
+        # Get recent newsletters
+        newsletters = list(get_collection('newsletters').find().sort('sent_at', -1).limit(20))
+        
+        return render_template('admin/newsletter.html',
+                             active_subscriptions=active_subs,
+                             total_subscriptions=total_subs,
+                             newsletters=newsletters)
+    except Exception as e:
+        print(f"Error in admin_newsletter: {e}")
+        flash('Error loading newsletter page', 'danger')
+        return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/send-newsletter', methods=['POST'])
+@admin_required
+def admin_send_newsletter():
+    """Send newsletter to all subscribers"""
+    try:
+        subject = request.form.get('subject', '').strip()
+        message = request.form.get('message', '').strip()
+        
+        if not subject or not message:
+            return jsonify({'success': False, 'error': 'Subject and message required'}), 400
+        
+        # Get all active subscribers
+        subscriptions = get_collection('newsletter_subscriptions')
+        subscribers = list(subscriptions.find({'subscribed': True}))
+        
+        if not subscribers:
+            return jsonify({'success': False, 'error': 'No active subscribers'}), 400
+        
+        # Send emails asynchronously
+        successful = 0
+        for subscriber in subscribers:
+            try:
+                msg = Message(
+                    subject=subject,
+                    recipients=[subscriber.get('email')],
+                    html=f'''
+                    <h2>{subject}</h2>
+                    <div style="font-size: 1rem; line-height: 1.6;">
+                        {message}
+                    </div>
+                    <hr>
+                    <p style="font-size: 0.9rem; color: #999;">
+                        <a href="{url_for('unsubscribe_newsletter', token=str(subscriber.get('_id')), _external=True)}">Unsubscribe</a>
+                    </p>
+                    '''
+                )
+                mail.send(msg)
+                successful += 1
+            except Exception as e:
+                print(f"Error sending to {subscriber.get('email')}: {e}")
+        
+        # Save newsletter record
+        get_collection('newsletters').insert_one({
+            'subject': subject,
+            'message': message,
+            'sent_at': datetime.utcnow(),
+            'sent_by': session.get('user_name'),
+            'recipients_count': successful,
+            'total_subscribers': len(subscribers)
+        })
+        
+        return jsonify({
+            'success': True,
+            'message': f'Newsletter sent to {successful} subscribers!',
+            'sent_count': successful
+        })
+    except Exception as e:
+        print(f"Error in admin_send_newsletter: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+@app.route('/admin/newsletter-stats')
+@admin_required
+def newsletter_stats():
+    """Get newsletter statistics"""
+    try:
+        subscriptions = get_collection('newsletter_subscriptions')
+        newsletters = get_collection('newsletters')
+        
+        active = subscriptions.count_documents({'subscribed': True})
+        inactive = subscriptions.count_documents({'subscribed': False})
+        
+        recent_newsletters = list(newsletters.find().sort('sent_at', -1).limit(5))
+        for nl in recent_newsletters:
+            nl['_id'] = str(nl['_id'])
+            nl['sent_at'] = nl['sent_at'].isoformat()
+        
+        return jsonify({
+            'success': True,
+            'active_subscribers': active,
+            'inactive_subscribers': inactive,
+            'total_subscribers': active + inactive,
+            'recent_newsletters': recent_newsletters
+        })
+    except Exception as e:
+        print(f"Error in newsletter_stats: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 400
+
 # ========== OTHER ROUTES ==========
 
 @app.route('/search')
