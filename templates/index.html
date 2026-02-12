@@ -3,999 +3,1648 @@
 {% block title %}Home - MUFRA FASHIONS{% endblock %}
 
 {% block content %}
-<!-- Hero Section -->
-<section class="hero-section mb-5">
-    <div class="container">
-        <div class="row align-items-center">
-            <div class="col-md-6">
-                <h1 class="display-4 fw-bold mb-3">Discover Your Style with MUFRA FASHIONS</h1>
-                <p class="lead mb-4">Trendy shoes and clothing for every occasion. Quality products at unbeatable prices.</p>
-                <div class="d-flex flex-wrap gap-3">
-                    <a href="{{ url_for('categories') }}" class="btn btn-primary btn-lg">
-                        <i class="fas fa-shopping-bag me-2"></i>Shop Now
-                    </a>
-                    {% if session.user_id %}
-                    <a href="{{ url_for('account') }}" class="btn btn-outline-primary btn-lg">
-                        <i class="fas fa-user me-2"></i>My Account
-                    </a>
-                    {% else %}
-                    <a href="{{ url_for('register') }}" class="btn btn-outline-primary btn-lg">
-                        <i class="fas fa-user-plus me-2"></i>Join Now
-                    </a>
-                    {% endif %}
-                </div>
-            </div>
-            <div class="col-md-6">
-                <img src="https://images.unsplash.com/photo-1445205170230-053b83016050?ixlib=rb-1.2.1&auto=format&fit=crop&w=1000&q=80" 
-                     alt="Fashion Collection" class="img-fluid rounded shadow">
-            </div>
-        </div>
-    </div>
-</section>
+<!-- ===== FEATURED CATEGORIES – HORIZONTAL SCROLL SECTIONS ===== -->
 
-<!-- Featured Products -->
+<!-- CLOTHES SECTION -->
 <section class="featured-section mb-5">
-    <div class="container">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2 class="mb-0">Featured Products</h2>
-            <a href="{{ url_for('categories') }}" class="btn btn-outline-primary">
-                View All <i class="fas fa-arrow-right ms-2"></i>
-            </a>
-        </div>
-        
-        {% if featured_products %}
-        <div class="row g-4">
-            {% for product in featured_products %}
-            <div class="col-xl-3 col-lg-4 col-md-6">
-                <div class="card product-card h-100">
-                    <div class="position-relative">
-                        <a href="{{ url_for('product_details', product_id=product._id) if product._id else '#' }}">
-                            <!-- Product Image Display with Multiple Image Support -->
-                            <div class="product-image-container" data-product-id="{{ product._id }}">
-                                {% set product_images = get_product_images(product) %}
-                                
-                                {% if product_images|length > 1 %}
-                                    <!-- Multiple Images - Hover Effect -->
-                                    <div class="product-image-wrapper">
-                                        <!-- Primary Image -->
-                                        <img src="{{ get_product_main_image(product) }}" 
-                                             class="product-image primary-image" 
-                                             alt="{{ product.name }}"
-                                             loading="lazy"
-                                             onerror="this.src='https://via.placeholder.com/400x300?text=Product+Image'">
-                                        
-                                        <!-- Secondary Image (shown on hover) -->
-                                        <img src="{{ product_images[1].url if product_images|length > 1 else product_images[0].url }}" 
-                                             class="product-image secondary-image" 
-                                             alt="{{ product.name }} - Alternate View"
-                                             loading="lazy"
-                                             onerror="this.src='https://via.placeholder.com/400x300?text=Product+Image'">
-                                    </div>
-                                    
-                                    <!-- Image Count Badge -->
-                                    <div class="image-count-badge">
-                                        <span class="badge bg-dark bg-opacity-75">
-                                            <i class="fas fa-images me-1"></i>{{ product_images|length }}
-                                        </span>
-                                    </div>
-                                    
-                                {% else %}
-                                    <!-- Single Image -->
-                                    <img src="{{ get_product_main_image(product) }}" 
-                                         class="product-image single-image" 
-                                         alt="{{ product.name }}"
-                                         loading="lazy"
-                                         onerror="this.src='https://via.placeholder.com/400x300?text=Product+Image'">
-                                {% endif %}
-                            </div>
-                        </a>
-                        
-                        <!-- Product Status Badges -->
-                        <div class="product-badges">
-                            <!-- Featured Badge -->
-                            {% if product.featured %}
-                            <span class="badge bg-warning featured-badge">
-                                <i class="fas fa-star me-1"></i>Featured
-                            </span>
-                            {% endif %}
-                            
-                            <!-- Out of Stock Badge -->
-                            {% set stock = product.stock|default(0)|int %}
-                            {% if stock == 0 %}
-                            <div class="out-of-stock-overlay">
-                                <span class="badge bg-danger">
-                                    <i class="fas fa-ban me-1"></i>Out of Stock
-                                </span>
-                            </div>
-                            {% endif %}
-                            
-                            <!-- New Arrival Badge -->
-                            {% if product.is_new or product.created_at and (datetime.utcnow() - product.created_at).days < 7 %}
-                            <span class="badge bg-success new-badge">
-                                <i class="fas fa-bolt me-1"></i>New
-                            </span>
-                            {% endif %}
-                        </div>
-                    </div>
-                    
-                    <div class="card-body">
-                        <!-- Product Name -->
-                        <h5 class="card-title product-name">
-                            <a href="{{ url_for('product_details', product_id=product._id) if product._id else '#' }}" 
-                               class="text-decoration-none text-dark">
-                                {{ product.name|default('Unnamed Product') }}
-                            </a>
-                        </h5>
-                        
-                        <!-- Product Description -->
-                        <p class="card-text text-muted small mb-2 product-description">
-                            {{ product.description|default('')|truncate(60) }}
-                        </p>
-                        
-                        <!-- Product Rating -->
-                        <div class="rating mb-2">
-                            {% set product_rating = product.rating|default(0) %}
-                            {% set product_reviews = product.reviews_count|default(0) %}
-                            
-                            {% for i in range(5) %}
-                                {% if i < product_rating|int %}
-                                    <i class="fas fa-star text-warning"></i>
-                                {% elif i < product_rating|round(0, 'ceil')|int and product_rating % 1 >= 0.5 %}
-                                    <i class="fas fa-star-half-alt text-warning"></i>
-                                {% else %}
-                                    <i class="far fa-star text-warning"></i>
-                                {% endif %}
-                            {% endfor %}
-                            <small class="text-muted ms-2">({{ product_reviews }})</small>
-                        </div>
-                        
-                        <!-- Price and Stock Info -->
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h4 class="product-price mb-0">{{ format_price(product.price|default(0)) }}</h4>
-                                <small class="text-muted">
-                                    {% set stock_status = get_product_stock_status(product.stock|default(0)) %}
-                                    <span class="text-{{ stock_status.color }}">
-                                        <i class="fas fa-{{ 'check-circle' if stock > 0 else 'times-circle' }} me-1"></i>
-                                        {{ stock_status.text }}
-                                    </span>
-                                </small>
-                            </div>
-                            
-                            <!-- Add to Cart Button -->
-                            {% if stock > 0 and product._id %}
-                            <form action="{{ url_for('add_to_cart', product_id=product._id) }}" 
-                                  method="POST" class="add-to-cart-form">
-                                {% set sizes = product.sizes|default(['M']) %}
-                                {% set colors = product.colors|default(['Blue']) %}
-                                <input type="hidden" name="size" value="{{ sizes[0] }}">
-                                <input type="hidden" name="color" value="{{ colors[0] }}">
-                                <input type="hidden" name="quantity" value="1">
-                                <button type="submit" class="btn btn-primary btn-sm add-to-cart-btn" 
-                                        title="Add to Cart" data-product-id="{{ product._id }}">
-                                    <i class="fas fa-cart-plus"></i>
-                                </button>
-                            </form>
-                            {% elif not product._id %}
-                            <button class="btn btn-secondary btn-sm" disabled title="Product unavailable">
-                                <i class="fas fa-ban"></i>
-                            </button>
-                            {% else %}
-                            <button class="btn btn-danger btn-sm" disabled title="Out of Stock">
-                                <i class="fas fa-times"></i>
-                            </button>
-                            {% endif %}
-                        </div>
-                    </div>
-                    
-                    <!-- Product Variations Footer -->
-                    <div class="card-footer bg-white border-top-0 pt-0">
-                        <div class="d-flex justify-content-between">
-                            <!-- Sizes -->
-                            <small class="text-muted">
-                                {% set sizes = product.sizes|default([]) %}
-                                {% if sizes %}
-                                <i class="fas fa-ruler me-1"></i>
-                                {% for size in sizes[:3] %}
-                                    {{ size }}{% if not loop.last %}, {% endif %}
-                                {% endfor %}
-                                {% if sizes|length > 3 %}...{% endif %}
-                                {% endif %}
-                            </small>
-                            
-                            <!-- Colors -->
-                            <small class="text-muted">
-                                {% set colors = product.colors|default([]) %}
-                                {% if colors %}
-                                <i class="fas fa-palette me-1"></i>
-                                {% for color in colors[:2] %}
-                                    {{ color }}{% if not loop.last %}, {% endif %}
-                                {% endfor %}
-                                {% if colors|length > 2 %}...{% endif %}
-                                {% endif %}
-                            </small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-        {% else %}
-        <!-- No Featured Products Message -->
-        <div class="text-center py-5">
-            <i class="fas fa-box-open fa-3x text-muted mb-4"></i>
-            <h3>No featured products available</h3>
-            <p class="text-muted mb-4">Check back soon for new arrivals!</p>
-            <a href="{{ url_for('categories') }}" class="btn btn-primary">
-                <i class="fas fa-shopping-bag me-2"></i>Browse All Products
-            </a>
-        </div>
-        {% endif %}
+  <div class="container">
+    <div class="d-flex justify-content-between align-items-end mb-4">
+      <div>
+        <span class="section-mini-title text-uppercase fw-semibold tracking-wide text-magenta">trending now</span>
+        <h2 class="section-title display-6 fw-bold text-charcoal mb-0">👕 Clothes</h2>
+      </div>
+      <a href="{{ url_for('categories') }}?category=Clothes" class="btn btn-link text-charcoal fw-bold text-decoration-none p-0">
+        View All <i class="fas fa-arrow-right ms-2"></i>
+      </a>
     </div>
+    
+    {% set clothes_products = [] %}
+    {% for product in featured_products %}
+      {% if product.category == 'Clothes' %}
+        {% set clothes_products = clothes_products.append(product) %}
+      {% endif %}
+    {% endfor %}
+    
+    {% if clothes_products %}
+    <!-- DESKTOP GRID -->
+    <div class="d-none d-md-block">
+      <div class="row g-4 row-cols-2 row-cols-md-3 row-cols-xl-4">
+        {% for product in clothes_products[:4] %}
+        <div class="col">
+          <!-- PRODUCT CARD - FULL -->
+          <div class="card product-card h-100 border-0" data-product-id="{{ product._id }}">
+            <div class="position-relative">
+              <a href="{{ url_for('product_details', product_id=product._id) if product._id else '#' }}" class="d-block overflow-hidden rounded-top-4">
+                <div class="product-image-container" data-product-id="{{ product._id }}">
+                  {% set product_images = get_product_images(product) %}
+                  {% if product_images|length > 1 %}
+                    <div class="product-image-wrapper">
+                      <img src="{{ get_product_main_image(product) }}" 
+                           class="product-image primary-image" 
+                           alt="{{ product.name }}"
+                           loading="lazy"
+                           onerror="this.src='https://via.placeholder.com/400x300?text=Product+Image'">
+                      <img src="{{ product_images[1].url if product_images|length > 1 else product_images[0].url }}" 
+                           class="product-image secondary-image" 
+                           alt="{{ product.name }} - Alternate"
+                           loading="lazy"
+                           onerror="this.src='https://via.placeholder.com/400x300?text=Product+Image'">
+                    </div>
+                    <div class="image-count-badge">
+                      <span class="badge bg-charcoal bg-opacity-85"><i class="fas fa-images me-1"></i>{{ product_images|length }}</span>
+                    </div>
+                  {% else %}
+                    <img src="{{ get_product_main_image(product) }}" 
+                         class="product-image single-image" 
+                         alt="{{ product.name }}"
+                         loading="lazy"
+                         onerror="this.src='https://via.placeholder.com/400x300?text=Product+Image'">
+                  {% endif %}
+                </div>
+              </a>
+              
+              <div class="product-badges">
+                {% if product.featured %}
+                <span class="badge bg-cyan mb-1"><i class="fas fa-star me-1"></i>Featured</span>
+                {% endif %}
+                {% if product.is_new or (product.created_at and (datetime.utcnow() - product.created_at).days < 7) %}
+                <span class="badge bg-magenta"><i class="fas fa-bolt me-1"></i>New</span>
+                {% endif %}
+              </div>
+              
+              {% set stock = product.stock|default(0)|int %}
+              {% if stock == 0 %}
+              <div class="out-of-stock-overlay">
+                <span class="badge bg-charcoal px-3 py-2"><i class="fas fa-ban me-2"></i>Out of Stock</span>
+              </div>
+              {% endif %}
+              
+              <div class="product-quick-actions">
+                <button class="quick-view-btn" data-bs-toggle="tooltip" title="Quick view"><i class="fas fa-eye"></i></button>
+                <button class="quick-wishlist-btn" data-bs-toggle="tooltip" title="Wishlist"><i class="far fa-heart"></i></button>
+              </div>
+            </div>
+            
+            <div class="card-body">
+              <h5 class="card-title product-name mb-1">
+                <a href="{{ url_for('product_details', product_id=product._id) if product._id else '#' }}" 
+                   class="text-decoration-none text-cyan stretched-link">{{ product.name|default('Unnamed Product') }}</a>
+              </h5>
+              <p class="card-text text-muted small mb-2 product-description">{{ product.description|default('')|truncate(60) }}</p>
+              
+              <div class="rating mb-2 d-flex align-items-center">
+                {% set product_rating = product.rating|default(0) %}
+                {% set product_reviews = product.reviews_count|default(0) %}
+                <span class="star-group me-2">
+                  {% for i in range(5) %}
+                    {% if i < product_rating|int %}<i class="fas fa-star text-cyan"></i>
+                    {% elif i < (product_rating|round(0, 'ceil')|int) and product_rating % 1 >= 0.5 %}<i class="fas fa-star-half-alt text-cyan"></i>
+                    {% else %}<i class="far fa-star text-cyan"></i>
+                    {% endif %}
+                  {% endfor %}
+                </span>
+                <small class="text-muted">({{ product_reviews }})</small>
+              </div>
+              
+              <div class="d-flex justify-content-between align-items-center mt-3">
+                <div>
+                  <h4 class="product-price mb-0">{{ format_price(product.price|default(0)) }}</h4>
+                  {% set stock_status = get_product_stock_status(product.stock|default(0)) %}
+                  <span class="small fw-semibold text-{{ 'success' if stock > 0 else 'secondary' }}">
+                    <i class="fas fa-{{ 'check-circle' if stock > 0 else 'times-circle' }} me-1"></i>{{ stock_status.text }}
+                  </span>
+                </div>
+                
+                {% if stock > 0 and product._id %}
+                <form action="{{ url_for('add_to_cart', product_id=product._id) }}" method="POST" class="add-to-cart-form m-0">
+                  {% set sizes = product.sizes|default(['M']) %}
+                  {% set colors = product.colors|default(['Blue']) %}
+                  <input type="hidden" name="size" value="{{ sizes[0] if sizes and sizes|length > 0 else 'M' }}">
+                  <input type="hidden" name="color" value="{{ colors[0] if colors and colors|length > 0 else 'Blue' }}">
+                  <input type="hidden" name="quantity" value="1">
+                  <button type="submit" class="btn btn-magenta rounded-circle p-0 d-flex align-items-center justify-content-center add-to-cart-btn" 
+                          style="width:44px;height:44px;" title="Add to Cart" data-product-id="{{ product._id }}">
+                    <i class="fas fa-cart-plus fs-5"></i>
+                  </button>
+                </form>
+                {% elif not product._id %}
+                <button class="btn btn-outline-secondary rounded-circle p-0" disabled style="width:44px;height:44px;"><i class="fas fa-ban"></i></button>
+                {% else %}
+                <button class="btn btn-charcoal rounded-circle p-0" disabled style="width:44px;height:44px;"><i class="fas fa-times"></i></button>
+                {% endif %}
+              </div>
+            </div>
+            
+            <div class="card-footer bg-white border-0 pt-0 pb-3">
+              <div class="d-flex gap-3 small text-muted">
+                {% if product.sizes and product.sizes|length > 0 %}
+                <span><i class="fas fa-ruler me-1" style="color:#00ACC1;"></i> 
+                  {% for size in product.sizes[:3] %}
+                    {{ size }}{% if not loop.last %}, {% endif %}
+                  {% endfor %}
+                  {% if product.sizes|length > 3 %}...{% endif %}
+                </span>
+                {% endif %}
+                {% if product.colors and product.colors|length > 0 %}
+                <span><i class="fas fa-palette me-1" style="color:#D81B60;"></i> 
+                  {% for color in product.colors[:2] %}
+                    {{ color }}{% if not loop.last %}, {% endif %}
+                  {% endfor %}
+                  {% if product.colors|length > 2 %}...{% endif %}
+                </span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    
+    <!-- MOBILE HORIZONTAL SCROLL -->
+    <div class="d-md-none horizontal-scroll-wrapper">
+      <div class="horizontal-scroll-container">
+        {% for product in clothes_products %}
+        <div class="horizontal-scroll-item">
+          <!-- PRODUCT CARD - MOBILE -->
+          <div class="card product-card h-100 border-0" data-product-id="{{ product._id }}">
+            <div class="position-relative">
+              <a href="{{ url_for('product_details', product_id=product._id) if product._id else '#' }}" class="d-block overflow-hidden rounded-top-4">
+                <div class="product-image-container" data-product-id="{{ product._id }}">
+                  {% set product_images = get_product_images(product) %}
+                  {% if product_images|length > 1 %}
+                    <div class="product-image-wrapper">
+                      <img src="{{ get_product_main_image(product) }}" class="product-image primary-image" alt="{{ product.name }}"
+                           onerror="this.src='https://via.placeholder.com/400x300?text=Product+Image'">
+                      <img src="{{ product_images[1].url if product_images|length > 1 else product_images[0].url }}" 
+                           class="product-image secondary-image" alt="{{ product.name }} - Alternate"
+                           onerror="this.src='https://via.placeholder.com/400x300?text=Product+Image'">
+                    </div>
+                    <div class="image-count-badge">
+                      <span class="badge bg-charcoal bg-opacity-85"><i class="fas fa-images me-1"></i>{{ product_images|length }}</span>
+                    </div>
+                  {% else %}
+                    <img src="{{ get_product_main_image(product) }}" class="product-image single-image" alt="{{ product.name }}"
+                         onerror="this.src='https://via.placeholder.com/400x300?text=Product+Image'">
+                  {% endif %}
+                </div>
+              </a>
+              
+              <div class="product-badges">
+                {% if product.featured %}
+                <span class="badge bg-cyan mb-1"><i class="fas fa-star me-1"></i>Featured</span>
+                {% endif %}
+                {% if product.is_new or (product.created_at and (datetime.utcnow() - product.created_at).days < 7) %}
+                <span class="badge bg-magenta"><i class="fas fa-bolt me-1"></i>New</span>
+                {% endif %}
+              </div>
+              
+              {% set stock = product.stock|default(0)|int %}
+              {% if stock == 0 %}
+              <div class="out-of-stock-overlay">
+                <span class="badge bg-charcoal px-3 py-2"><i class="fas fa-ban me-2"></i>Out of Stock</span>
+              </div>
+              {% endif %}
+              
+              <div class="product-quick-actions">
+                <button class="quick-view-btn" data-bs-toggle="tooltip" title="Quick view"><i class="fas fa-eye"></i></button>
+                <button class="quick-wishlist-btn" data-bs-toggle="tooltip" title="Wishlist"><i class="far fa-heart"></i></button>
+              </div>
+            </div>
+            
+            <div class="card-body">
+              <h5 class="card-title product-name mb-1">
+                <a href="{{ url_for('product_details', product_id=product._id) if product._id else '#' }}" 
+                   class="text-decoration-none text-cyan stretched-link">{{ product.name|default('Unnamed Product')|truncate(30) }}</a>
+              </h5>
+              
+              <div class="d-flex justify-content-between align-items-center mt-2">
+                <div>
+                  <h4 class="product-price mb-0">{{ format_price(product.price|default(0)) }}</h4>
+                </div>
+                
+                {% if stock > 0 and product._id %}
+                <form action="{{ url_for('add_to_cart', product_id=product._id) }}" method="POST" class="add-to-cart-form m-0">
+                  <input type="hidden" name="size" value="{{ product.sizes[0] if product.sizes and product.sizes|length > 0 else 'M' }}">
+                  <input type="hidden" name="color" value="{{ product.colors[0] if product.colors and product.colors|length > 0 else 'Blue' }}">
+                  <input type="hidden" name="quantity" value="1">
+                  <button type="submit" class="btn btn-magenta rounded-circle p-0 d-flex align-items-center justify-content-center add-to-cart-btn" 
+                          style="width:40px;height:40px;" title="Add to Cart" data-product-id="{{ product._id }}">
+                    <i class="fas fa-cart-plus"></i>
+                  </button>
+                </form>
+                {% else %}
+                <button class="btn btn-outline-secondary rounded-circle p-0" disabled style="width:40px;height:40px;"><i class="fas fa-ban"></i></button>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="scroll-hint d-flex align-items-center justify-content-center mt-3">
+        <span class="small text-muted me-2">Swipe to see more clothes</span>
+        <i class="fas fa-arrow-right text-magenta"></i>
+      </div>
+    </div>
+    {% else %}
+    <div class="text-center py-4 bg-soft-magenta rounded-4">
+      <p class="text-muted mb-0">No clothes products available</p>
+    </div>
+    {% endif %}
+  </div>
 </section>
 
-<!-- Recommended Products -->
+<!-- SHOES SECTION -->
+<section class="featured-section mb-5">
+  <div class="container">
+    <div class="d-flex justify-content-between align-items-end mb-4">
+      <div>
+        <span class="section-mini-title text-uppercase fw-semibold tracking-wide text-magenta">step in style</span>
+        <h2 class="section-title display-6 fw-bold text-charcoal mb-0">👟 Shoes</h2>
+      </div>
+      <a href="{{ url_for('categories') }}?category=Shoes" class="btn btn-link text-charcoal fw-bold text-decoration-none p-0">
+        View All <i class="fas fa-arrow-right ms-2"></i>
+      </a>
+    </div>
+    
+    {% set shoes_products = [] %}
+    {% for product in featured_products %}
+      {% if product.category == 'Shoes' %}
+        {% set shoes_products = shoes_products.append(product) %}
+      {% endif %}
+    {% endfor %}
+    
+    {% if shoes_products %}
+    <!-- DESKTOP GRID -->
+    <div class="d-none d-md-block">
+      <div class="row g-4 row-cols-2 row-cols-md-3 row-cols-xl-4">
+        {% for product in shoes_products[:4] %}
+        <div class="col">
+          <!-- PRODUCT CARD - FULL -->
+          <div class="card product-card h-100 border-0" data-product-id="{{ product._id }}">
+            <div class="position-relative">
+              <a href="{{ url_for('product_details', product_id=product._id) if product._id else '#' }}" class="d-block overflow-hidden rounded-top-4">
+                <div class="product-image-container" data-product-id="{{ product._id }}">
+                  {% set product_images = get_product_images(product) %}
+                  {% if product_images|length > 1 %}
+                    <div class="product-image-wrapper">
+                      <img src="{{ get_product_main_image(product) }}" 
+                           class="product-image primary-image" 
+                           alt="{{ product.name }}"
+                           loading="lazy"
+                           onerror="this.src='https://via.placeholder.com/400x300?text=Product+Image'">
+                      <img src="{{ product_images[1].url if product_images|length > 1 else product_images[0].url }}" 
+                           class="product-image secondary-image" 
+                           alt="{{ product.name }} - Alternate"
+                           loading="lazy"
+                           onerror="this.src='https://via.placeholder.com/400x300?text=Product+Image'">
+                    </div>
+                    <div class="image-count-badge">
+                      <span class="badge bg-charcoal bg-opacity-85"><i class="fas fa-images me-1"></i>{{ product_images|length }}</span>
+                    </div>
+                  {% else %}
+                    <img src="{{ get_product_main_image(product) }}" 
+                         class="product-image single-image" 
+                         alt="{{ product.name }}"
+                         loading="lazy"
+                         onerror="this.src='https://via.placeholder.com/400x300?text=Product+Image'">
+                  {% endif %}
+                </div>
+              </a>
+              
+              <div class="product-badges">
+                {% if product.featured %}
+                <span class="badge bg-cyan mb-1"><i class="fas fa-star me-1"></i>Featured</span>
+                {% endif %}
+                {% if product.is_new or (product.created_at and (datetime.utcnow() - product.created_at).days < 7) %}
+                <span class="badge bg-magenta"><i class="fas fa-bolt me-1"></i>New</span>
+                {% endif %}
+              </div>
+              
+              {% set stock = product.stock|default(0)|int %}
+              {% if stock == 0 %}
+              <div class="out-of-stock-overlay">
+                <span class="badge bg-charcoal px-3 py-2"><i class="fas fa-ban me-2"></i>Out of Stock</span>
+              </div>
+              {% endif %}
+              
+              <div class="product-quick-actions">
+                <button class="quick-view-btn" data-bs-toggle="tooltip" title="Quick view"><i class="fas fa-eye"></i></button>
+                <button class="quick-wishlist-btn" data-bs-toggle="tooltip" title="Wishlist"><i class="far fa-heart"></i></button>
+              </div>
+            </div>
+            
+            <div class="card-body">
+              <h5 class="card-title product-name mb-1">
+                <a href="{{ url_for('product_details', product_id=product._id) if product._id else '#' }}" 
+                   class="text-decoration-none text-cyan stretched-link">{{ product.name|default('Unnamed Product') }}</a>
+              </h5>
+              <p class="card-text text-muted small mb-2 product-description">{{ product.description|default('')|truncate(60) }}</p>
+              
+              <div class="rating mb-2 d-flex align-items-center">
+                {% set product_rating = product.rating|default(0) %}
+                {% set product_reviews = product.reviews_count|default(0) %}
+                <span class="star-group me-2">
+                  {% for i in range(5) %}
+                    {% if i < product_rating|int %}<i class="fas fa-star text-cyan"></i>
+                    {% elif i < (product_rating|round(0, 'ceil')|int) and product_rating % 1 >= 0.5 %}<i class="fas fa-star-half-alt text-cyan"></i>
+                    {% else %}<i class="far fa-star text-cyan"></i>
+                    {% endif %}
+                  {% endfor %}
+                </span>
+                <small class="text-muted">({{ product_reviews }})</small>
+              </div>
+              
+              <div class="d-flex justify-content-between align-items-center mt-3">
+                <div>
+                  <h4 class="product-price mb-0">{{ format_price(product.price|default(0)) }}</h4>
+                  {% set stock_status = get_product_stock_status(product.stock|default(0)) %}
+                  <span class="small fw-semibold text-{{ 'success' if stock > 0 else 'secondary' }}">
+                    <i class="fas fa-{{ 'check-circle' if stock > 0 else 'times-circle' }} me-1"></i>{{ stock_status.text }}
+                  </span>
+                </div>
+                
+                {% if stock > 0 and product._id %}
+                <form action="{{ url_for('add_to_cart', product_id=product._id) }}" method="POST" class="add-to-cart-form m-0">
+                  {% set sizes = product.sizes|default(['M']) %}
+                  {% set colors = product.colors|default(['Blue']) %}
+                  <input type="hidden" name="size" value="{{ sizes[0] if sizes and sizes|length > 0 else 'M' }}">
+                  <input type="hidden" name="color" value="{{ colors[0] if colors and colors|length > 0 else 'Blue' }}">
+                  <input type="hidden" name="quantity" value="1">
+                  <button type="submit" class="btn btn-magenta rounded-circle p-0 d-flex align-items-center justify-content-center add-to-cart-btn" 
+                          style="width:44px;height:44px;" title="Add to Cart" data-product-id="{{ product._id }}">
+                    <i class="fas fa-cart-plus fs-5"></i>
+                  </button>
+                </form>
+                {% elif not product._id %}
+                <button class="btn btn-outline-secondary rounded-circle p-0" disabled style="width:44px;height:44px;"><i class="fas fa-ban"></i></button>
+                {% else %}
+                <button class="btn btn-charcoal rounded-circle p-0" disabled style="width:44px;height:44px;"><i class="fas fa-times"></i></button>
+                {% endif %}
+              </div>
+            </div>
+            
+            <div class="card-footer bg-white border-0 pt-0 pb-3">
+              <div class="d-flex gap-3 small text-muted">
+                {% if product.sizes and product.sizes|length > 0 %}
+                <span><i class="fas fa-ruler me-1" style="color:#00ACC1;"></i> 
+                  {% for size in product.sizes[:3] %}
+                    {{ size }}{% if not loop.last %}, {% endif %}
+                  {% endfor %}
+                  {% if product.sizes|length > 3 %}...{% endif %}
+                </span>
+                {% endif %}
+                {% if product.colors and product.colors|length > 0 %}
+                <span><i class="fas fa-palette me-1" style="color:#D81B60;"></i> 
+                  {% for color in product.colors[:2] %}
+                    {{ color }}{% if not loop.last %}, {% endif %}
+                  {% endfor %}
+                  {% if product.colors|length > 2 %}...{% endif %}
+                </span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    
+    <!-- MOBILE HORIZONTAL SCROLL -->
+    <div class="d-md-none horizontal-scroll-wrapper">
+      <div class="horizontal-scroll-container">
+        {% for product in shoes_products %}
+        <div class="horizontal-scroll-item">
+          <div class="card product-card h-100 border-0" data-product-id="{{ product._id }}">
+            <div class="position-relative">
+              <a href="{{ url_for('product_details', product_id=product._id) if product._id else '#' }}" class="d-block overflow-hidden rounded-top-4">
+                <div class="product-image-container" data-product-id="{{ product._id }}">
+                  {% set product_images = get_product_images(product) %}
+                  {% if product_images|length > 1 %}
+                    <div class="product-image-wrapper">
+                      <img src="{{ get_product_main_image(product) }}" class="product-image primary-image" alt="{{ product.name }}"
+                           onerror="this.src='https://via.placeholder.com/400x300?text=Product+Image'">
+                      <img src="{{ product_images[1].url if product_images|length > 1 else product_images[0].url }}" 
+                           class="product-image secondary-image" alt="{{ product.name }} - Alternate"
+                           onerror="this.src='https://via.placeholder.com/400x300?text=Product+Image'">
+                    </div>
+                    <div class="image-count-badge">
+                      <span class="badge bg-charcoal bg-opacity-85"><i class="fas fa-images me-1"></i>{{ product_images|length }}</span>
+                    </div>
+                  {% else %}
+                    <img src="{{ get_product_main_image(product) }}" class="product-image single-image" alt="{{ product.name }}"
+                         onerror="this.src='https://via.placeholder.com/400x300?text=Product+Image'">
+                  {% endif %}
+                </div>
+              </a>
+              
+              <div class="product-badges">
+                {% if product.featured %}
+                <span class="badge bg-cyan mb-1"><i class="fas fa-star me-1"></i>Featured</span>
+                {% endif %}
+                {% if product.is_new or (product.created_at and (datetime.utcnow() - product.created_at).days < 7) %}
+                <span class="badge bg-magenta"><i class="fas fa-bolt me-1"></i>New</span>
+                {% endif %}
+              </div>
+              
+              {% set stock = product.stock|default(0)|int %}
+              {% if stock == 0 %}
+              <div class="out-of-stock-overlay">
+                <span class="badge bg-charcoal px-3 py-2"><i class="fas fa-ban me-2"></i>Out of Stock</span>
+              </div>
+              {% endif %}
+              
+              <div class="product-quick-actions">
+                <button class="quick-view-btn" data-bs-toggle="tooltip" title="Quick view"><i class="fas fa-eye"></i></button>
+                <button class="quick-wishlist-btn" data-bs-toggle="tooltip" title="Wishlist"><i class="far fa-heart"></i></button>
+              </div>
+            </div>
+            
+            <div class="card-body">
+              <h5 class="card-title product-name mb-1">
+                <a href="{{ url_for('product_details', product_id=product._id) if product._id else '#' }}" 
+                   class="text-decoration-none text-cyan stretched-link">{{ product.name|default('Unnamed Product')|truncate(30) }}</a>
+              </h5>
+              
+              <div class="d-flex justify-content-between align-items-center mt-2">
+                <div>
+                  <h4 class="product-price mb-0">{{ format_price(product.price|default(0)) }}</h4>
+                </div>
+                
+                {% if stock > 0 and product._id %}
+                <form action="{{ url_for('add_to_cart', product_id=product._id) }}" method="POST" class="add-to-cart-form m-0">
+                  <input type="hidden" name="size" value="{{ product.sizes[0] if product.sizes and product.sizes|length > 0 else 'M' }}">
+                  <input type="hidden" name="color" value="{{ product.colors[0] if product.colors and product.colors|length > 0 else 'Blue' }}">
+                  <input type="hidden" name="quantity" value="1">
+                  <button type="submit" class="btn btn-magenta rounded-circle p-0 d-flex align-items-center justify-content-center add-to-cart-btn" 
+                          style="width:40px;height:40px;" title="Add to Cart" data-product-id="{{ product._id }}">
+                    <i class="fas fa-cart-plus"></i>
+                  </button>
+                </form>
+                {% else %}
+                <button class="btn btn-outline-secondary rounded-circle p-0" disabled style="width:40px;height:40px;"><i class="fas fa-ban"></i></button>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="scroll-hint d-flex align-items-center justify-content-center mt-3">
+        <span class="small text-muted me-2">Swipe to see more shoes</span>
+        <i class="fas fa-arrow-right text-magenta"></i>
+      </div>
+    </div>
+    {% else %}
+    <div class="text-center py-4 bg-soft-magenta rounded-4">
+      <p class="text-muted mb-0">No shoes products available</p>
+    </div>
+    {% endif %}
+  </div>
+</section>
+
+<!-- NEW ARRIVALS SECTION -->
+<section class="featured-section mb-5">
+  <div class="container">
+    <div class="d-flex justify-content-between align-items-end mb-4">
+      <div>
+        <span class="section-mini-title text-uppercase fw-semibold tracking-wide text-magenta">fresh drops</span>
+        <h2 class="section-title display-6 fw-bold text-charcoal mb-0">✨ New Arrivals</h2>
+      </div>
+      <a href="{{ url_for('categories') }}?condition=New" class="btn btn-link text-charcoal fw-bold text-decoration-none p-0">
+        View All <i class="fas fa-arrow-right ms-2"></i>
+      </a>
+    </div>
+    
+    {% set new_products = [] %}
+    {% for product in featured_products %}
+      {% if product.condition == 'New' or product.is_new or (product.created_at and (datetime.utcnow() - product.created_at).days < 14) %}
+        {% set new_products = new_products.append(product) %}
+      {% endif %}
+    {% endfor %}
+    
+    {% if new_products %}
+    <!-- DESKTOP GRID -->
+    <div class="d-none d-md-block">
+      <div class="row g-4 row-cols-2 row-cols-md-3 row-cols-xl-4">
+        {% for product in new_products[:4] %}
+        <div class="col">
+          <div class="card product-card h-100 border-0" data-product-id="{{ product._id }}">
+            <div class="position-relative">
+              <a href="{{ url_for('product_details', product_id=product._id) if product._id else '#' }}" class="d-block overflow-hidden rounded-top-4">
+                <div class="product-image-container" data-product-id="{{ product._id }}">
+                  {% set product_images = get_product_images(product) %}
+                  {% if product_images|length > 1 %}
+                    <div class="product-image-wrapper">
+                      <img src="{{ get_product_main_image(product) }}" 
+                           class="product-image primary-image" 
+                           alt="{{ product.name }}"
+                           loading="lazy"
+                           onerror="this.src='https://via.placeholder.com/400x300?text=Product+Image'">
+                      <img src="{{ product_images[1].url if product_images|length > 1 else product_images[0].url }}" 
+                           class="product-image secondary-image" 
+                           alt="{{ product.name }} - Alternate"
+                           loading="lazy"
+                           onerror="this.src='https://via.placeholder.com/400x300?text=Product+Image'">
+                    </div>
+                    <div class="image-count-badge">
+                      <span class="badge bg-charcoal bg-opacity-85"><i class="fas fa-images me-1"></i>{{ product_images|length }}</span>
+                    </div>
+                  {% else %}
+                    <img src="{{ get_product_main_image(product) }}" 
+                         class="product-image single-image" 
+                         alt="{{ product.name }}"
+                         loading="lazy"
+                         onerror="this.src='https://via.placeholder.com/400x300?text=Product+Image'">
+                  {% endif %}
+                </div>
+              </a>
+              
+              <div class="product-badges">
+                {% if product.featured %}
+                <span class="badge bg-cyan mb-1"><i class="fas fa-star me-1"></i>Featured</span>
+                {% endif %}
+                <span class="badge bg-magenta"><i class="fas fa-bolt me-1"></i>New</span>
+              </div>
+              
+              {% set stock = product.stock|default(0)|int %}
+              {% if stock == 0 %}
+              <div class="out-of-stock-overlay">
+                <span class="badge bg-charcoal px-3 py-2"><i class="fas fa-ban me-2"></i>Out of Stock</span>
+              </div>
+              {% endif %}
+              
+              <div class="product-quick-actions">
+                <button class="quick-view-btn" data-bs-toggle="tooltip" title="Quick view"><i class="fas fa-eye"></i></button>
+                <button class="quick-wishlist-btn" data-bs-toggle="tooltip" title="Wishlist"><i class="far fa-heart"></i></button>
+              </div>
+            </div>
+            
+            <div class="card-body">
+              <h5 class="card-title product-name mb-1">
+                <a href="{{ url_for('product_details', product_id=product._id) if product._id else '#' }}" 
+                   class="text-decoration-none text-cyan stretched-link">{{ product.name|default('Unnamed Product') }}</a>
+              </h5>
+              <p class="card-text text-muted small mb-2 product-description">{{ product.description|default('')|truncate(60) }}</p>
+              
+              <div class="rating mb-2 d-flex align-items-center">
+                {% set product_rating = product.rating|default(0) %}
+                {% set product_reviews = product.reviews_count|default(0) %}
+                <span class="star-group me-2">
+                  {% for i in range(5) %}
+                    {% if i < product_rating|int %}<i class="fas fa-star text-cyan"></i>
+                    {% elif i < (product_rating|round(0, 'ceil')|int) and product_rating % 1 >= 0.5 %}<i class="fas fa-star-half-alt text-cyan"></i>
+                    {% else %}<i class="far fa-star text-cyan"></i>
+                    {% endif %}
+                  {% endfor %}
+                </span>
+                <small class="text-muted">({{ product_reviews }})</small>
+              </div>
+              
+              <div class="d-flex justify-content-between align-items-center mt-3">
+                <div>
+                  <h4 class="product-price mb-0">{{ format_price(product.price|default(0)) }}</h4>
+                  {% set stock_status = get_product_stock_status(product.stock|default(0)) %}
+                  <span class="small fw-semibold text-{{ 'success' if stock > 0 else 'secondary' }}">
+                    <i class="fas fa-{{ 'check-circle' if stock > 0 else 'times-circle' }} me-1"></i>{{ stock_status.text }}
+                  </span>
+                </div>
+                
+                {% if stock > 0 and product._id %}
+                <form action="{{ url_for('add_to_cart', product_id=product._id) }}" method="POST" class="add-to-cart-form m-0">
+                  {% set sizes = product.sizes|default(['M']) %}
+                  {% set colors = product.colors|default(['Blue']) %}
+                  <input type="hidden" name="size" value="{{ sizes[0] if sizes and sizes|length > 0 else 'M' }}">
+                  <input type="hidden" name="color" value="{{ colors[0] if colors and colors|length > 0 else 'Blue' }}">
+                  <input type="hidden" name="quantity" value="1">
+                  <button type="submit" class="btn btn-magenta rounded-circle p-0 d-flex align-items-center justify-content-center add-to-cart-btn" 
+                          style="width:44px;height:44px;" title="Add to Cart" data-product-id="{{ product._id }}">
+                    <i class="fas fa-cart-plus fs-5"></i>
+                  </button>
+                </form>
+                {% else %}
+                <button class="btn btn-outline-secondary rounded-circle p-0" disabled style="width:44px;height:44px;"><i class="fas fa-ban"></i></button>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    
+    <!-- MOBILE HORIZONTAL SCROLL -->
+    <div class="d-md-none horizontal-scroll-wrapper">
+      <div class="horizontal-scroll-container">
+        {% for product in new_products %}
+        <div class="horizontal-scroll-item">
+          <div class="card product-card h-100 border-0" data-product-id="{{ product._id }}">
+            <div class="position-relative">
+              <a href="{{ url_for('product_details', product_id=product._id) if product._id else '#' }}" class="d-block overflow-hidden rounded-top-4">
+                <div class="product-image-container" data-product-id="{{ product._id }}">
+                  {% set product_images = get_product_images(product) %}
+                  {% if product_images|length > 1 %}
+                    <div class="product-image-wrapper">
+                      <img src="{{ get_product_main_image(product) }}" class="product-image primary-image" alt="{{ product.name }}"
+                           onerror="this.src='https://via.placeholder.com/400x300?text=Product+Image'">
+                      <img src="{{ product_images[1].url if product_images|length > 1 else product_images[0].url }}" 
+                           class="product-image secondary-image" alt="{{ product.name }} - Alternate"
+                           onerror="this.src='https://via.placeholder.com/400x300?text=Product+Image'">
+                    </div>
+                    <div class="image-count-badge">
+                      <span class="badge bg-charcoal bg-opacity-85"><i class="fas fa-images me-1"></i>{{ product_images|length }}</span>
+                    </div>
+                  {% else %}
+                    <img src="{{ get_product_main_image(product) }}" class="product-image single-image" alt="{{ product.name }}"
+                         onerror="this.src='https://via.placeholder.com/400x300?text=Product+Image'">
+                  {% endif %}
+                </div>
+              </a>
+              
+              <div class="product-badges">
+                {% if product.featured %}
+                <span class="badge bg-cyan mb-1"><i class="fas fa-star me-1"></i>Featured</span>
+                {% endif %}
+                <span class="badge bg-magenta"><i class="fas fa-bolt me-1"></i>New</span>
+              </div>
+              
+              {% set stock = product.stock|default(0)|int %}
+              {% if stock == 0 %}
+              <div class="out-of-stock-overlay">
+                <span class="badge bg-charcoal px-3 py-2"><i class="fas fa-ban me-2"></i>Out of Stock</span>
+              </div>
+              {% endif %}
+              
+              <div class="product-quick-actions">
+                <button class="quick-view-btn" data-bs-toggle="tooltip" title="Quick view"><i class="fas fa-eye"></i></button>
+                <button class="quick-wishlist-btn" data-bs-toggle="tooltip" title="Wishlist"><i class="far fa-heart"></i></button>
+              </div>
+            </div>
+            
+            <div class="card-body">
+              <h5 class="card-title product-name mb-1">
+                <a href="{{ url_for('product_details', product_id=product._id) if product._id else '#' }}" 
+                   class="text-decoration-none text-cyan stretched-link">{{ product.name|default('Unnamed Product')|truncate(30) }}</a>
+              </h5>
+              
+              <div class="d-flex justify-content-between align-items-center mt-2">
+                <div>
+                  <h4 class="product-price mb-0">{{ format_price(product.price|default(0)) }}</h4>
+                </div>
+                
+                {% if stock > 0 and product._id %}
+                <form action="{{ url_for('add_to_cart', product_id=product._id) }}" method="POST" class="add-to-cart-form m-0">
+                  <input type="hidden" name="size" value="{{ product.sizes[0] if product.sizes and product.sizes|length > 0 else 'M' }}">
+                  <input type="hidden" name="color" value="{{ product.colors[0] if product.colors and product.colors|length > 0 else 'Blue' }}">
+                  <input type="hidden" name="quantity" value="1">
+                  <button type="submit" class="btn btn-magenta rounded-circle p-0 d-flex align-items-center justify-content-center add-to-cart-btn" 
+                          style="width:40px;height:40px;" title="Add to Cart" data-product-id="{{ product._id }}">
+                    <i class="fas fa-cart-plus"></i>
+                  </button>
+                </form>
+                {% else %}
+                <button class="btn btn-outline-secondary rounded-circle p-0" disabled style="width:40px;height:40px;"><i class="fas fa-ban"></i></button>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="scroll-hint d-flex align-items-center justify-content-center mt-3">
+        <span class="small text-muted me-2">Swipe to see new arrivals</span>
+        <i class="fas fa-arrow-right text-magenta"></i>
+      </div>
+    </div>
+    {% else %}
+    <div class="text-center py-4 bg-soft-magenta rounded-4">
+      <p class="text-muted mb-0">No new arrivals yet</p>
+    </div>
+    {% endif %}
+  </div>
+</section>
+
+<!-- SECOND HAND SECTION -->
+<section class="featured-section mb-5">
+  <div class="container">
+    <div class="d-flex justify-content-between align-items-end mb-4">
+      <div>
+        <span class="section-mini-title text-uppercase fw-semibold tracking-wide text-magenta">sustainable style</span>
+        <h2 class="section-title display-6 fw-bold text-charcoal mb-0">🔄 Second Hand</h2>
+      </div>
+      <a href="{{ url_for('categories') }}?condition=Second+Hand" class="btn btn-link text-charcoal fw-bold text-decoration-none p-0">
+        View All <i class="fas fa-arrow-right ms-2"></i>
+      </a>
+    </div>
+    
+    {% set secondhand_products = [] %}
+    {% for product in featured_products %}
+      {% if product.condition == 'Second Hand' or product.condition == 'Used' %}
+        {% set secondhand_products = secondhand_products.append(product) %}
+      {% endif %}
+    {% endfor %}
+    
+    {% if secondhand_products %}
+    <!-- DESKTOP GRID -->
+    <div class="d-none d-md-block">
+      <div class="row g-4 row-cols-2 row-cols-md-3 row-cols-xl-4">
+        {% for product in secondhand_products[:4] %}
+        <div class="col">
+          <div class="card product-card h-100 border-0" data-product-id="{{ product._id }}">
+            <div class="position-relative">
+              <a href="{{ url_for('product_details', product_id=product._id) if product._id else '#' }}" class="d-block overflow-hidden rounded-top-4">
+                <div class="product-image-container" data-product-id="{{ product._id }}">
+                  {% set product_images = get_product_images(product) %}
+                  {% if product_images|length > 1 %}
+                    <div class="product-image-wrapper">
+                      <img src="{{ get_product_main_image(product) }}" 
+                           class="product-image primary-image" 
+                           alt="{{ product.name }}"
+                           loading="lazy"
+                           onerror="this.src='https://via.placeholder.com/400x300?text=Product+Image'">
+                      <img src="{{ product_images[1].url if product_images|length > 1 else product_images[0].url }}" 
+                           class="product-image secondary-image" 
+                           alt="{{ product.name }} - Alternate"
+                           loading="lazy"
+                           onerror="this.src='https://via.placeholder.com/400x300?text=Product+Image'">
+                    </div>
+                    <div class="image-count-badge">
+                      <span class="badge bg-charcoal bg-opacity-85"><i class="fas fa-images me-1"></i>{{ product_images|length }}</span>
+                    </div>
+                  {% else %}
+                    <img src="{{ get_product_main_image(product) }}" 
+                         class="product-image single-image" 
+                         alt="{{ product.name }}"
+                         loading="lazy"
+                         onerror="this.src='https://via.placeholder.com/400x300?text=Product+Image'">
+                  {% endif %}
+                </div>
+              </a>
+              
+              <div class="product-badges">
+                {% if product.featured %}
+                <span class="badge bg-cyan mb-1"><i class="fas fa-star me-1"></i>Featured</span>
+                {% endif %}
+                <span class="badge bg-grey-medium"><i class="fas fa-recycle me-1"></i>Pre-owned</span>
+              </div>
+              
+              {% set stock = product.stock|default(0)|int %}
+              {% if stock == 0 %}
+              <div class="out-of-stock-overlay">
+                <span class="badge bg-charcoal px-3 py-2"><i class="fas fa-ban me-2"></i>Out of Stock</span>
+              </div>
+              {% endif %}
+              
+              <div class="product-quick-actions">
+                <button class="quick-view-btn" data-bs-toggle="tooltip" title="Quick view"><i class="fas fa-eye"></i></button>
+                <button class="quick-wishlist-btn" data-bs-toggle="tooltip" title="Wishlist"><i class="far fa-heart"></i></button>
+              </div>
+            </div>
+            
+            <div class="card-body">
+              <h5 class="card-title product-name mb-1">
+                <a href="{{ url_for('product_details', product_id=product._id) if product._id else '#' }}" 
+                   class="text-decoration-none text-cyan stretched-link">{{ product.name|default('Unnamed Product') }}</a>
+              </h5>
+              <p class="card-text text-muted small mb-2 product-description">{{ product.description|default('')|truncate(60) }}</p>
+              
+              <div class="rating mb-2 d-flex align-items-center">
+                {% set product_rating = product.rating|default(0) %}
+                {% set product_reviews = product.reviews_count|default(0) %}
+                <span class="star-group me-2">
+                  {% for i in range(5) %}
+                    {% if i < product_rating|int %}<i class="fas fa-star text-cyan"></i>
+                    {% elif i < (product_rating|round(0, 'ceil')|int) and product_rating % 1 >= 0.5 %}<i class="fas fa-star-half-alt text-cyan"></i>
+                    {% else %}<i class="far fa-star text-cyan"></i>
+                    {% endif %}
+                  {% endfor %}
+                </span>
+                <small class="text-muted">({{ product_reviews }})</small>
+              </div>
+              
+              <div class="d-flex justify-content-between align-items-center mt-3">
+                <div>
+                  <h4 class="product-price mb-0">{{ format_price(product.price|default(0)) }}</h4>
+                  {% set stock_status = get_product_stock_status(product.stock|default(0)) %}
+                  <span class="small fw-semibold text-{{ 'success' if stock > 0 else 'secondary' }}">
+                    <i class="fas fa-{{ 'check-circle' if stock > 0 else 'times-circle' }} me-1"></i>{{ stock_status.text }}
+                  </span>
+                </div>
+                
+                {% if stock > 0 and product._id %}
+                <form action="{{ url_for('add_to_cart', product_id=product._id) }}" method="POST" class="add-to-cart-form m-0">
+                  {% set sizes = product.sizes|default(['M']) %}
+                  {% set colors = product.colors|default(['Blue']) %}
+                  <input type="hidden" name="size" value="{{ sizes[0] if sizes and sizes|length > 0 else 'M' }}">
+                  <input type="hidden" name="color" value="{{ colors[0] if colors and colors|length > 0 else 'Blue' }}">
+                  <input type="hidden" name="quantity" value="1">
+                  <button type="submit" class="btn btn-magenta rounded-circle p-0 d-flex align-items-center justify-content-center add-to-cart-btn" 
+                          style="width:44px;height:44px;" title="Add to Cart" data-product-id="{{ product._id }}">
+                    <i class="fas fa-cart-plus fs-5"></i>
+                  </button>
+                </form>
+                {% else %}
+                <button class="btn btn-outline-secondary rounded-circle p-0" disabled style="width:44px;height:44px;"><i class="fas fa-ban"></i></button>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    
+    <!-- MOBILE HORIZONTAL SCROLL -->
+    <div class="d-md-none horizontal-scroll-wrapper">
+      <div class="horizontal-scroll-container">
+        {% for product in secondhand_products %}
+        <div class="horizontal-scroll-item">
+          <div class="card product-card h-100 border-0" data-product-id="{{ product._id }}">
+            <div class="position-relative">
+              <a href="{{ url_for('product_details', product_id=product._id) if product._id else '#' }}" class="d-block overflow-hidden rounded-top-4">
+                <div class="product-image-container" data-product-id="{{ product._id }}">
+                  {% set product_images = get_product_images(product) %}
+                  {% if product_images|length > 1 %}
+                    <div class="product-image-wrapper">
+                      <img src="{{ get_product_main_image(product) }}" class="product-image primary-image" alt="{{ product.name }}"
+                           onerror="this.src='https://via.placeholder.com/400x300?text=Product+Image'">
+                      <img src="{{ product_images[1].url if product_images|length > 1 else product_images[0].url }}" 
+                           class="product-image secondary-image" alt="{{ product.name }} - Alternate"
+                           onerror="this.src='https://via.placeholder.com/400x300?text=Product+Image'">
+                    </div>
+                    <div class="image-count-badge">
+                      <span class="badge bg-charcoal bg-opacity-85"><i class="fas fa-images me-1"></i>{{ product_images|length }}</span>
+                    </div>
+                  {% else %}
+                    <img src="{{ get_product_main_image(product) }}" class="product-image single-image" alt="{{ product.name }}"
+                         onerror="this.src='https://via.placeholder.com/400x300?text=Product+Image'">
+                  {% endif %}
+                </div>
+              </a>
+              
+              <div class="product-badges">
+                {% if product.featured %}
+                <span class="badge bg-cyan mb-1"><i class="fas fa-star me-1"></i>Featured</span>
+                {% endif %}
+                <span class="badge bg-grey-medium"><i class="fas fa-recycle me-1"></i>Pre-owned</span>
+              </div>
+              
+              {% set stock = product.stock|default(0)|int %}
+              {% if stock == 0 %}
+              <div class="out-of-stock-overlay">
+                <span class="badge bg-charcoal px-3 py-2"><i class="fas fa-ban me-2"></i>Out of Stock</span>
+              </div>
+              {% endif %}
+              
+              <div class="product-quick-actions">
+                <button class="quick-view-btn" data-bs-toggle="tooltip" title="Quick view"><i class="fas fa-eye"></i></button>
+                <button class="quick-wishlist-btn" data-bs-toggle="tooltip" title="Wishlist"><i class="far fa-heart"></i></button>
+              </div>
+            </div>
+            
+            <div class="card-body">
+              <h5 class="card-title product-name mb-1">
+                <a href="{{ url_for('product_details', product_id=product._id) if product._id else '#' }}" 
+                   class="text-decoration-none text-cyan stretched-link">{{ product.name|default('Unnamed Product')|truncate(30) }}</a>
+              </h5>
+              
+              <div class="d-flex justify-content-between align-items-center mt-2">
+                <div>
+                  <h4 class="product-price mb-0">{{ format_price(product.price|default(0)) }}</h4>
+                </div>
+                
+                {% if stock > 0 and product._id %}
+                <form action="{{ url_for('add_to_cart', product_id=product._id) }}" method="POST" class="add-to-cart-form m-0">
+                  <input type="hidden" name="size" value="{{ product.sizes[0] if product.sizes and product.sizes|length > 0 else 'M' }}">
+                  <input type="hidden" name="color" value="{{ product.colors[0] if product.colors and product.colors|length > 0 else 'Blue' }}">
+                  <input type="hidden" name="quantity" value="1">
+                  <button type="submit" class="btn btn-magenta rounded-circle p-0 d-flex align-items-center justify-content-center add-to-cart-btn" 
+                          style="width:40px;height:40px;" title="Add to Cart" data-product-id="{{ product._id }}">
+                    <i class="fas fa-cart-plus"></i>
+                  </button>
+                </form>
+                {% else %}
+                <button class="btn btn-outline-secondary rounded-circle p-0" disabled style="width:40px;height:40px;"><i class="fas fa-ban"></i></button>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="scroll-hint d-flex align-items-center justify-content-center mt-3">
+        <span class="small text-muted me-2">Swipe to see pre-loved items</span>
+        <i class="fas fa-arrow-right text-magenta"></i>
+      </div>
+    </div>
+    {% else %}
+    <div class="text-center py-4 bg-soft-magenta rounded-4">
+      <p class="text-muted mb-0">No second hand items available</p>
+    </div>
+    {% endif %}
+  </div>
+</section>
+
+<!-- ===== RECOMMENDED – HORIZONTAL SCROLL ON MOBILE ===== -->
 {% if recommended_products %}
 <section class="recommended-section mb-5">
-    <div class="container">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2 class="mb-0">Recommended For You</h2>
-            <small class="text-muted">Based on your browsing history</small>
-        </div>
-        
-        <div class="row g-4">
-            {% for product in recommended_products %}
-            <div class="col-xl-3 col-lg-4 col-md-6">
-                <div class="card product-card h-100">
-                    <div class="position-relative">
-                        <a href="{{ url_for('product_details', product_id=product._id) if product._id else '#' }}">
-                            <!-- Recommended Product Images -->
-                            <div class="product-image-container">
-                                {% set product_images = get_product_images(product) %}
-                                
-                                {% if product_images|length > 1 %}
-                                    <!-- Multiple Images -->
-                                    <div class="product-image-wrapper">
-                                        <img src="{{ get_product_main_image(product) }}" 
-                                             class="product-image primary-image" 
-                                             alt="{{ product.name }}"
-                                             loading="lazy"
-                                             onerror="this.src='https://via.placeholder.com/400x300?text=Product+Image'">
-                                        <img src="{{ product_images[1].url if product_images|length > 1 else product_images[0].url }}" 
-                                             class="product-image secondary-image" 
-                                             alt="{{ product.name }} - Alternate"
-                                             loading="lazy"
-                                             onerror="this.src='https://via.placeholder.com/400x300?text=Product+Image'">
-                                    </div>
-                                    
-                                    <!-- Image Count Badge -->
-                                    <div class="image-count-badge">
-                                        <span class="badge bg-dark bg-opacity-75">
-                                            <i class="fas fa-images me-1"></i>{{ product_images|length }}
-                                        </span>
-                                    </div>
-                                    
-                                {% else %}
-                                    <!-- Single Image -->
-                                    <img src="{{ get_product_main_image(product) }}" 
-                                         class="product-image single-image" 
-                                         alt="{{ product.name }}"
-                                         loading="lazy"
-                                         onerror="this.src='https://via.placeholder.com/400x300?text=Product+Image'">
-                                {% endif %}
-                            </div>
-                        </a>
-                        <!-- Out of Stock Badge for recommended -->
-                        {% set stock = product.stock|default(0)|int %}
-                        {% if stock == 0 %}
-                        <div class="out-of-stock-overlay">
-                            <span class="badge bg-danger">
-                                <i class="fas fa-ban me-1"></i>Out of Stock
-                            </span>
-                        </div>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="card-body">
-                        <h5 class="card-title product-name">{{ product.name|default('Unnamed Product') }}</h5>
-                        
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h4 class="product-price mb-0">{{ format_price(product.price|default(0)) }}</h4>
-                            {% set stock_status = get_product_stock_status(product.stock|default(0)) %}
-                            <small class="text-{{ stock_status.color }}">
-                                {{ stock_status.text }}
-                            </small>
-                        </div>
-                        
-                        <div class="mt-3">
-                            {% if product._id %}
-                            <a href="{{ url_for('product_details', product_id=product._id) }}" 
-                               class="btn btn-outline-primary btn-sm w-100">
-                                <i class="fas fa-eye me-2"></i>View Details
-                            </a>
-                            {% else %}
-                            <button class="btn btn-outline-secondary btn-sm w-100" disabled>
-                                <i class="fas fa-eye me-2"></i>View Details
-                            </button>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
+  <div class="container">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+      <div>
+        <span class="section-mini-title text-uppercase fw-semibold text-magenta">just for you</span>
+        <h2 class="section-title display-6 fw-bold text-charcoal">Recommended</h2>
+      </div>
+      <span class="badge bg-light text-charcoal px-4 py-2 rounded-pill small">based on your style</span>
     </div>
+    
+    <!-- DESKTOP GRID -->
+    <div class="d-none d-md-block">
+      <div class="row g-4">
+        {% for product in recommended_products[:4] %}
+        <div class="col-md-6 col-lg-3">
+          <div class="card product-card h-100 border-0">
+            <div class="position-relative">
+              <a href="{{ url_for('product_details', product_id=product._id) if product._id else '#' }}" class="d-block">
+                <div class="product-image-container" style="height:200px;">
+                  <img src="{{ get_product_main_image(product) }}" class="product-image w-100 h-100" style="object-fit:cover;" alt="{{ product.name }}">
+                </div>
+              </a>
+              {% set stock = product.stock|default(0)|int %}
+              {% if stock == 0 %}
+              <div class="out-of-stock-overlay"><span class="badge bg-charcoal">Out of Stock</span></div>
+              {% endif %}
+            </div>
+            <div class="card-body">
+              <h5 class="product-name fw-semibold mb-2 text-cyan">{{ product.name|truncate(25) }}</h5>
+              <div class="d-flex justify-content-between align-items-center">
+                <span class="product-price fs-5">{{ format_price(product.price|default(0)) }}</span>
+                <span class="small text-muted"><i class="fas fa-shipping-fast text-cyan"></i> free</span>
+              </div>
+              <div class="mt-3">
+                {% if product._id %}
+                <a href="{{ url_for('product_details', product_id=product._id) }}" class="btn btn-outline-brand w-100 rounded-pill">
+                  <i class="fas fa-eye me-2"></i>View
+                </a>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    
+    <!-- MOBILE HORIZONTAL SCROLL -->
+    <div class="d-md-none horizontal-scroll-wrapper">
+      <div class="horizontal-scroll-container">
+        {% for product in recommended_products[:6] %}
+        <div class="horizontal-scroll-item" style="width: 260px;">
+          <div class="card product-card h-100 border-0">
+            <div class="position-relative">
+              <a href="{{ url_for('product_details', product_id=product._id) if product._id else '#' }}" class="d-block">
+                <div class="product-image-container" style="height:180px;">
+                  <img src="{{ get_product_main_image(product) }}" class="product-image w-100 h-100" style="object-fit:cover;" alt="{{ product.name }}">
+                </div>
+              </a>
+              {% set stock = product.stock|default(0)|int %}
+              {% if stock == 0 %}
+              <div class="out-of-stock-overlay"><span class="badge bg-charcoal">Out of Stock</span></div>
+              {% endif %}
+            </div>
+            <div class="card-body">
+              <h5 class="product-name fw-semibold mb-2 text-cyan">{{ product.name|truncate(20) }}</h5>
+              <div class="d-flex justify-content-between align-items-center">
+                <span class="product-price fs-6">{{ format_price(product.price|default(0)) }}</span>
+                <span class="small text-muted"><i class="fas fa-shipping-fast text-cyan"></i></span>
+              </div>
+              <div class="mt-2">
+                <a href="{{ url_for('product_details', product_id=product._id) }}" class="btn btn-outline-brand w-100 rounded-pill btn-sm">
+                  View
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="scroll-hint d-flex align-items-center justify-content-center mt-3">
+        <span class="small text-muted me-2">Swipe to see more</span>
+        <i class="fas fa-arrow-right text-magenta"></i>
+      </div>
+    </div>
+  </div>
 </section>
 {% endif %}
 
-<!-- Categories Section -->
+<!-- ===== CATEGORIES – DYNAMIC FROM BACKEND ===== -->
 <section class="categories-section mb-5">
-    <div class="container">
-        <h2 class="text-center mb-4">Shop By Category</h2>
-        <div class="row g-4">
-            <div class="col-md-3 col-sm-6">
-                <a href="{{ url_for('categories') }}?category=Shoes" class="text-decoration-none">
-                    <div class="card text-center border-0 shadow-sm h-100 hover-card">
-                        <div class="card-body py-4">
-                            <div class="category-icon mb-3">
-                                <i class="fas fa-shoe-prints fa-3x text-primary"></i>
-                            </div>
-                            <h4 class="card-title mb-2">Shoes</h4>
-                            <p class="card-text text-muted">Sports, Casual & Formal</p>
-                            <span class="badge bg-primary">Shop Now</span>
-                        </div>
-                    </div>
-                </a>
-            </div>
-            <div class="col-md-3 col-sm-6">
-                <a href="{{ url_for('categories') }}?category=Clothes" class="text-decoration-none">
-                    <div class="card text-center border-0 shadow-sm h-100 hover-card">
-                        <div class="card-body py-4">
-                            <div class="category-icon mb-3">
-                                <i class="fas fa-tshirt fa-3x text-primary"></i>
-                            </div>
-                            <h4 class="card-title mb-2">Clothes</h4>
-                            <p class="card-text text-muted">Tops, Bottoms & More</p>
-                            <span class="badge bg-primary">Shop Now</span>
-                        </div>
-                    </div>
-                </a>
-            </div>
-            <div class="col-md-3 col-sm-6">
-                <a href="{{ url_for('categories') }}?condition=New" class="text-decoration-none">
-                    <div class="card text-center border-0 shadow-sm h-100 hover-card">
-                        <div class="card-body py-4">
-                            <div class="category-icon mb-3">
-                                <i class="fas fa-tag fa-3x text-primary"></i>
-                            </div>
-                            <h4 class="card-title mb-2">New Arrivals</h4>
-                            <p class="card-text text-muted">Latest Collections</p>
-                            <span class="badge bg-primary">Shop Now</span>
-                        </div>
-                    </div>
-                </a>
-            </div>
-            <div class="col-md-3 col-sm-6">
-                <a href="{{ url_for('categories') }}?condition=Second+Hand" class="text-decoration-none">
-                    <div class="card text-center border-0 shadow-sm h-100 hover-card">
-                        <div class="card-body py-4">
-                            <div class="category-icon mb-3">
-                                <i class="fas fa-recycle fa-3x text-primary"></i>
-                            </div>
-                            <h4 class="card-title mb-2">Second Hand</h4>
-                            <p class="card-text text-muted">Quality Pre-owned Items</p>
-                            <span class="badge bg-primary">Shop Now</span>
-                        </div>
-                    </div>
-                </a>
-            </div>
-        </div>
+  <div class="container">
+    <h2 class="text-center mb-5 section-title display-6 fw-bold text-charcoal">Shop By Category</h2>
+    
+    <!-- DESKTOP GRID -->
+    <div class="d-none d-md-block">
+      <div class="row g-4">
+        {% if categories %}
+          {% for category in categories %}
+          <div class="col-md-6 col-lg-3">
+            <a href="{{ url_for('categories') }}?category={{ category.name }}" class="text-decoration-none">
+              <div class="card category-card border-0 h-100">
+                <div class="card-body text-center py-5">
+                  <div class="category-icon mx-auto mb-4">
+                    {% if category.name == 'Shoes' %}
+                      <i class="fas fa-shoe-prints fa-3x" style="color:#00ACC1;"></i>
+                    {% elif category.name == 'Clothes' %}
+                      <i class="fas fa-tshirt fa-3x" style="color:#00ACC1;"></i>
+                    {% elif category.name == 'New Arrivals' or category.name == 'New' %}
+                      <i class="fas fa-tag fa-3x" style="color:#00ACC1;"></i>
+                    {% elif category.name == 'Second Hand' or 'Second' in category.name %}
+                      <i class="fas fa-recycle fa-3x" style="color:#00ACC1;"></i>
+                    {% else %}
+                      <i class="fas fa-box fa-3x" style="color:#00ACC1;"></i>
+                    {% endif %}
+                  </div>
+                  <h4 class="card-title mb-3 text-charcoal fw-bold">{{ category.name }}</h4>
+                  <p class="card-text text-muted small">{{ category.description|default('Shop ' + category.name) }}</p>
+                  <span class="badge bg-magenta text-white px-4 py-2 mt-2 rounded-pill">shop now →</span>
+                </div>
+              </div>
+            </a>
+          </div>
+          {% endfor %}
+        {% else %}
+          {% set categories_list = [
+            {'name':'Shoes', 'icon':'fa-shoe-prints', 'desc':'Sports, Casual & Formal', 'filter':'category=Shoes'},
+            {'name':'Clothes', 'icon':'fa-tshirt', 'desc':'Tops, Bottoms & More', 'filter':'category=Clothes'},
+            {'name':'New Arrivals', 'icon':'fa-tag', 'desc':'Latest Collections', 'filter':'condition=New'},
+            {'name':'Second Hand', 'icon':'fa-recycle', 'desc':'Quality Pre-owned', 'filter':'condition=Second+Hand'}
+          ] %}
+          {% for cat in categories_list %}
+          <div class="col-md-6 col-lg-3">
+            <a href="{{ url_for('categories') }}?{{ cat.filter }}" class="text-decoration-none">
+              <div class="card category-card border-0 h-100">
+                <div class="card-body text-center py-5">
+                  <div class="category-icon mx-auto mb-4">
+                    <i class="fas {{ cat.icon }} fa-3x" style="color:#00ACC1;"></i>
+                  </div>
+                  <h4 class="card-title mb-3 text-charcoal fw-bold">{{ cat.name }}</h4>
+                  <p class="card-text text-muted small">{{ cat.desc }}</p>
+                  <span class="badge bg-magenta text-white px-4 py-2 mt-2 rounded-pill">shop now →</span>
+                </div>
+              </div>
+            </a>
+          </div>
+          {% endfor %}
+        {% endif %}
+      </div>
     </div>
+    
+    <!-- MOBILE HORIZONTAL SCROLL FOR CATEGORIES -->
+    <div class="d-md-none horizontal-scroll-wrapper">
+      <div class="horizontal-scroll-container">
+        {% if categories %}
+          {% for category in categories %}
+          <div class="horizontal-scroll-item" style="width: 240px;">
+            <a href="{{ url_for('categories') }}?category={{ category.name }}" class="text-decoration-none">
+              <div class="card category-card border-0">
+                <div class="card-body text-center py-4">
+                  <div class="category-icon mx-auto mb-3" style="width: 70px; height: 70px;">
+                    {% if category.name == 'Shoes' %}
+                      <i class="fas fa-shoe-prints fa-2x" style="color:#00ACC1;"></i>
+                    {% elif category.name == 'Clothes' %}
+                      <i class="fas fa-tshirt fa-2x" style="color:#00ACC1;"></i>
+                    {% elif category.name == 'New Arrivals' or category.name == 'New' %}
+                      <i class="fas fa-tag fa-2x" style="color:#00ACC1;"></i>
+                    {% elif category.name == 'Second Hand' or 'Second' in category.name %}
+                      <i class="fas fa-recycle fa-2x" style="color:#00ACC1;"></i>
+                    {% else %}
+                      <i class="fas fa-box fa-2x" style="color:#00ACC1;"></i>
+                    {% endif %}
+                  </div>
+                  <h4 class="card-title mb-2 text-charcoal fw-bold fs-5">{{ category.name }}</h4>
+                  <p class="card-text text-muted small">{{ category.description|default(category.name)|truncate(30) }}</p>
+                  <span class="badge bg-magenta text-white px-3 py-1 mt-2 rounded-pill small">shop now →</span>
+                </div>
+              </div>
+            </a>
+          </div>
+          {% endfor %}
+        {% else %}
+          {% set categories_list = [
+            {'name':'Shoes', 'icon':'fa-shoe-prints', 'desc':'Sports, Casual & Formal', 'filter':'category=Shoes'},
+            {'name':'Clothes', 'icon':'fa-tshirt', 'desc':'Tops, Bottoms & More', 'filter':'category=Clothes'},
+            {'name':'New Arrivals', 'icon':'fa-tag', 'desc':'Latest Collections', 'filter':'condition=New'},
+            {'name':'Second Hand', 'icon':'fa-recycle', 'desc':'Quality Pre-owned', 'filter':'condition=Second+Hand'}
+          ] %}
+          {% for cat in categories_list %}
+          <div class="horizontal-scroll-item" style="width: 240px;">
+            <a href="{{ url_for('categories') }}?{{ cat.filter }}" class="text-decoration-none">
+              <div class="card category-card border-0">
+                <div class="card-body text-center py-4">
+                  <div class="category-icon mx-auto mb-3" style="width: 70px; height: 70px;">
+                    <i class="fas {{ cat.icon }} fa-2x" style="color:#00ACC1;"></i>
+                  </div>
+                  <h4 class="card-title mb-2 text-charcoal fw-bold fs-5">{{ cat.name }}</h4>
+                  <p class="card-text text-muted small">{{ cat.desc }}</p>
+                  <span class="badge bg-magenta text-white px-3 py-1 mt-2 rounded-pill small">shop now →</span>
+                </div>
+              </div>
+            </a>
+          </div>
+          {% endfor %}
+        {% endif %}
+      </div>
+      <div class="scroll-hint d-flex align-items-center justify-content-center mt-3">
+        <span class="small text-muted me-2">Swipe to see more categories</span>
+        <i class="fas fa-arrow-right text-magenta"></i>
+      </div>
+    </div>
+  </div>
 </section>
 
-<!-- Features Section -->
+<!-- ===== FEATURES ===== -->
 <section class="features-section mb-5">
-    <div class="container">
-        <div class="row g-4">
-            <div class="col-md-4">
-                <div class="p-4 border rounded bg-white shadow-sm h-100">
-                    <div class="feature-icon mb-3">
-                        <i class="fas fa-shipping-fast fa-3x text-primary"></i>
-                    </div>
-                    <h4 class="mb-3">Free Shipping</h4>
-                    <p class="text-muted mb-0">Free delivery within Embu for orders over KES 5,000. Fast delivery across Kenya.</p>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="p-4 border rounded bg-white shadow-sm h-100">
-                    <div class="feature-icon mb-3">
-                        <i class="fas fa-undo fa-3x text-primary"></i>
-                    </div>
-                    <h4 class="mb-3">Easy Returns</h4>
-                    <p class="text-muted mb-0">2-day return policy. Items must be in good condition as taken. We make returns simple and convenient.</p>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="p-4 border rounded bg-white shadow-sm h-100">
-                    <div class="feature-icon mb-3">
-                        <i class="fas fa-shield-alt fa-3x text-primary"></i>
-                    </div>
-                    <h4 class="mb-3">Secure Payment</h4>
-                    <p class="text-muted mb-0">100% secure payment with M-Pesa, Paystack, and bank transfers. Your data is protected.</p>
-                </div>
-            </div>
+  <div class="container">
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="feature-card p-4 h-100 d-flex flex-column">
+          <div class="d-flex align-items-center gap-3 mb-3">
+            <i class="fas fa-shipping-fast fa-2x" style="color:#00ACC1;"></i>
+            <span class="badge bg-soft-magenta text-charcoal px-3 py-1 rounded-pill fw-semibold">free over 5k</span>
+          </div>
+          <h4 class="fw-bold text-charcoal h5">Free Shipping</h4>
+          <p class="text-muted small mb-0">Free delivery within Embu for orders over KES 5,000. Fast delivery across Kenya.</p>
         </div>
+      </div>
+      <div class="col-md-4">
+        <div class="feature-card p-4 h-100 d-flex flex-column">
+          <div class="d-flex align-items-center gap-3 mb-3">
+            <i class="fas fa-undo fa-2x" style="color:#00ACC1;"></i>
+            <span class="badge bg-soft-magenta text-charcoal px-3 py-1 rounded-pill fw-semibold">2‑day return</span>
+          </div>
+          <h4 class="fw-bold text-charcoal h5">Easy Returns</h4>
+          <p class="text-muted small mb-0">2-day return policy. Simple & convenient.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="feature-card p-4 h-100 d-flex flex-column">
+          <div class="d-flex align-items-center gap-3 mb-3">
+            <i class="fas fa-shield-alt fa-2x" style="color:#00ACC1;"></i>
+            <span class="badge bg-soft-magenta text-charcoal px-3 py-1 rounded-pill fw-semibold">100% secure</span>
+          </div>
+          <h4 class="fw-bold text-charcoal h5">Secure Payment</h4>
+          <p class="text-muted small mb-0">M-Pesa, Paystack, bank transfers. Your data is protected.</p>
+        </div>
+      </div>
     </div>
+  </div>
 </section>
 
-<!-- Newsletter Section -->
+<!-- ===== NEWSLETTER ===== -->
 <section class="newsletter-section mb-5">
-    <div class="container">
-        <div class="card bg-primary text-white">
-            <div class="card-body py-5">
-                <div class="row align-items-center">
-                    <div class="col-lg-8 mb-4 mb-lg-0">
-                        <h3 class="mb-3">Stay Updated with Fashion Trends</h3>
-                        <p class="mb-0">Subscribe to our newsletter and be the first to know about new arrivals, exclusive offers, and style tips.</p>
-                    </div>
-                    <div class="col-lg-4">
-                        <form class="newsletter-form">
-                            <div class="input-group">
-                                <input type="email" class="form-control" placeholder="Your email address" required>
-                                <button class="btn btn-light" type="submit">
-                                    <i class="fas fa-paper-plane"></i>
-                                </button>
-                            </div>
-                            <small class="form-text mt-2 d-block text-white-50">We respect your privacy. Unsubscribe at any time.</small>
-                        </form>
-                    </div>
-                </div>
-            </div>
+  <div class="container">
+    <div class="card border-0 brand-newsletter overflow-hidden">
+      <div class="card-body py-5 px-lg-5 position-relative z-2">
+        <div class="row align-items-center">
+          <div class="col-lg-8 mb-4 mb-lg-0 text-white">
+            <span class="badge bg-white text-charcoal px-4 py-2 rounded-pill mb-3 fw-semibold">✨ join the club</span>
+            <h3 class="mb-3 fw-bold">Stay Updated with Fashion Trends</h3>
+            <p class="mb-0 text-white-80">Subscribe and get 10% off your first order.</p>
+          </div>
+          <div class="col-lg-4">
+            <form class="newsletter-form">
+              <div class="input-group">
+                <input type="email" class="form-control border-0" placeholder="Your email" required>
+                <button class="btn bg-white text-charcoal px-4" type="submit">
+                  <i class="fas fa-paper-plane"></i>
+                </button>
+              </div>
+              <small class="form-text mt-2 d-block text-white-70 small">We respect your privacy.</small>
+            </form>
+          </div>
         </div>
+      </div>
     </div>
+  </div>
 </section>
+
+<!-- ===== LIVE NOTIFICATION ===== -->
+<div class="live-notification-container position-fixed bottom-0 start-0 m-4 z-3 d-none d-md-block">
+  <div class="live-notification bg-white shadow-sm rounded-4 p-3 d-flex align-items-center">
+    <span class="pulse-dot bg-cyan me-3"></span>
+    <span class="small fw-semibold text-charcoal"><span id="liveBuyerName">Mary</span> just bought <span id="liveProductName">Mint Sneakers</span> 🔥</span>
+  </div>
+</div>
 {% endblock %}
 
 {% block extra_css %}
+<!-- ===== STYLES ===== -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
-/* Hero Section */
-.hero-section {
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-    padding: 80px 0;
-    border-radius: 15px;
-    margin-top: 20px;
-}
+  body { font-family: 'Inter', sans-serif; background: #F9F9F9; }
+  :root {
+    --magenta: #D81B60;
+    --cyan: #00ACC1;
+    --link-blue: #2196F3;
+    --charcoal: #333333;
+    --grey-medium: #757575;
+    --bg-light: #F9F9F9;
+    --white: #FFFFFF;
+    --footer-grey: #EEEEEE;
+    --shadow-brand: 0 12px 28px -8px rgba(0,0,0,0.08);
+  }
+  .text-muted-charcoal { color: #555; }
+  .bg-soft-magenta { background-color: rgba(216,27,96,0.05); }
+  .bg-soft-cyan { background-color: rgba(0,172,193,0.05); }
 
-/* Product Card */
-.product-card {
-    transition: all 0.3s ease;
-    border: none;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+  .section-mini-title { letter-spacing: 5px; font-size: 0.8rem; color: var(--magenta); }
+  .section-title { position: relative; }
+  .section-title::after { content: ''; display: block; width: 100px; height: 4px; background: linear-gradient(90deg, var(--magenta), var(--cyan)); border-radius: 4px; margin-top: 8px; }
+  @media (max-width:768px){ 
+    .section-title::after { margin-left: auto; margin-right: auto; }
+    .section-title { text-align: center; }
+  }
+
+  .horizontal-scroll-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    padding-bottom: 8px;
+  }
+  
+  .horizontal-scroll-container {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 16px;
+    padding: 4px 4px 8px 4px;
+  }
+  
+  .horizontal-scroll-item {
+    flex: 0 0 auto;
+    width: 280px;
+    max-width: 85vw;
+  }
+  
+  .horizontal-scroll-wrapper::-webkit-scrollbar {
+    height: 4px;
+  }
+  
+  .horizontal-scroll-wrapper::-webkit-scrollbar-track {
+    background: rgba(216,27,96,0.1);
     border-radius: 10px;
-    overflow: hidden;
-}
+  }
+  
+  .horizontal-scroll-wrapper::-webkit-scrollbar-thumb {
+    background: var(--magenta);
+    border-radius: 10px;
+  }
+  
+  .scroll-hint {
+    animation: fadeInOut 2s infinite;
+  }
+  
+  @keyframes fadeInOut {
+    0% { opacity: 0.5; transform: translateX(0); }
+    50% { opacity: 1; transform: translateX(5px); }
+    100% { opacity: 0.5; transform: translateX(0); }
+  }
 
-.product-card:hover {
-    transform: translateY(-10px);
-    box-shadow: 0 15px 30px rgba(0,0,0,0.15);
-}
-
-/* Product Image Container */
-.product-image-container {
-    position: relative;
-    overflow: hidden;
-    height: 250px;
-    background-color: #f8f9fa;
-}
-
-.product-image-wrapper {
-    position: relative;
-    width: 100%;
+  .product-card { 
+    border-radius: 28px; 
+    background: var(--white); 
+    box-shadow: 0 8px 24px -8px rgba(0,0,0,0.06); 
+    transition: transform 0.3s ease, box-shadow 0.3s; 
     height: 100%;
-}
+  }
+  .product-card:hover { 
+    transform: translateY(-8px); 
+    box-shadow: 0 20px 36px -12px rgba(216,27,96,0.1); 
+  }
+  .product-image-container { 
+    height: 200px; 
+    background: #FDFDFD; 
+    border-radius: 24px 24px 0 0; 
+    overflow: hidden; 
+    position: relative; 
+  }
+  .product-image { 
+    width: 100%; 
+    height: 100%; 
+    object-fit: cover; 
+    transition: opacity 0.4s, transform 0.6s; 
+  }
+  .product-image-wrapper { 
+    position: relative; 
+    width: 100%; 
+    height: 100%; 
+  }
+  .primary-image { 
+    position: absolute; 
+    top:0; 
+    left:0; 
+    z-index:1; 
+  }
+  .secondary-image { 
+    position: absolute; 
+    top:0; 
+    left:0; 
+    opacity:0; 
+    z-index:2; 
+    transform: scale(1.1); 
+    transition: opacity 0.4s, transform 0.6s; 
+  }
+  .product-card:hover .secondary-image { 
+    opacity:1; 
+    transform:scale(1); 
+  }
+  .product-card:hover .primary-image { 
+    opacity:0; 
+    transform:scale(0.92); 
+  }
+  .product-card:hover .single-image { 
+    transform: scale(1.06); 
+  }
+  .product-quick-actions { 
+    position: absolute; 
+    top: 16px; 
+    right: 16px; 
+    display: flex; 
+    gap: 8px; 
+    opacity: 0; 
+    transition: opacity 0.25s; 
+    z-index: 25; 
+  }
+  .product-card:hover .product-quick-actions { 
+    opacity: 1; 
+  }
+  @media (max-width: 768px) {
+    .product-quick-actions { 
+      opacity: 1; 
+    }
+    .product-image-container { 
+      height: 170px; 
+    }
+  }
+  .quick-view-btn, .quick-wishlist-btn { 
+    width: 42px; 
+    height: 42px; 
+    background: var(--white); 
+    border: none; 
+    border-radius: 50%; 
+    color: var(--charcoal); 
+    box-shadow: 0 6px 14px rgba(0,0,0,0.06); 
+    transition: all 0.2s; 
+  }
+  .quick-view-btn:hover, .quick-wishlist-btn:hover { 
+    background: var(--magenta); 
+    color: white; 
+    transform: scale(1.05); 
+  }
+  .bg-magenta { background-color: var(--magenta) !important; }
+  .bg-cyan { background-color: var(--cyan) !important; }
+  .bg-charcoal { background-color: var(--charcoal) !important; }
+  .bg-grey-medium { background-color: var(--grey-medium) !important; color: white; }
+  .bg-opacity-85 { background-color: rgba(51,51,51,0.85) !important; backdrop-filter: blur(3px); }
+  .product-badges { 
+    position: absolute; 
+    top: 16px; 
+    left: 16px; 
+    z-index: 20; 
+    display: flex; 
+    flex-direction: column; 
+    gap: 6px; 
+  }
+  .product-badges .badge { 
+    font-size: 0.7rem; 
+    padding: 0.35rem 0.8rem; 
+    border-radius: 40px; 
+    font-weight: 600; 
+    box-shadow: 0 4px 10px rgba(0,0,0,0.04); 
+  }
+  .out-of-stock-overlay { 
+    position: absolute; 
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%; 
+    background: rgba(51,51,51,0.65); 
+    backdrop-filter: blur(2px); 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    z-index: 25; 
+    border-radius: 24px 24px 0 0; 
+  }
+  .product-price { 
+    background: linear-gradient(145deg, var(--magenta), #B21550); 
+    -webkit-background-clip: text; 
+    -webkit-text-fill-color: transparent; 
+    font-weight: 800; 
+    font-size: 1.3rem; 
+  }
+  .btn-magenta { 
+    background: var(--magenta); 
+    color: white; 
+    border: none; 
+    transition: background 0.2s; 
+  }
+  .btn-magenta:hover { 
+    background: #B21550; 
+  }
+  .btn-charcoal { 
+    background: var(--charcoal); 
+    color: white; 
+  }
+  .btn-outline-brand { 
+    border: 2px solid var(--magenta); 
+    color: var(--charcoal); 
+    border-radius: 40px; 
+    font-weight: 600; 
+    transition: all 0.2s; 
+  }
+  .btn-outline-brand:hover { 
+    background: var(--magenta); 
+    color: white; 
+  }
 
-.product-image {
+  .category-card { 
+    background: var(--white); 
+    border-radius: 32px; 
+    transition: transform 0.25s, box-shadow 0.3s; 
+    border: 1px solid rgba(216,27,96,0.05); 
+  }
+  .category-card:hover { 
+    transform: translateY(-10px) scale(1.01); 
+    box-shadow: 0 24px 36px -14px rgba(216,27,96,0.12); 
+  }
+  .category-icon { 
+    background: linear-gradient(145deg, #FFE0F0, #FFD0E6); 
+    width: 100px; 
+    height: 100px; 
+    border-radius: 24px; 
+    transform: rotate(45deg); 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    transition: all 0.25s; 
+  }
+  .category-card:hover .category-icon { 
+    background: linear-gradient(145deg, var(--magenta), #B21550); 
+    transform: rotate(50deg) scale(1.05); 
+  }
+  .category-icon i { 
+    transform: rotate(-45deg); 
+    transition: color 0.2s; 
+  }
+  .category-card:hover .category-icon i { 
+    color: white !important; 
+  }
+
+  .feature-card { 
+    background: var(--white); 
+    border-radius: 28px; 
+    border: 1px solid rgba(0,0,0,0.02); 
+    transition: all 0.25s; 
+  }
+  .feature-card:hover { 
+    transform: scale(1.01); 
+    box-shadow: var(--shadow-brand); 
+  }
+
+  .brand-newsletter { 
+    background: linear-gradient(145deg, #D81B60, #B21550); 
+    border-radius: 48px !important; 
+  }
+  .text-white-80 { color: rgba(255,255,255,0.85); }
+  .text-white-70 { color: rgba(255,255,255,0.75); }
+
+  .live-notification { 
+    border-left: 6px solid var(--magenta); 
+    background: var(--white); 
+    box-shadow: 0 10px 24px -10px rgba(0,0,0,0.06); 
+  }
+  .pulse-dot { 
+    width: 10px; 
+    height: 10px; 
+    border-radius: 50%; 
+    background: var(--cyan); 
+    animation: pulse-cyan 2s infinite; 
+  }
+  @keyframes pulse-cyan { 
+    0% { box-shadow: 0 0 0 0 rgba(0,172,193,0.3); } 
+    70% { box-shadow: 0 0 0 10px rgba(0,172,193,0); } 
+    100% { box-shadow: 0 0 0 0 rgba(0,172,193,0); } 
+  }
+
+  @media (max-width: 768px) {
+    .product-image-container { height: 170px; }
+    .category-icon { width: 70px; height: 70px; }
+    .category-icon i { font-size: 1.8rem; }
+    .brand-newsletter { border-radius: 32px !important; }
+    .feature-card { padding: 1.5rem !important; }
+  }
+  
+  .horizontal-scroll-item .product-card {
     width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: all 0.5s ease;
-}
-
-/* Multiple Image Hover Effect */
-.product-image-wrapper .primary-image {
-    position: absolute;
-    top: 0;
-    left: 0;
-    z-index: 1;
-}
-
-.product-image-wrapper .secondary-image {
-    position: absolute;
-    top: 0;
-    left: 0;
-    opacity: 0;
-    z-index: 2;
-    transform: scale(1.1);
-}
-
-.product-card:hover .secondary-image {
-    opacity: 1;
-    transform: scale(1);
-}
-
-.product-card:hover .primary-image {
-    opacity: 0;
-    transform: scale(0.9);
-}
-
-/* Single Image */
-.single-image {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.product-card:hover .single-image {
-    transform: scale(1.05);
-}
-
-/* Image Count Badge */
-.image-count-badge {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    z-index: 10;
-}
-
-.image-count-badge .badge {
-    backdrop-filter: blur(5px);
-    font-size: 0.75rem;
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-}
-
-/* Product Badges */
-.product-badges {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    z-index: 10;
-}
-
-.product-badges .badge {
-    font-size: 0.75rem;
-    padding: 0.25rem 0.5rem;
-    margin-bottom: 5px;
-    display: block;
-}
-
-.featured-badge {
-    background-color: #ffc107;
-    color: #000;
-}
-
-.new-badge {
-    background-color: #28a745;
-    color: #fff;
-}
-
-/* Out of Stock Overlay */
-.out-of-stock-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 15;
-}
-
-.out-of-stock-overlay .badge {
-    font-size: 0.875rem;
-    padding: 0.5rem 1rem;
-    background-color: #dc3545;
-}
-
-/* Product Details */
-.product-name {
-    font-size: 1.1rem;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-    line-height: 1.4;
-}
-
-.product-name a {
-    color: #2c3e50;
-    text-decoration: none;
-    transition: color 0.2s ease;
-}
-
-.product-name a:hover {
-    color: #3498db;
-}
-
-.product-description {
-    line-height: 1.5;
-    min-height: 42px;
-}
-
-.rating {
-    color: #ffc107;
-    font-size: 0.9rem;
-}
-
-.product-price {
-    color: #2c3e50;
-    font-weight: bold;
-    font-size: 1.25rem;
-}
-
-/* Add to Cart Button */
-.add-to-cart-btn {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
-}
-
-.add-to-cart-btn:hover {
-    transform: scale(1.1);
-    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
-}
-
-/* Categories */
-.category-icon {
-    width: 80px;
-    height: 80px;
-    background-color: #e3f2fd;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto;
-}
-
-.feature-icon {
-    width: 70px;
-    height: 70px;
-    margin: 0 auto;
-}
-
-.hover-card {
-    transition: transform 0.3s;
-}
-
-.hover-card:hover {
-    transform: translateY(-5px);
-}
-
-/* Newsletter */
-.newsletter-form .form-control {
-    border: none;
-    border-radius: 5px 0 0 5px;
-}
-
-.newsletter-form .btn {
-    border-radius: 0 5px 5px 0;
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-    .hero-section {
-        padding: 40px 0;
-        margin-top: 0;
-        border-radius: 0;
-    }
-    
-    .hero-section h1 {
-        font-size: 2rem;
-    }
-    
-    .product-image-container {
-        height: 200px;
-    }
-    
-    .product-name {
-        font-size: 1rem;
-    }
-    
-    .product-price {
-        font-size: 1.1rem;
-    }
-    
-    .add-to-cart-btn {
-        width: 36px;
-        height: 36px;
-    }
-    
-    /* Adjust for mobile bottom nav */
-    .container {
-        padding-left: 1rem;
-        padding-right: 1rem;
-    }
-}
-
-@media (max-width: 576px) {
-    .product-image-container {
-        height: 180px;
-    }
-    
-    .product-card {
-        margin-bottom: 0;
-    }
-}
-
-/* Touch device improvements */
-@media (hover: none) and (pointer: coarse) {
-    .product-card:hover {
-        transform: none;
-    }
-    
-    .product-image-wrapper .secondary-image {
-        display: none;
-    }
-    
-    .product-card:hover .primary-image {
-        opacity: 1;
-        transform: none;
-    }
-    
-    .image-count-badge {
-        opacity: 1 !important;
-    }
-}
-
-/* Animation for image loading */
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-.product-image {
-    animation: fadeIn 0.5s ease;
-}
-
-/* Toast notifications */
-.toast-container {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 9999;
-}
-
-.toast {
-    background: white;
-    border: none;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.15);
-}
-
-.toast-header.bg-success {
-    background-color: #28a745 !important;
-}
-
-.toast-header.bg-danger {
-    background-color: #dc3545 !important;
-}
-
-.toast-header.bg-warning {
-    background-color: #ffc107 !important;
-}
-
-/* Cart badge pulse animation */
-@keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.2); }
-    100% { transform: scale(1); }
-}
-
-.cart-count-badge.pulse {
-    animation: pulse 0.5s ease;
-}
-
-/* Mobile adjustments for hero and sections */
-@media (max-width: 768px) {
-    .hero-section .col-md-6:first-child {
-        text-align: center;
-        margin-bottom: 30px;
-    }
-    
-    .hero-section .d-flex {
-        justify-content: center;
-    }
-    
-    .featured-section h2,
-    .recommended-section h2,
-    .categories-section h2 {
-        font-size: 1.75rem;
-    }
-    
-    .newsletter-section .card-body {
-        text-align: center;
-    }
-    
-    .newsletter-form {
-        max-width: 400px;
-        margin: 0 auto;
-    }
-}
+    min-width: 260px;
+  }
 </style>
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-$(document).ready(function() {
-    // Add to cart with AJAX - FULLY PRESERVED
-    $('.add-to-cart-form').submit(function(e) {
-        e.preventDefault();
-        
-        const form = $(this);
-        const button = form.find('.add-to-cart-btn');
-        const productId = button.data('product-id');
-        const originalHtml = button.html();
-        
-        // Show loading state
-        button.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
-        
-        // Add loading class to card
-        const card = form.closest('.product-card');
-        card.addClass('loading');
-        
-        $.ajax({
-            type: 'POST',
-            url: form.attr('action'),
-            data: form.serialize(),
-            success: function(response) {
-                if (response.success) {
-                    // Show success animation
-                    button.html('<i class="fas fa-check"></i>');
-                    card.addClass('added-to-cart');
-                    
-                    // Show toast notification
-                    showToast('Success', response.message, 'success');
-                    
-                    // Update cart count in navbar (both desktop and mobile)
-                    const cartCount = response.cart_count || 0;
-                    $('.badge.bg-danger, .mobile-cart-badge').text(cartCount);
-                    
-                    // Pulse animation for cart badges
-                    $('.badge.bg-danger, .mobile-cart-badge').addClass('pulse');
-                    setTimeout(() => {
-                        $('.badge.bg-danger, .mobile-cart-badge').removeClass('pulse');
-                    }, 1000);
-                    
-                    // Reset button after delay
-                    setTimeout(() => {
-                        button.prop('disabled', false).html(originalHtml);
-                        card.removeClass('added-to-cart loading');
-                    }, 1500);
-                } else {
-                    showToast('Error', response.message, 'danger');
-                    button.prop('disabled', false).html(originalHtml);
-                    card.removeClass('loading');
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error('Add to cart error:', error);
-                showToast('Error', 'Network error. Please try again.', 'danger');
-                button.prop('disabled', false).html(originalHtml);
-                card.removeClass('loading');
-            }
-        });
-    });
-    
-    // Newsletter form submission
-    $('.newsletter-form').submit(function(e) {
-        e.preventDefault();
-        
-        const email = $(this).find('input[type="email"]').val();
-        const button = $(this).find('button');
-        const originalText = button.html();
-        
-        if (!isValidEmail(email)) {
-            showToast('Error', 'Please enter a valid email address', 'danger');
-            return false;
+$(document).ready(function(){
+  $('[data-bs-toggle="tooltip"]').each(function(){ new bootstrap.Tooltip(this); });
+
+  var buyers = ['Mary', 'James', 'Aisha', 'Kim', 'Wanjiku', 'Otieno'];
+  var products = ['Mint Sneakers', 'Forest Hoodie', 'Rose Bag', 'Eco Tee'];
+  setInterval(function(){
+    $('#liveBuyerName').text(buyers[Math.floor(Math.random() * buyers.length)]);
+    $('#liveProductName').text(products[Math.floor(Math.random() * products.length)]);
+    $('.live-notification').fadeIn(200).delay(3500).fadeOut(200);
+  }, 9000);
+
+  $('.quick-wishlist-btn').on('click', function(e){
+    e.preventDefault(); e.stopPropagation();
+    var icon = $(this).find('i');
+    if(icon.hasClass('far')){ 
+      icon.removeClass('far').addClass('fas text-cyan'); 
+      showToast('❤️', 'Added to wishlist', 'success'); 
+    }
+    else { 
+      icon.removeClass('fas text-cyan').addClass('far'); 
+    }
+  });
+
+  $('.quick-view-btn').on('click', function(e){ 
+    e.preventDefault(); 
+    showToast('🔍', 'Quick view coming soon', 'cyan'); 
+  });
+
+  $('.newsletter-form').submit(function(e){
+    e.preventDefault();
+    var email = $(this).find('input[type="email"]').val();
+    if(!email || !email.includes('@')) { 
+      showToast('Verification', 'Valid email required', 'warning'); 
+      return; 
+    }
+    var btn = $(this).find('button');
+    btn.html('<span class="spinner-border spinner-border-sm"></span>');
+    setTimeout(function(){
+      btn.html('<i class="fas fa-paper-plane"></i>');
+      showToast('Welcome', 'Check your inbox for 10% off!', 'success');
+      $('.newsletter-form')[0].reset();
+    }, 1300);
+  });
+
+  $('.add-to-cart-form').submit(function(e) {
+    e.preventDefault();
+    const form = $(this);
+    const button = form.find('.add-to-cart-btn');
+    const productId = button.data('product-id');
+    const originalHtml = button.html();
+    button.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
+    const card = form.closest('.product-card');
+    card.addClass('loading');
+    $.ajax({
+      type: 'POST', url: form.attr('action'), data: form.serialize(),
+      success: function(response) {
+        if (response.success) {
+          button.html('<i class="fas fa-check"></i>');
+          card.addClass('added-to-cart');
+          showToast('MUFRA FASHIONS', response.message, 'success');
+          const cartCount = response.cart_count || 0;
+          $('.badge.bg-danger, .mobile-cart-badge').text(cartCount);
+          $('.badge.bg-danger, .mobile-cart-badge').addClass('pulse');
+          setTimeout(() => { $('.badge.bg-danger, .mobile-cart-badge').removeClass('pulse'); }, 1000);
+          setTimeout(() => { button.prop('disabled', false).html(originalHtml); card.removeClass('added-to-cart loading'); }, 1500);
+        } else {
+          showToast('Notice', response.message, 'warning');
+          button.prop('disabled', false).html(originalHtml);
+          card.removeClass('loading');
         }
-        
-        button.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
-        
-        // Simulate API call
-        setTimeout(() => {
-            showToast('Success', 'Thank you for subscribing!', 'success');
-            $(this)[0].reset();
-            button.prop('disabled', false).html(originalText);
-        }, 1500);
+      },
+      error: function() {
+        showToast('Error', 'Network error. Please try again.', 'danger');
+        button.prop('disabled', false).html(originalHtml);
+        card.removeClass('loading');
+      }
     });
-    
-    // Product image lazy loading
-    if ('IntersectionObserver' in window) {
-        const imageObserver = new IntersectionObserver((entries, observer) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const img = entry.target;
-                    const src = img.getAttribute('data-src');
-                    if (src) {
-                        img.src = src;
-                        img.removeAttribute('data-src');
-                        img.classList.add('loaded');
-                        
-                        // Preload secondary image
-                        const secondarySrc = img.getAttribute('data-secondary-src');
-                        if (secondarySrc) {
-                            const secondaryImg = new Image();
-                            secondaryImg.src = secondarySrc;
-                        }
-                    }
-                    observer.unobserve(img);
-                }
-            });
-        }, {
-            rootMargin: '50px 0px',
-            threshold: 0.1
-        });
-        
-        document.querySelectorAll('.product-image[data-src]').forEach(img => {
-            imageObserver.observe(img);
-        });
-    }
-    
-    // Helper functions
-    function isValidEmail(email) {
-        const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return re.test(email);
-    }
-    
-    function showToast(title, message, type) {
-        // Remove existing toasts
-        $('.toast-container').remove();
-        
-        const toastHtml = `
-            <div class="toast-container">
-                <div class="toast show" role="alert">
-                    <div class="toast-header bg-${type} text-white">
-                        <strong class="me-auto">${title}</strong>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
-                    </div>
-                    <div class="toast-body">
-                        ${message}
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        $('body').append(toastHtml);
-        
-        // Auto remove after 3 seconds
-        setTimeout(() => {
-            $('.toast-container').fadeOut(300, function() {
-                $(this).remove();
-            });
-        }, 3000);
-    }
-    
-    // Product card click tracking (for recommendations)
-    $('.product-card').on('click', function(e) {
-        // Don't trigger if clicking on form or button
-        if ($(e.target).closest('.add-to-cart-btn, form').length) {
-            return;
-        }
-        
-        const productId = $(this).find('.add-to-cart-btn').data('product-id');
-        if (productId) {
-            console.log('Product viewed:', productId);
-        }
-    });
-    
-    // Update mobile cart badge on page load
-    const cartCount = $('.badge.bg-danger').text();
-    if (cartCount && cartCount !== '') {
-        $('.mobile-cart-badge').text(cartCount);
-    }
+  });
+
+  function showToast(title, message, type) {
+    $('.toast-container').remove();
+    const bgColor = type === 'success' ? '#D81B60' : (type === 'danger' ? '#00ACC1' : (type === 'cyan' ? '#00ACC1' : '#757575'));
+    const toastHtml = `<div class="toast-container position-fixed top-0 end-0 m-4" style="z-index:9999;"><div class="toast show" role="alert" style="border-radius: 24px; border-left: 6px solid ${bgColor};"><div class="toast-header" style="background:white;"><strong class="me-auto" style="color:#333333;">${title}</strong><button type="button" class="btn-close" data-bs-dismiss="toast"></button></div><div class="toast-body" style="color:#333333;">${message}</div></div></div>`;
+    $('body').append(toastHtml);
+    setTimeout(() => { $('.toast-container').fadeOut(300, function(){ $(this).remove(); }); }, 3500);
+  }
+
+  const cartCount = $('.badge.bg-danger').text();
+  if (cartCount && cartCount !== '') { $('.mobile-cart-badge').text(cartCount); }
 });
 </script>
 {% endblock %}
