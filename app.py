@@ -10,6 +10,8 @@ from flask import Flask, render_template, request, redirect, url_for, session, j
 from types import SimpleNamespace
 from flask_pymongo import PyMongo
 from flask_mail import Mail, Message
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
 from bson.objectid import ObjectId
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
@@ -41,8 +43,8 @@ app.config['MAIL_USE_SSL'] = os.getenv('MAIL_USE_SSL', 'False').lower() == 'true
 app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME', 'your-email@gmail.com')
 app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD', 'your-app-password')
 app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER', 'mufrafashions@gmail.com')
-app.config['MAIL_SUPPRESS_SEND'] = os.getenv('MAIL_SUPPRESS_SEND', 'False').lower() == 'true'
-
+# Force disable emails - ALWAYS TRUE regardless of environment
+app.config['MAIL_SUPPRESS_SEND'] = True
 # Paystack configuration
 PAYSTACK_PUBLIC_KEY = os.getenv('PAYSTACK_PUBLIC_KEY', 'pk_test_ba60dd518974e7639e8f78deb0d7dee3acb96133')
 PAYSTACK_SECRET_KEY = os.getenv('PAYSTACK_SECRET_KEY', 'sk_test_4d05b36c31bf5a4943a92c8ce13882a7859544bc')
@@ -103,84 +105,48 @@ def generate_otp():
 def generate_order_id():
     return 'MUFRA' + ''.join(random.choices(string.digits, k=8))
 
+import os
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
+
 def send_email(to, subject, template, **kwargs):
-    """Robust email sending for production - FIXED version"""
-    import os
-    import smtplib
-    from email.mime.text import MIMEText
-    from email.mime.multipart import MIMEMultipart
-    
-    # Check if we're in production
-    is_production = os.getenv('FLASK_ENV') == 'production' or not app.debug
-    
     print(f"\n{'='*60}")
     print(f"📧 EMAIL REQUEST:")
     print(f"   To: {to}")
     print(f"   Subject: {subject}")
-    print(f"   Production Mode: {is_production}")
-    
-    # Always log OTP for debugging
-    if 'otp' in kwargs:
-        print(f"🔐 OTP FOR {to}: {kwargs['otp']}")
-    
-    # Check if email sending is suppressed
+
     if app.config.get('MAIL_SUPPRESS_SEND', False):
-        print(f"⚠️  MAIL_SUPPRESS_SEND=True - Email suppressed")
+        print("⚠️ MAIL_SUPPRESS_SEND=True - Email suppressed")
         print(f"{'='*60}\n")
         return True
-    
+
     try:
-        # Check if credentials are configured
-        if not app.config.get('MAIL_USERNAME') or not app.config.get('MAIL_PASSWORD'):
-            print(f"⚠️  Email credentials not configured - skipping email")
-            print(f"{'='*60}\n")
-            return True
-        
-        # Create email content
-        try:
-            html_body = render_template(f'emails/{template}.html', **kwargs)
-            text_body = render_template(f'emails/{template}.txt', **kwargs)
-        except:
-            # Fallback template
-            html_body = f"""
-            <html><body>
-                <h2>{subject}</h2>
-                <p>Hello {kwargs.get('name', 'User')},</p>
-                <p>Your verification code is: <strong>{kwargs.get('otp', 'N/A')}</strong></p>
-            </body></html>
-            """
-            text_body = f"{subject}\nHello {kwargs.get('name', 'User')},\nYour verification code is: {kwargs.get('otp', 'N/A')}"
-        
-        # Create message
-        msg = MIMEMultipart('alternative')
-        msg['Subject'] = subject
-        msg['From'] = app.config['MAIL_DEFAULT_SENDER']
-        msg['To'] = to
-        
-        msg.attach(MIMEText(text_body, 'plain'))
-        msg.attach(MIMEText(html_body, 'html'))
-        
-        # Send email - FIXED: removed .settimeout()
-        try:
-            with smtplib.SMTP(app.config['MAIL_SERVER'], app.config['MAIL_PORT'], timeout=10) as server:
-                server.starttls()
-                server.login(app.config['MAIL_USERNAME'], app.config['MAIL_PASSWORD'])
-                server.send_message(msg)
-            
-            print(f"✅ Email sent successfully")
-            print(f"{'='*60}\n")
-            
-            return True
-            
-        except Exception as e:
-            print(f"❌ EMAIL SEND FAILED: {str(e)}")
-            print(f"{'='*60}\n")
-            return True  # Continue despite email failure
-        
-    except Exception as e:
-        print(f"❌ EMAIL SETUP FAILED: {str(e)}")
+        html_body = render_template(f'emails/{template}.html', **kwargs)
+        text_body = render_template(f'emails/{template}.txt', **kwargs)
+    except Exception as template_error:
+        print(f"⚠️ Template error: {template_error}, using fallback")
+        html_body = f"<p>{kwargs.get('otp','N/A')}</p>"
+        text_body = f"Your code: {kwargs.get('otp','N/A')}"
+
+    message = Mail(
+        from_email=app.config['MAIL_DEFAULT_SENDER'],
+        to_emails=to,
+        subject=subject,
+        plain_text_content=text_body,
+        html_content=html_body
+    )
+
+    try:
+        sg = SendGridAPIClient(os.environ.get('SENDGRID_API_KEY'))
+        response = sg.send(message)
+        print(f"✅ Email sent via SendGrid API, status {response.status_code}")
         print(f"{'='*60}\n")
-        return True  
+        return True
+    except Exception as e:
+        print(f"❌ SendGrid API error: {e}")
+        print(f"{'='*60}\n")
+        return True
+
 def send_verification_email(email, name, otp):
     """Send OTP verification email"""
     subject = "Verify Your Email - MUFRA FASHIONS"
@@ -600,7 +566,7 @@ def paystack_callback():
                 # Get the actual order_id from this order
                 order_id_from_metadata = order.get('order_id')
         
-        # Method 3: Search by partial order_id (some orders might have MUFRA prefix in different places)
+        # Method 3: Search by partial order_id
         if not order:
             # Extract the numeric part if it's in MUFRAXXXX format
             if order_id_from_metadata.startswith('MUFRA'):
@@ -668,27 +634,39 @@ def paystack_callback():
                     )
                     print(f"✅ Cart cleared for user: {user_id}")
                     
-                    # Send order confirmation email
+                    # Send order confirmation email - THIS IS THE IMPORTANT PART
                     user = users_collection.find_one({'_id': user_id})
-                    if user:
+                    if user and user.get('email'):
                         try:
+                            # Format items for email
+                            email_items = []
+                            for item in order.get('items', []):
+                                email_items.append({
+                                    'name': item.get('name', 'Product'),
+                                    'quantity': item.get('quantity', 1),
+                                    'price': item.get('price', 0),
+                                    'size': item.get('size', ''),
+                                    'color': item.get('color', '')
+                                })
+                            
+                            # Send the email - will use your updated send_email function
                             send_order_confirmation(
                                 email=user['email'],
                                 order_id=actual_order_id,
                                 total=order.get('total', 0),
-                                items=order.get('items', []),
+                                items=email_items,
                                 shipping_address=order.get('shipping_address', {})
                             )
-                            print(f"✅ Order confirmation email sent")
+                            print(f"✅ Order confirmation email sent to {user['email']}")
                         except Exception as email_error:
                             print(f"⚠️ Error sending email: {email_error}")
+                            # Don't fail the whole process if email fails
                 except Exception as cart_error:
                     print(f"⚠️ Error clearing cart: {cart_error}")
             
             flash('Payment successful! Your order has been confirmed.', 'success')
             print(f"✅ Redirecting to order confirmation: {actual_order_id}")
             
-            # DIRECT REDIRECT - NO COMPLEX LOGIC
             return redirect(url_for('order_confirmation', order_id=actual_order_id))
             
         else:
@@ -1496,6 +1474,19 @@ def process_checkout():
             product = products_collection.find_one({'_id': ObjectId(item['product_id'])})
             
             if product:
+                # Get product image
+                product_image = ''
+                if 'images' in product and product['images']:
+                    # Get main image or first image
+                    for img in product['images']:
+                        if img.get('is_main', False):
+                            product_image = img.get('url', '')
+                            break
+                    if not product_image and product['images']:
+                        product_image = product['images'][0].get('url', '')
+                elif 'image' in product:
+                    product_image = product['image']
+                
                 processed_item = {
                     'product_id': str(item['product_id']),
                     'name': str(product.get('name', item.get('name', 'Product'))),
@@ -1503,7 +1494,7 @@ def process_checkout():
                     'quantity': int(item.get('quantity', 1)),
                     'size': str(item.get('size', '')),
                     'color': str(item.get('color', '')),
-                    'image': str(product.get('image', item.get('image', ''))),
+                    'image': product_image,
                     'description': str(product.get('description', ''))
                 }
             else:
@@ -1515,7 +1506,8 @@ def process_checkout():
                     'quantity': int(item.get('quantity', 1)),
                     'size': str(item.get('size', '')),
                     'color': str(item.get('color', '')),
-                    'image': str(item.get('image', ''))
+                    'image': str(item.get('image', '')),
+                    'description': ''
                 }
             processed_items.append(processed_item)
         
@@ -1538,7 +1530,8 @@ def process_checkout():
         }
         
         # Save order to database
-        orders_collection.insert_one(order)
+        result = orders_collection.insert_one(order)
+        print(f"✅ Order created with ID: {order_id}")
         
         # Initialize Paystack payment
         try:
@@ -1565,7 +1558,9 @@ def process_checkout():
                     }}
                 )
                 
-                # ✅ DIRECT REDIRECT TO PAYSTACK - FULLY AUTOMATED
+                print(f"✅ Redirecting to Paystack: {authorization_url}")
+                
+                # ✅ DIRECT REDIRECT TO PAYSTACK
                 return redirect(authorization_url)
                 
             else:
@@ -1574,7 +1569,19 @@ def process_checkout():
                 if paystack_response and 'message' in paystack_response:
                     error_msg = paystack_response['message']
                 
+                print(f"❌ Paystack initialization failed: {error_msg}")
                 flash(error_msg, 'danger')
+                
+                # Update order status to failed
+                orders_collection.update_one(
+                    {'order_id': order_id},
+                    {'$set': {
+                        'payment_status': 'failed',
+                        'status': 'failed',
+                        'updated_at': datetime.now(timezone.utc)
+                    }}
+                )
+                
                 return redirect(url_for('checkout'))
                 
         except Exception as paystack_error:
@@ -1582,18 +1589,26 @@ def process_checkout():
             import traceback
             print(traceback.format_exc())
             
+            # Update order status to failed
+            orders_collection.update_one(
+                {'order_id': order_id},
+                {'$set': {
+                    'payment_status': 'failed',
+                    'status': 'failed',
+                    'updated_at': datetime.now(timezone.utc)
+                }}
+            )
+            
             flash('Payment service temporarily unavailable. Please try again later.', 'danger')
             return redirect(url_for('checkout'))
         
     except Exception as e:
-        print(f"❌ Error in process_checkout: {e}")
+        print(f"❌ CRITICAL ERROR in process_checkout: {e}")
         import traceback
         print(traceback.format_exc())
         
         flash('An error occurred during checkout. Please try again.', 'danger')
         return redirect(url_for('checkout'))
-
-
 
 @app.route('/order-confirmation/<order_id>')
 @login_required
