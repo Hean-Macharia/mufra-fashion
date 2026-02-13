@@ -15,20 +15,20 @@
                     <p class="text-white-80 mt-2 mb-0 small">Join MUFRA FASHIONS today</p>
                 </div>
                 <div class="card-body p-4 p-lg-5">
-                    <!-- Flash Messages -->
+                    <!-- Flash Messages - REWRITTEN to properly display backend flash messages -->
                     {% with messages = get_flashed_messages(with_categories=true) %}
                         {% if messages %}
                             {% for category, message in messages %}
-                                <div class="alert alert-{{ 'success' if category == 'success' else 'warning' if category == 'danger' else category }} alert-dismissible fade show mb-4 rounded-3" role="alert">
+                                <div class="alert alert-{{ 'success' if category == 'success' else 'danger' if category == 'danger' else 'warning' if category == 'warning' else 'info' }} alert-dismissible fade show mb-4 rounded-3" role="alert">
                                     <div class="d-flex align-items-center">
                                         {% if category == 'success' %}
-                                            <i class="fas fa-check-circle me-2 fs-5 text-magenta"></i>
+                                            <i class="fas fa-check-circle me-2 fs-5 text-success"></i>
                                         {% elif category == 'danger' %}
-                                            <i class="fas fa-exclamation-circle me-2 fs-5 text-cyan"></i>
+                                            <i class="fas fa-exclamation-circle me-2 fs-5 text-danger"></i>
                                         {% elif category == 'warning' %}
-                                            <i class="fas fa-exclamation-triangle me-2 fs-5 text-cyan"></i>
+                                            <i class="fas fa-exclamation-triangle me-2 fs-5 text-warning"></i>
                                         {% elif category == 'info' %}
-                                            <i class="fas fa-info-circle me-2 fs-5 text-link-blue"></i>
+                                            <i class="fas fa-info-circle me-2 fs-5 text-info"></i>
                                         {% endif %}
                                         <div class="text-charcoal">{{ message }}</div>
                                     </div>
@@ -38,7 +38,7 @@
                         {% endif %}
                     {% endwith %}
                     
-                    <!-- Instant Registration Notice -->
+                    <!-- Instant Registration Notice - Matches backend behavior -->
                     <div class="alert bg-soft-cyan border-0 mb-4 rounded-3">
                         <div class="d-flex align-items-center">
                             <div class="flex-shrink-0">
@@ -53,6 +53,7 @@
                         </div>
                     </div>
                     
+                    <!-- IMPORTANT: Standard form submission - NO AJAX -->
                     <form method="POST" action="{{ url_for('register') }}" id="registerForm">
                         <!-- Full Name -->
                         <div class="mb-3">
@@ -63,9 +64,9 @@
                                 <span class="input-group-text bg-soft-magenta text-magenta border-grey-medium">
                                     <i class="fas fa-user"></i>
                                 </span>
-                                <input type="text" class="form-control border-grey-medium" name="name" 
-                                       id="name" value="{{ request.form.name if request.form.name else '' }}" 
-                                       required placeholder="John Doe">
+                                <input type="text" class="form-control border-grey-medium {% if request.form.name %}is-valid{% endif %}" 
+                                       name="name" id="name" value="{{ request.form.name if request.form.name else '' }}" 
+                                       required placeholder="John Doe" autofocus>
                             </div>
                             <div class="form-text text-grey-medium">
                                 <i class="fas fa-info-circle me-1 text-cyan"></i>
@@ -82,8 +83,8 @@
                                 <span class="input-group-text bg-soft-cyan text-cyan border-grey-medium">
                                     <i class="fas fa-envelope"></i>
                                 </span>
-                                <input type="email" class="form-control border-grey-medium" name="email" 
-                                       id="email" value="{{ request.form.email if request.form.email else '' }}" 
+                                <input type="email" class="form-control border-grey-medium {% if request.form.email %}is-valid{% endif %}" 
+                                       name="email" id="email" value="{{ request.form.email if request.form.email else '' }}" 
                                        required placeholder="you@example.com">
                             </div>
                             <div class="form-text text-grey-medium">
@@ -101,8 +102,8 @@
                                 <span class="input-group-text bg-soft-magenta text-magenta border-grey-medium">
                                     +254
                                 </span>
-                                <input type="tel" class="form-control border-grey-medium" name="phone" 
-                                       id="phone" value="{{ request.form.phone if request.form.phone else '' }}" 
+                                <input type="tel" class="form-control border-grey-medium {% if request.form.phone %}is-valid{% endif %}" 
+                                       name="phone" id="phone" value="{{ request.form.phone if request.form.phone else '' }}" 
                                        pattern="[0-9]{9}" placeholder="712345678" maxlength="9" required>
                             </div>
                             <div class="form-text text-grey-medium">
@@ -121,7 +122,7 @@
                                     <i class="fas fa-lock"></i>
                                 </span>
                                 <input type="password" class="form-control border-grey-medium" name="password" 
-                                       id="password" required placeholder="Create a password">
+                                       id="password" required placeholder="Create a password" minlength="6">
                                 <button class="btn btn-outline-grey-medium toggle-password" type="button">
                                     <i class="fas fa-eye"></i>
                                 </button>
@@ -168,7 +169,7 @@
                         <!-- Terms and Conditions -->
                         <div class="mb-4 p-3 bg-soft-magenta rounded-3">
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="terms" required>
+                                <input class="form-check-input" type="checkbox" name="terms" id="terms" required>
                                 <label class="form-check-label small text-charcoal" for="terms">
                                     I agree to the 
                                     <a href="#" class="text-cyan hover-magenta text-decoration-none fw-semibold" data-bs-toggle="modal" data-bs-target="#termsModal">
@@ -577,11 +578,22 @@
     .alert {
         border-radius: 12px;
         border: none;
+        border-left: 6px solid;
+    }
+
+    .alert-success {
+        background-color: rgba(216,27,96,0.05);
+        border-left-color: var(--magenta-vibrant);
+    }
+
+    .alert-danger, .alert-warning {
+        background-color: rgba(0,172,193,0.05);
+        border-left-color: var(--cyan-bright);
     }
 
     .alert-info {
-        background-color: rgba(216,27,96,0.05);
-        color: var(--charcoal-dark);
+        background-color: rgba(33,150,243,0.05);
+        border-left-color: var(--link-blue);
     }
 
     /* Modal Styles */
@@ -685,42 +697,6 @@
         transform: scale(1.1);
     }
 
-    /* Toast Notifications */
-    .toast-container {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        z-index: 9999;
-    }
-
-    .toast {
-        min-width: 300px;
-        border-radius: 16px;
-        overflow: hidden;
-        box-shadow: var(--shadow-brand);
-        border-left: 6px solid;
-    }
-
-    .toast-header {
-        border-bottom: none;
-    }
-
-    .toast-header.bg-success {
-        background-color: var(--magenta-vibrant) !important;
-    }
-
-    .toast-header.bg-danger {
-        background-color: var(--cyan-bright) !important;
-    }
-
-    .toast-header.bg-warning {
-        background-color: var(--cyan-bright) !important;
-    }
-
-    .toast-header.bg-info {
-        background-color: var(--link-blue) !important;
-    }
-
     /* Responsive */
     @media (max-width: 768px) {
         .card-body {
@@ -776,7 +752,6 @@
         }
         
         .btn,
-        .toast-container,
         .modal,
         .card-footer,
         .benefit-card {
@@ -909,158 +884,82 @@ $(document).ready(function() {
     // ===== NAME VALIDATION =====
     $('#name').on('input', function() {
         const name = $(this).val();
-        if (name.length > 0) {
+        if (name.length >= 2) {
             $(this).removeClass('is-invalid').addClass('is-valid');
-        } else {
+        } else if (name.length > 0) {
             $(this).removeClass('is-valid').addClass('is-invalid');
+        } else {
+            $(this).removeClass('is-valid is-invalid');
         }
     });
 
-    // ===== FORM VALIDATION AND SUBMISSION =====
-    $('#registerForm').submit(function(e) {
-        e.preventDefault();
-        
-        const form = $(this);
-        const submitBtn = $('#registerBtn');
-        const originalText = submitBtn.html();
-        
-        // Get form data
+    // ===== FORM CLIENT-SIDE VALIDATION (Prevents submission with errors) =====
+    $('#registerForm').on('submit', function(e) {
         const name = $('#name').val();
         const email = $('#email').val();
         const phone = $('#phone').val();
         const password = $('#password').val();
         const confirm = $('#confirm_password').val();
         
-        // Validation
+        let isValid = true;
+        let errorMessage = '';
+        
+        // Name validation
         if (!name || name.length < 2) {
-            showToast('Error', 'Please enter your full name', 'danger');
+            isValid = false;
+            errorMessage = 'Please enter your full name (minimum 2 characters)';
             $('#name').focus();
-            return false;
         }
-        
-        if (!isValidEmail(email)) {
-            showToast('Error', 'Please enter a valid email address', 'danger');
+        // Email validation
+        else if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            isValid = false;
+            errorMessage = 'Please enter a valid email address';
             $('#email').focus();
-            return false;
         }
-        
-        if (!phone || phone.length !== 9 || !/^\d+$/.test(phone)) {
-            showToast('Error', 'Please enter a valid 9-digit phone number', 'danger');
+        // Phone validation
+        else if (!phone || phone.length !== 9 || !/^\d+$/.test(phone)) {
+            isValid = false;
+            errorMessage = 'Please enter a valid 9-digit phone number';
             $('#phone').focus();
-            return false;
         }
-        
-        if (password.length < 6) {
-            showToast('Error', 'Password must be at least 6 characters', 'danger');
+        // Password validation
+        else if (!password || password.length < 6) {
+            isValid = false;
+            errorMessage = 'Password must be at least 6 characters';
             $('#password').focus();
-            return false;
         }
-        
-        if (password !== confirm) {
-            showToast('Error', 'Passwords do not match', 'danger');
+        // Password match validation
+        else if (password !== confirm) {
+            isValid = false;
+            errorMessage = 'Passwords do not match';
             $('#confirm_password').focus();
-            return false;
         }
-        
-        if (!$('#terms').is(':checked')) {
-            showToast('Error', 'Please accept the terms and conditions', 'danger');
+        // Terms validation
+        else if (!$('#terms').is(':checked')) {
+            isValid = false;
+            errorMessage = 'Please accept the terms and conditions';
             $('#terms').focus();
+        }
+        
+        if (!isValid) {
+            e.preventDefault();
+            
+            // Show error toast (optional enhancement)
+            if (typeof showToast === 'function') {
+                showToast('Error', errorMessage, 'danger');
+            } else {
+                alert(errorMessage);
+            }
             return false;
         }
         
-        // Show loading state
-        submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>Creating Account...');
-        
-        // Submit form
-        $.ajax({
-            type: 'POST',
-            url: form.attr('action'),
-            data: form.serialize(),
-            success: function(response) {
-                if (response.success) {
-                    showToast('Success', 'Account created successfully! Redirecting...', 'success');
-                    
-                    // Redirect to home page
-                    setTimeout(() => {
-                        window.location.href = response.redirect_url || '/';
-                    }, 1500);
-                } else {
-                    showToast('Error', response.message || 'Registration failed. Please try again.', 'danger');
-                    submitBtn.prop('disabled', false).html(originalText);
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error('Registration error:', error);
-                
-                let errorMessage = 'Network error. Please check your connection and try again.';
-                try {
-                    const response = JSON.parse(xhr.responseText);
-                    if (response.message) {
-                        errorMessage = response.message;
-                    }
-                } catch (e) {
-                    // Use default error message
-                }
-                
-                showToast('Error', errorMessage, 'danger');
-                submitBtn.prop('disabled', false).html(originalText);
-            }
-        });
+        // Form will submit normally to backend
+        return true;
     });
-
-    // ===== EMAIL VALIDATION HELPER =====
-    function isValidEmail(email) {
-        const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return re.test(email);
-    }
-
-    // ===== TOAST NOTIFICATION FUNCTION =====
-    function showToast(title, message, type = 'info') {
-        if (window.Mufra && window.Mufra.notify) {
-            if (type === 'success') Mufra.notify.success(message);
-            else if (type === 'danger') Mufra.notify.error(message);
-            else Mufra.notify.info(message);
-            return;
-        }
-        
-        // Remove existing toasts
-        $('.toast-container').remove();
-        
-        const icon = type === 'success' ? 'check-circle' : 
-                    type === 'danger' ? 'exclamation-circle' : 
-                    type === 'warning' ? 'exclamation-triangle' : 'info-circle';
-        
-        const bgColor = type === 'success' ? 'var(--magenta-vibrant)' : 
-                       type === 'danger' ? 'var(--cyan-bright)' : 'var(--link-blue)';
-        
-        const toastHtml = `
-            <div class="toast-container">
-                <div class="toast show" role="alert" style="border-left: 6px solid ${bgColor};">
-                    <div class="toast-header bg-${type} text-white">
-                        <i class="fas fa-${icon} me-2"></i>
-                        <strong class="me-auto">${title}</strong>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
-                    </div>
-                    <div class="toast-body">
-                        ${message}
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        $('body').append(toastHtml);
-        
-        // Auto remove after 5 seconds
-        setTimeout(() => {
-            $('.toast-container').fadeOut(300, function() {
-                $(this).remove();
-            });
-        }, 5000);
-    }
 
     // ===== INITIAL FOCUS =====
     $('#name').focus();
-
+    
     // ===== KEYBOARD SHORTCUTS =====
     $(document).keydown(function(e) {
         // Alt + N to focus name
@@ -1078,26 +977,44 @@ $(document).ready(function() {
             e.preventDefault();
             $('#phone').focus();
         }
-        // Alt + S to submit form
-        if (e.altKey && e.key === 's') {
-            e.preventDefault();
-            $('#registerBtn').click();
-        }
     });
-
-    // ===== CLEAR FORM ON PAGE UNLOAD =====
-    $(window).on('beforeunload', function() {
-        // Clear sensitive data
-        $('#password').val('');
-        $('#confirm_password').val('');
-    });
-
-    // ===== PRE-FILL FROM URL PARAMETERS (for testing) =====
-    const urlParams = new URLSearchParams(window.location.search);
-    const testEmail = urlParams.get('email');
-    if (testEmail) {
-        $('#email').val(testEmail);
-    }
+    
+    // ===== SIMPLE TOAST FUNCTION (Optional enhancement) =====
+    window.showToast = function(title, message, type = 'info') {
+        // Remove existing toasts
+        $('.toast-container').remove();
+        
+        const icon = type === 'success' ? 'check-circle' : 
+                    type === 'danger' ? 'exclamation-circle' : 
+                    type === 'warning' ? 'exclamation-triangle' : 'info-circle';
+        
+        const bgColor = type === 'success' ? '#D81B60' : 
+                       type === 'danger' ? '#00ACC1' : '#2196F3';
+        
+        const toastHtml = `
+            <div class="toast-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999;">
+                <div class="toast show" role="alert" style="min-width: 300px; border-radius: 16px; overflow: hidden; box-shadow: var(--shadow-brand); border-left: 6px solid ${bgColor};">
+                    <div class="toast-header bg-${type} text-white" style="background-color: ${bgColor} !important; border-bottom: none;">
+                        <i class="fas fa-${icon} me-2"></i>
+                        <strong class="me-auto">${title}</strong>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+                    </div>
+                    <div class="toast-body" style="background: white;">
+                        ${message}
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        $('body').append(toastHtml);
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            $('.toast-container').fadeOut(300, function() {
+                $(this).remove();
+            });
+        }, 5000);
+    };
 });
 </script>
 {% endblock %}

@@ -15,20 +15,20 @@
                     <p class="text-white-80 mt-2 mb-0 small">Login to your MUFRA FASHIONS account</p>
                 </div>
                 <div class="card-body p-4 p-lg-5">
-                    <!-- Flash Messages -->
+                    <!-- Flash Messages - REWRITTEN to properly display backend flash messages -->
                     {% with messages = get_flashed_messages(with_categories=true) %}
                         {% if messages %}
                             {% for category, message in messages %}
-                                <div class="alert alert-{{ 'success' if category == 'success' else 'warning' if category == 'danger' else category }} alert-dismissible fade show mb-4 rounded-3" role="alert">
+                                <div class="alert alert-{{ 'success' if category == 'success' else 'danger' if category == 'danger' else 'warning' if category == 'warning' else 'info' }} alert-dismissible fade show mb-4 rounded-3" role="alert">
                                     <div class="d-flex align-items-center">
                                         {% if category == 'success' %}
-                                            <i class="fas fa-check-circle me-2 fs-5 text-magenta"></i>
+                                            <i class="fas fa-check-circle me-2 fs-5 text-success"></i>
                                         {% elif category == 'danger' %}
-                                            <i class="fas fa-exclamation-circle me-2 fs-5 text-cyan"></i>
+                                            <i class="fas fa-exclamation-circle me-2 fs-5 text-danger"></i>
                                         {% elif category == 'warning' %}
-                                            <i class="fas fa-exclamation-triangle me-2 fs-5 text-cyan"></i>
+                                            <i class="fas fa-exclamation-triangle me-2 fs-5 text-warning"></i>
                                         {% elif category == 'info' %}
-                                            <i class="fas fa-info-circle me-2 fs-5 text-link-blue"></i>
+                                            <i class="fas fa-info-circle me-2 fs-5 text-info"></i>
                                         {% endif %}
                                         <div class="text-charcoal">{{ message }}</div>
                                     </div>
@@ -38,6 +38,7 @@
                         {% endif %}
                     {% endwith %}
                     
+                    <!-- IMPORTANT: Standard form submission - NO AJAX -->
                     <form method="POST" action="{{ url_for('login') }}" id="loginForm">
                         <div class="mb-4">
                             <label class="form-label fw-bold text-charcoal">Email Address <span class="text-magenta">*</span></label>
@@ -45,9 +46,9 @@
                                 <span class="input-group-text bg-soft-magenta text-magenta border-grey-medium">
                                     <i class="fas fa-envelope"></i>
                                 </span>
-                                <input type="email" class="form-control border-grey-medium" name="email" 
-                                       id="email" value="{{ request.form.email if request.form.email else '' }}" 
-                                       required placeholder="you@example.com">
+                                <input type="email" class="form-control border-grey-medium {% if request.form.email %}is-valid{% endif %}" 
+                                       name="email" id="email" value="{{ request.form.email if request.form.email else '' }}" 
+                                       required placeholder="you@example.com" autofocus>
                             </div>
                             <div class="form-text text-grey-medium">
                                 <i class="fas fa-info-circle me-1 text-cyan"></i>
@@ -76,7 +77,7 @@
                         
                         <div class="mb-4 d-flex justify-content-between align-items-center">
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="remember">
+                                <input class="form-check-input" type="checkbox" name="remember" id="remember">
                                 <label class="form-check-label text-charcoal small" for="remember">
                                     Remember me
                                 </label>
@@ -94,41 +95,23 @@
                             </button>
                         </div>
                         
-                        <!-- Demo Credentials -->
+                        <!-- Demo Credentials - UPDATED to match your actual backend -->
                         <div class="mt-4 p-3 bg-soft-cyan rounded-3">
                             <p class="small mb-2 fw-bold text-charcoal">
                                 <i class="fas fa-flask me-2 text-cyan"></i>Demo Credentials:
                             </p>
                             <div class="row g-2">
-                                <div class="col-md-6">
+                                <div class="col-md-12">
                                     <div class="d-flex align-items-center">
                                         <span class="badge bg-cyan me-2">Admin</span>
                                         <span class="small text-charcoal">admin@mufra.com</span>
                                     </div>
                                     <div class="small text-grey-medium ms-4">Password: admin123</div>
                                 </div>
-                                <div class="col-md-6">
-                                    <div class="d-flex align-items-center">
-                                        <span class="badge bg-magenta me-2">Customer</span>
-                                        <span class="small text-charcoal">customer@example.com</span>
-                                    </div>
-                                    <div class="small text-grey-medium ms-4">Password: customer123</div>
-                                </div>
                             </div>
                         </div>
                         
                         <hr class="my-4" style="border-color: rgba(117,117,117,0.2);">
-                        
-                        <!-- Social Login -->
-                        <div class="text-center">
-                            <p class="text-grey-medium mb-3 small fw-semibold">Or continue with</p>
-                            <div class="d-grid gap-2">
-                                <button type="button" class="btn btn-outline-magenta" id="googleLoginBtn" disabled>
-                                    <i class="fab fa-google me-2"></i> Google
-                                    <span class="badge bg-soft-magenta text-magenta ms-2 small">Coming Soon</span>
-                                </button>
-                            </div>
-                        </div>
                         
                         <div class="text-center mt-4 pt-3 border-top border-grey-medium border-opacity-25">
                             <p class="mb-0 text-charcoal">
@@ -170,14 +153,14 @@
                         Enter your email address and we'll send you a secure link to reset your password.
                     </p>
                 </div>
-                <form id="resetPasswordForm">
+                <form method="POST" action="{{ url_for('forgot_password') }}" id="resetPasswordForm">
                     <div class="mb-3">
                         <label class="form-label fw-bold text-charcoal">Email Address <span class="text-magenta">*</span></label>
                         <div class="input-group">
                             <span class="input-group-text bg-soft-magenta text-magenta border-grey-medium">
                                 <i class="fas fa-envelope"></i>
                             </span>
-                            <input type="email" class="form-control border-grey-medium" id="resetEmail" 
+                            <input type="email" class="form-control border-grey-medium" name="email" id="resetEmail" 
                                    required placeholder="you@example.com">
                         </div>
                     </div>
@@ -412,42 +395,6 @@
         to { transform: rotate(360deg); }
     }
 
-    /* Toast Notifications */
-    .toast-container {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        z-index: 9999;
-    }
-
-    .toast {
-        min-width: 300px;
-        border-radius: 16px;
-        overflow: hidden;
-        box-shadow: var(--shadow-brand);
-        border-left: 6px solid;
-    }
-
-    .toast-header {
-        border-bottom: none;
-    }
-
-    .toast-header.bg-success {
-        background-color: var(--magenta-vibrant) !important;
-    }
-
-    .toast-header.bg-danger {
-        background-color: var(--cyan-bright) !important;
-    }
-
-    .toast-header.bg-warning {
-        background-color: var(--cyan-bright) !important;
-    }
-
-    .toast-header.bg-info {
-        background-color: var(--link-blue) !important;
-    }
-
     /* Alert Styles */
     .alert {
         border-radius: 12px;
@@ -616,7 +563,6 @@
         }
         
         .btn,
-        .toast-container,
         .modal {
             display: none !important;
         }
@@ -641,83 +587,6 @@ $(document).ready(function() {
         }
     });
     
-    // ===== LOGIN FORM SUBMISSION =====
-    $('#loginForm').submit(function(e) {
-        e.preventDefault();
-        
-        const form = $(this);
-        const submitBtn = $('#loginBtn');
-        const originalText = submitBtn.html();
-        
-        // Validation
-        const email = $('#email').val();
-        const password = $('#password').val();
-        
-        if (!isValidEmail(email)) {
-            showToast('Error', 'Please enter a valid email address', 'danger');
-            $('#email').focus();
-            return false;
-        }
-        
-        if (!password || password.length < 6) {
-            showToast('Error', 'Password must be at least 6 characters', 'danger');
-            $('#password').focus();
-            return false;
-        }
-        
-        // Show loading state
-        submitBtn.prop('disabled', true).html('<span class="spinner"></span> Logging in...');
-        
-        // Submit form
-        $.ajax({
-            type: 'POST',
-            url: form.attr('action'),
-            data: form.serialize(),
-            success: function(response) {
-                if (response.success) {
-                    showToast('Success', 'Login successful! Redirecting...', 'success');
-                    
-                    // Save remember me
-                    if ($('#remember').is(':checked')) {
-                        localStorage.setItem('rememberEmail', $('#email').val());
-                    } else {
-                        localStorage.removeItem('rememberEmail');
-                    }
-                    
-                    // Redirect to appropriate page
-                    setTimeout(() => {
-                        if (response.redirect_url) {
-                            window.location.href = response.redirect_url;
-                        } else if (response.user_role === 'admin') {
-                            window.location.href = "{{ url_for('admin_dashboard') }}";
-                        } else {
-                            window.location.href = "{{ url_for('home') }}";
-                        }
-                    }, 1500);
-                } else {
-                    showToast('Error', response.message || 'Invalid email or password', 'danger');
-                    submitBtn.prop('disabled', false).html(originalText);
-                }
-            },
-            error: function(xhr, status, error) {
-                console.error('Login error:', error);
-                
-                let errorMessage = 'Network error. Please try again.';
-                try {
-                    const response = JSON.parse(xhr.responseText);
-                    if (response.message) {
-                        errorMessage = response.message;
-                    }
-                } catch (e) {
-                    // Use default error message
-                }
-                
-                showToast('Error', errorMessage, 'danger');
-                submitBtn.prop('disabled', false).html(originalText);
-            }
-        });
-    });
-    
     // ===== REMEMBER ME FUNCTIONALITY =====
     const savedEmail = localStorage.getItem('rememberEmail');
     if (savedEmail) {
@@ -725,131 +594,54 @@ $(document).ready(function() {
         $('#remember').prop('checked', true);
     }
     
-    // ===== EMAIL VALIDATION =====
-    function isValidEmail(email) {
-        const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return re.test(email);
-    }
+    // Save remember me preference on form submit
+    $('#loginForm').on('submit', function() {
+        if ($('#remember').is(':checked')) {
+            localStorage.setItem('rememberEmail', $('#email').val());
+        } else {
+            localStorage.removeItem('rememberEmail');
+        }
+    });
     
-    // Real-time email validation
+    // ===== EMAIL VALIDATION =====
     $('#email').on('input', function() {
         const email = $(this).val();
-        if (email && isValidEmail(email)) {
-            $(this).removeClass('is-invalid').addClass('is-valid');
-        } else if (email) {
-            $(this).removeClass('is-valid').addClass('is-invalid');
+        const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        
+        if (email.length > 0) {
+            if (isValid) {
+                $(this).removeClass('is-invalid').addClass('is-valid');
+            } else {
+                $(this).removeClass('is-valid').addClass('is-invalid');
+            }
         } else {
             $(this).removeClass('is-valid is-invalid');
         }
     });
     
-    // Real-time password validation
+    // ===== PASSWORD VALIDATION =====
     $('#password').on('input', function() {
         const password = $(this).val();
-        if (password && password.length >= 6) {
+        if (password.length >= 6) {
             $(this).removeClass('is-invalid').addClass('is-valid');
-        } else if (password) {
+        } else if (password.length > 0) {
             $(this).removeClass('is-valid').addClass('is-invalid');
         } else {
             $(this).removeClass('is-valid is-invalid');
         }
     });
     
-    // ===== TOAST NOTIFICATION =====
-    function showToast(title, message, type = 'info') {
-        if (window.Mufra && window.Mufra.notify) {
-            if (type === 'success') Mufra.notify.success(message);
-            else if (type === 'danger') Mufra.notify.error(message);
-            else Mufra.notify.info(message);
-            return;
-        }
-        
-        // Remove existing toasts
-        $('.toast-container').remove();
-        
-        const icon = type === 'success' ? 'check-circle' : 
-                    type === 'danger' ? 'exclamation-circle' : 
-                    type === 'warning' ? 'exclamation-triangle' : 'info-circle';
-        
-        const bgColor = type === 'success' ? 'var(--magenta-vibrant)' : 
-                       type === 'danger' ? 'var(--cyan-bright)' : 'var(--link-blue)';
-        
-        const toastHtml = `
-            <div class="toast-container">
-                <div class="toast show" role="alert" style="border-left: 6px solid ${bgColor};">
-                    <div class="toast-header bg-${type} text-white">
-                        <i class="fas fa-${icon} me-2"></i>
-                        <strong class="me-auto">${title}</strong>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
-                    </div>
-                    <div class="toast-body">
-                        ${message}
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        $('body').append(toastHtml);
-        
-        // Auto remove after 5 seconds
-        setTimeout(() => {
-            $('.toast-container').fadeOut(300, function() {
-                $(this).remove();
-            });
-        }, 5000);
-    }
-    
-    // ===== FORGOT PASSWORD MODAL =====
-    $('#resetPasswordForm').submit(function(e) {
-        e.preventDefault();
-        
-        const email = $('#resetEmail').val();
-        const submitBtn = $('#resetPasswordBtn');
-        const originalText = submitBtn.html();
-        
-        if (!isValidEmail(email)) {
-            showToast('Error', 'Please enter a valid email address', 'danger');
-            return false;
-        }
-        
-        // Show loading state
-        submitBtn.prop('disabled', true).html('<span class="spinner"></span> Sending...');
-        
-        // Simulate API call (replace with actual AJAX)
-        setTimeout(function() {
-            $('#forgotPasswordModal').modal('hide');
-            showToast('Success', 'Password reset link sent to your email!', 'success');
-            $('#resetPasswordForm')[0].reset();
-            submitBtn.prop('disabled', false).html('<i class="fas fa-paper-plane me-2"></i> Send Reset Link');
-        }, 1500);
-    });
-    
-    // ===== FOCUS ON EMAIL FIELD =====
+    // ===== AUTO-FOCUS =====
     $('#email').focus();
     
-    // ===== KEYBOARD SHORTCUTS =====
-    $(document).keydown(function(e) {
-        // Alt + L to focus email
-        if (e.altKey && e.key === 'l') {
-            e.preventDefault();
-            $('#email').focus();
+    // ===== FORGOT PASSWORD FORM - Standard form submission =====
+    $('#resetPasswordForm').on('submit', function() {
+        const email = $('#resetEmail').val();
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            alert('Please enter a valid email address');
+            return false;
         }
-        // Alt + P to focus password
-        if (e.altKey && e.key === 'p') {
-            e.preventDefault();
-            $('#password').focus();
-        }
-        // Alt + S to submit form
-        if (e.altKey && e.key === 's') {
-            e.preventDefault();
-            $('#loginBtn').click();
-        }
-    });
-    
-    // ===== CLEAR FORM ON PAGE UNLOAD =====
-    $(window).on('beforeunload', function() {
-        // Clear sensitive data
-        $('#password').val('');
+        return true;
     });
 });
 </script>

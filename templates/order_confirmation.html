@@ -1,1255 +1,215 @@
-{% extends "base.html" %}
-
-{% block title %}Order Confirmation #{{ order.order_id|default('N/A') }} - MUFRA FASHIONS{% endblock %}
-
-{% block content %}
-<div class="container py-5">
-    <!-- Order Confirmation Header -->
-    <div class="text-center mb-5">
-        <div class="success-animation mb-4">
-            <div class="success-icon bg-soft-magenta pulse-animation">
-                <i class="fas fa-check-circle fa-4x text-magenta"></i>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Confirmation - MUFRA FASHIONS</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { background: #f8f9fa; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        .container { max-width: 1000px; margin: 30px auto; padding: 0 20px; }
+        .card { border: none; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.08); margin-bottom: 24px; background: white; }
+        .card-header { border-radius: 16px 16px 0 0 !important; padding: 18px 24px; border-bottom: none; }
+        .bg-magenta { background-color: #D81B60 !important; color: white; }
+        .bg-cyan { background-color: #00ACC1 !important; color: white; }
+        .bg-soft-magenta { background-color: rgba(216,27,96,0.08) !important; }
+        .text-magenta { color: #D81B60 !important; }
+        .text-cyan { color: #00ACC1 !important; }
+        .btn-magenta { background-color: #D81B60; color: white; border: none; padding: 12px 28px; border-radius: 50px; font-weight: 600; text-decoration: none; display: inline-block; }
+        .btn-magenta:hover { background-color: #b21550; color: white; transform: translateY(-2px); box-shadow: 0 8px 16px rgba(216,27,96,0.3); }
+        .btn-outline-cyan { border: 2px solid #00ACC1; color: #333; background: transparent; padding: 12px 28px; border-radius: 50px; font-weight: 600; text-decoration: none; display: inline-block; }
+        .btn-outline-cyan:hover { background-color: #00ACC1; color: white; }
+        .badge { padding: 8px 16px; border-radius: 50px; font-weight: 500; }
+        .order-number { font-size: 20px; font-weight: 700; background: #D81B60; color: white; padding: 12px 30px; border-radius: 50px; display: inline-block; }
+        .success-icon { width: 80px; height: 80px; background: rgba(216,27,96,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
+        .success-icon i { font-size: 40px; color: #D81B60; }
+        .item-row { padding: 15px 0; border-bottom: 1px solid #eee; }
+        .item-row:last-child { border-bottom: none; }
+        @media (max-width: 768px) { .btn-magenta, .btn-outline-cyan { display: block; width: 100%; margin: 10px 0; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Success Header -->
+        <div class="text-center mb-4">
+            <div class="success-icon">
+                <i class="fas fa-check-circle"></i>
             </div>
-            <div class="confetti">
-                <i class="fas fa-star confetti-star star-1" style="color: var(--magenta-vibrant);"></i>
-                <i class="fas fa-star confetti-star star-2" style="color: var(--cyan-bright);"></i>
-                <i class="fas fa-star confetti-star star-3" style="color: var(--magenta-vibrant);"></i>
-                <i class="fas fa-star confetti-star star-4" style="color: var(--cyan-bright);"></i>
-                <i class="fas fa-star confetti-star star-5" style="color: var(--magenta-vibrant);"></i>
+            <h1 style="font-size: 32px; font-weight: 700; color: #333;">Thank You for Your Order!</h1>
+            <p style="font-size: 18px; color: #757575; margin-bottom: 20px;">Your order has been placed successfully</p>
+            <div class="order-number">
+                <i class="fas fa-receipt me-2"></i>Order #{{ order.order_id }}
             </div>
         </div>
-        <h1 class="mb-3 fw-bold text-charcoal">Order Confirmed!</h1>
-        <p class="lead text-grey-medium">Thank you for your purchase. Your order is being processed.</p>
-        <div class="order-number-badge mt-3">
-            <span class="badge bg-magenta fs-5 px-4 py-2">
-                <i class="fas fa-receipt me-2"></i>Order #{{ order.order_id|default('N/A') }}
-            </span>
-        </div>
-        <div class="mt-3">
-            <p class="text-grey-medium">
-                <i class="fas fa-envelope me-1 text-cyan"></i>
-                A confirmation email has been sent to 
-                <strong class="text-charcoal">
-                    {{ order.shipping_address.email if order.shipping_address and order.shipping_address.email else session.get('user_email', 'your email') }}
-                </strong>
-            </p>
-        </div>
-    </div>
 
-    <div class="row justify-content-center">
-        <div class="col-lg-10">
-            {% if order %}
-            <!-- Order Timeline -->
-            <div class="card shadow-brand mb-4 border-0 bg-white">
-                <div class="card-body p-4">
-                    <div class="order-timeline">
-                        <div class="timeline-step step-completed">
-                            <div class="timeline-circle bg-magenta text-white">
-                                <i class="fas fa-shopping-cart"></i>
-                            </div>
-                            <div class="timeline-content">
-                                <h6 class="mb-1 fw-bold text-charcoal">Order Placed</h6>
-                                <p class="small text-grey-medium mb-0">{{ format_date(order.created_at, '%b %d, %Y') }}</p>
-                            </div>
+        <!-- Order Summary -->
+        <div class="card">
+            <div class="card-header bg-magenta">
+                <h4 class="mb-0"><i class="fas fa-clipboard-list me-2"></i> Order Summary</h4>
+            </div>
+            <div class="card-body p-4">
+                <!-- Status Row -->
+                <div class="row mb-4">
+                    <div class="col-md-6 mb-3 mb-md-0">
+                        <div style="color: #757575;">Order Date</div>
+                        <div style="font-weight: 600; color: #333;">
+                            {% if order.created_at %}
+                                {{ order.created_at.strftime('%B %d, %Y at %I:%M %p') }}
+                            {% else %}
+                                {{ now().strftime('%B %d, %Y') }}
+                            {% endif %}
                         </div>
-                        <div class="timeline-step {% if order.status in ['processing', 'shipped', 'delivered'] %}step-completed{% endif %}">
-                            <div class="timeline-circle {% if order.status in ['processing', 'shipped', 'delivered'] %}bg-cyan{% else %}bg-grey-medium{% endif %} text-white">
-                                <i class="fas fa-cog"></i>
-                            </div>
-                            <div class="timeline-content">
-                                <h6 class="mb-1 fw-bold text-charcoal">Processing</h6>
-                                <p class="small text-grey-medium mb-0">
-                                    {% if order.status == 'processing' %}
-                                    <span class="text-cyan fw-semibold">In Progress</span>
-                                    {% elif order.status in ['shipped', 'delivered'] %}
-                                    {{ format_date(order.updated_at, '%b %d') }}
-                                    {% else %}
-                                    Upcoming
-                                    {% endif %}
-                                </p>
-                            </div>
-                        </div>
-                        <div class="timeline-step {% if order.status in ['shipped', 'delivered'] %}step-completed{% endif %}">
-                            <div class="timeline-circle {% if order.status in ['shipped', 'delivered'] %}bg-cyan{% else %}bg-grey-medium{% endif %} text-white">
-                                <i class="fas fa-shipping-fast"></i>
-                            </div>
-                            <div class="timeline-content">
-                                <h6 class="mb-1 fw-bold text-charcoal">Shipped</h6>
-                                <p class="small text-grey-medium mb-0">
-                                    {% if order.status == 'shipped' %}
-                                    <span class="text-cyan fw-semibold">On the way</span>
-                                    {% elif order.status == 'delivered' %}
-                                    {{ format_date(order.updated_at, '%b %d') }}
-                                    {% else %}
-                                    Upcoming
-                                    {% endif %}
-                                </p>
-                            </div>
-                        </div>
-                        <div class="timeline-step {% if order.status == 'delivered' %}step-completed{% endif %}">
-                            <div class="timeline-circle {% if order.status == 'delivered' %}bg-magenta{% else %}bg-grey-medium{% endif %} text-white">
-                                <i class="fas fa-check-double"></i>
-                            </div>
-                            <div class="timeline-content">
-                                <h6 class="mb-1 fw-bold text-charcoal">Delivered</h6>
-                                <p class="small text-grey-medium mb-0">
-                                    {% if order.status == 'delivered' %}
-                                    <span class="text-magenta fw-semibold">Delivered</span>
-                                    {% else %}
-                                    Upcoming
-                                    {% endif %}
-                                </p>
-                            </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div style="color: #757575;">Order Status</div>
+                        <div>
+                            <span class="badge" style="background-color: 
+                                {% if order.status == 'pending' %}#ffc107
+                                {% elif order.status == 'processing' %}#00ACC1
+                                {% elif order.status == 'delivered' %}#28a745
+                                {% elif order.status == 'cancelled' %}#dc3545
+                                {% else %}#6c757d{% endif %}; color: white;">
+                                {{ order.status|title if order.status else 'Pending' }}
+                            </span>
+                            <span class="badge ms-2" style="background-color: 
+                                {% if order.payment_status == 'paid' %}#28a745
+                                {% else %}#ffc107{% endif %}; color: white;">
+                                Payment: {{ order.payment_status|title if order.payment_status else 'Pending' }}
+                            </span>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Main Order Summary -->
-            <div class="card shadow-brand border-0 mb-4 bg-white">
-                <div class="card-header bg-magenta text-white border-0 rounded-top py-3">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h4 class="mb-0"><i class="fas fa-clipboard-list me-2"></i>Order Summary</h4>
-                        <span class="badge bg-white text-magenta fs-6 px-3 py-2">{{ order.status|upper }}</span>
-                    </div>
-                </div>
-                <div class="card-body p-4">
-                    <!-- Order Status Summary -->
-                    <div class="row mb-4">
-                        <div class="col-md-3 mb-3">
-                            <div class="status-card text-center p-3 bg-soft-magenta rounded-3">
-                                <i class="fas fa-calendar-alt fa-2x text-magenta mb-2"></i>
-                                <h6 class="mb-1 fw-bold text-charcoal">Order Date</h6>
-                                <p class="mb-0 fw-semibold text-charcoal">{{ format_date(order.created_at, '%B %d, %Y') }}</p>
+                <!-- Items -->
+                <h5 style="font-weight: 600; color: #333; margin-bottom: 20px;">
+                    <i class="fas fa-box me-2" style="color: #00ACC1;"></i> Order Items
+                </h5>
+                
+                {% if order.items and order.items|length > 0 %}
+                    {% for item in order.items %}
+                    <div class="item-row row align-items-center">
+                        <div class="col-md-6">
+                            <div style="font-weight: 600; color: #00ACC1;">{{ item.name }}</div>
+                            <div style="font-size: 14px; color: #757575;">
+                                {% if item.size %}Size: {{ item.size }}{% endif %}
+                                {% if item.size and item.color %} | {% endif %}
+                                {% if item.color %}Color: {{ item.color }}{% endif %}
                             </div>
                         </div>
-                        <div class="col-md-3 mb-3">
-                            <div class="status-card text-center p-3 bg-soft-cyan rounded-3">
-                                <i class="fas fa-clock fa-2x text-cyan mb-2"></i>
-                                <h6 class="mb-1 fw-bold text-charcoal">Order Time</h6>
-                                <p class="mb-0 fw-semibold text-charcoal">{{ format_date(order.created_at, '%I:%M %p') }}</p>
-                            </div>
+                        <div class="col-md-2 text-center">
+                            <span>Qty: {{ item.quantity }}</span>
                         </div>
-                        <div class="col-md-3 mb-3">
-                            <div class="status-card text-center p-3 bg-soft-magenta rounded-3">
-                                <i class="fas fa-credit-card fa-2x text-magenta mb-2"></i>
-                                <h6 class="mb-1 fw-bold text-charcoal">Payment Method</h6>
-                                <p class="mb-0 fw-semibold text-charcoal">{{ order.payment_method|title if order.payment_method else 'Paystack' }}</p>
-                            </div>
+                        <div class="col-md-2 text-end">
+                            <span>KES {{ "{:,.0f}".format(item.price) }}</span>
                         </div>
-                        <div class="col-md-3 mb-3">
-                            <div class="status-card text-center p-3 bg-soft-cyan rounded-3">
-                                <i class="fas fa-box fa-2x text-cyan mb-2"></i>
-                                <h6 class="mb-1 fw-bold text-charcoal">Items</h6>
-                                <p class="mb-0 fw-semibold text-charcoal">{{ order.items|length }}</p>
-                            </div>
+                        <div class="col-md-2 text-end">
+                            <span style="font-weight: 600; color: #D81B60;">KES {{ "{:,.0f}".format(item.price * item.quantity) }}</span>
                         </div>
                     </div>
-
-                    <!-- Order Items with Enhanced Display -->
-                    <h5 class="mb-4 pb-3 border-bottom border-grey-medium border-opacity-25 fw-bold text-charcoal">
-                        <i class="fas fa-box-open me-2 text-magenta"></i>Order Items ({{ order.items|length }})
-                    </h5>
+                    {% endfor %}
                     
-                    {% set items_list = order.get('items', []) %}
-                    {% if items_list and items_list|length > 0 %}
-                    <div class="order-items-list">
-                        {% for item in items_list %}
-                        <div class="order-item-card mb-4 p-4 border border-grey-medium border-opacity-25 rounded-3 bg-white">
-                            <div class="row align-items-center">
-                                <!-- Product Image with Multiple Views -->
-                                <div class="col-md-2 col-4 mb-3 mb-md-0">
-                                    <div class="position-relative">
-                                        {% set product = get_product_by_id(item.product_id) %}
-                                        {% set product_images = get_product_images(product) if product else get_cart_item_images(item) %}
-                                        
-                                        {% if product_images|length > 1 %}
-                                        <div id="orderImageCarousel{{ loop.index0 }}" class="carousel slide order-image-carousel" data-bs-ride="carousel">
-                                            <div class="carousel-inner rounded-3">
-                                                {% for img in product_images %}
-                                                <div class="carousel-item {% if loop.first %}active{% endif %}">
-                                                    <img src="{{ img.url if img.url.startswith('http') else url_for('static', filename='uploads/' + img.filename) if img.filename else img.url }}" 
-                                                         class="img-fluid order-item-image" 
-                                                         alt="{{ item.name }} - Image {{ loop.index }}"
-                                                         onerror="this.src='https://via.placeholder.com/120x120?text=MF'">
-                                                </div>
-                                                {% endfor %}
-                                            </div>
-                                            {% if product_images|length > 1 %}
-                                            <button class="carousel-control-prev" type="button" data-bs-target="#orderImageCarousel{{ loop.index0 }}" data-bs-slide="prev">
-                                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                                                <span class="visually-hidden">Previous</span>
-                                            </button>
-                                            <button class="carousel-control-next" type="button" data-bs-target="#orderImageCarousel{{ loop.index0 }}" data-bs-slide="next">
-                                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                                                <span class="visually-hidden">Next</span>
-                                            </button>
-                                            {% endif %}
-                                        </div>
-                                        <span class="position-absolute top-0 end-0 badge bg-charcoal bg-opacity-85">
-                                            <i class="fas fa-images me-1"></i>{{ product_images|length }}
-                                        </span>
-                                        {% else %}
-                                        <img src="{{ get_cart_item_image(item) }}" 
-                                             class="img-fluid rounded-3 order-item-image" 
-                                             alt="{{ item.name }}"
-                                             onerror="this.src='https://via.placeholder.com/120x120?text=MF'">
-                                        {% endif %}
-                                    </div>
-                                </div>
-                                
-                                <!-- Product Details -->
-                                <div class="col-md-6 col-8 mb-3 mb-md-0">
-                                    <h5 class="mb-2">
-                                        <a href="{{ url_for('product_details', product_id=item.product_id) if item.product_id else '#' }}" 
-                                           class="text-decoration-none text-cyan hover-magenta fw-bold">
-                                            {{ item.name }}
-                                        </a>
-                                    </h5>
-                                    
-                                    <div class="mb-3">
-                                        <span class="badge bg-soft-cyan text-cyan border border-cyan me-2">
-                                            <i class="fas fa-hashtag me-1"></i>Qty: {{ item.quantity }}
-                                        </span>
-                                        {% if item.size %}
-                                        <span class="badge bg-soft-cyan text-cyan border border-cyan me-2">
-                                            <i class="fas fa-ruler me-1"></i>{{ item.size }}
-                                        </span>
-                                        {% endif %}
-                                        {% if item.color %}
-                                        <span class="badge bg-soft-magenta text-magenta border border-magenta">
-                                            <i class="fas fa-palette me-1"></i>{{ item.color }}
-                                        </span>
-                                        {% endif %}
-                                    </div>
-                                    
-                                    <div class="price-details">
-                                        <p class="mb-1">
-                                            <span class="text-grey-medium">Unit Price:</span>
-                                            <span class="fw-bold ms-2 text-charcoal">{{ format_price(item.price) }}</span>
-                                        </p>
-                                        <p class="mb-0">
-                                            <span class="text-grey-medium">Total:</span>
-                                            <span class="fw-bold fs-5 text-magenta ms-2">{{ format_price(item.price * item.quantity) }}</span>
-                                        </p>
-                                    </div>
-                                </div>
-                                
-                                <!-- Item Actions & Status -->
-                                <div class="col-md-4 col-12 text-md-end">
-                                    <div class="mb-3">
-                                        <span class="badge bg-{{ get_order_status_badge(item.status) if item.status else 'info' }} px-3 py-2">
-                                            <i class="fas fa-{{ 'check-circle' if item.status == 'delivered' else 'clock' }} me-1"></i>
-                                            {{ item.status|title if item.status else 'Pending' }}
-                                        </span>
-                                    </div>
-                                    
-                                    <div class="btn-group" role="group">
-                                        <a href="{{ url_for('product_details', product_id=item.product_id) if item.product_id else '#' }}" 
-                                           class="btn btn-sm btn-outline-cyan">
-                                            <i class="fas fa-eye me-1"></i> View
-                                        </a>
-                                        <button type="button" class="btn btn-sm btn-outline-magenta" onclick="window.print()">
-                                            <i class="fas fa-print me-1"></i> Print
-                                        </button>
-                                    </div>
-                                    
-                                    <div class="mt-3">
-                                        <small class="text-grey-medium">
-                                            <i class="fas fa-info-circle me-1 text-cyan"></i>
-                                            Product ID: {{ item.product_id[:8] if item.product_id else 'N/A' }}
-                                        </small>
-                                    </div>
-                                </div>
+                    <!-- Totals -->
+                    <div class="row mt-4 pt-3" style="border-top: 2px solid #eee;">
+                        <div class="col-md-8"></div>
+                        <div class="col-md-4">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span style="color: #757575;">Subtotal:</span>
+                                <span style="font-weight: 600;">KES {{ "{:,.0f}".format(order.subtotal) }}</span>
                             </div>
-                            
-                            <!-- Stock Status & Tracking -->
-                            <div class="row mt-3">
-                                <div class="col-12">
-                                    <div class="alert bg-soft-cyan d-flex justify-content-between align-items-center border-0 rounded-3">
-                                        <div>
-                                            <i class="fas fa-warehouse me-2 text-cyan"></i>
-                                            <span class="text-charcoal fw-semibold">Stock Status:</span>
-                                            <span class="badge bg-{{ 'success' if item.stock > 0 else 'warning' }} ms-2">
-                                                {{ item.stock }} units available
-                                            </span>
-                                        </div>
-                                        <div>
-                                            <a href="{{ url_for('account') }}" class="btn btn-sm btn-link text-cyan text-decoration-none hover-magenta">
-                                                <i class="fas fa-history me-1"></i> View Order History
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span style="color: #757575;">Delivery Fee:</span>
+                                <span style="font-weight: 600;">KES {{ "{:,.0f}".format(order.delivery_fee) }}</span>
+                            </div>
+                            <hr style="margin: 15px 0;">
+                            <div class="d-flex justify-content-between">
+                                <span style="font-weight: 700; font-size: 18px;">Total:</span>
+                                <span style="font-weight: 700; color: #D81B60; font-size: 20px;">KES {{ "{:,.0f}".format(order.total) }}</span>
                             </div>
                         </div>
-                        {% endfor %}
                     </div>
-                    {% else %}
-                    <div class="text-center py-5 bg-soft-magenta rounded-3">
-                        <i class="fas fa-exclamation-triangle fa-3x text-magenta mb-3"></i>
-                        <h4 class="text-charcoal">No Items Found</h4>
-                        <p class="text-grey-medium">No items found in this order.</p>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-exclamation-circle fa-3x" style="color: #D81B60; margin-bottom: 15px;"></i>
+                        <p style="color: #757575;">No items found in this order.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Shipping Address -->
+        <div class="card">
+            <div class="card-header bg-cyan">
+                <h4 class="mb-0"><i class="fas fa-truck me-2"></i> Shipping Information</h4>
+            </div>
+            <div class="card-body p-4">
+                {% if order.shipping_address and order.shipping_address.street %}
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 style="font-weight: 600; margin-bottom: 15px;">Delivery Address</h6>
+                            <p class="mb-1">{{ order.shipping_address.street }}</p>
+                            <p class="mb-1">{{ order.shipping_address.city }}{% if order.shipping_address.city and order.shipping_address.county %}, {% endif %}{{ order.shipping_address.county }}</p>
+                            <p class="mb-1">{{ order.shipping_address.postal_code }}</p>
+                            <p class="mb-0">Phone: +254{{ order.shipping_address.phone }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 style="font-weight: 600; margin-bottom: 15px;">Delivery Estimate</h6>
+                            <p>
+                                <i class="fas fa-clock me-2" style="color: #00ACC1;"></i>
+                                {% if order.shipping_address.county and 'embu' in order.shipping_address.county.lower() %}
+                                    1-2 business days
+                                {% else %}
+                                    3-5 business days
+                                {% endif %}
+                            </p>
+                            <p class="small text-muted mt-3 mb-0">
+                                <i class="fas fa-info-circle me-1" style="color: #00ACC1;"></i>
+                                Tracking info will be sent via SMS
+                            </p>
+                        </div>
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center mb-0">No shipping information available.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Payment Info -->
+        <div class="card">
+            <div class="card-header bg-soft-magenta">
+                <h4 class="mb-0" style="color: #333;"><i class="fas fa-credit-card me-2" style="color: #D81B60;"></i> Payment Information</h4>
+            </div>
+            <div class="card-body p-4">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div style="color: #757575;">Payment Method</div>
+                        <div style="font-weight: 600;">{{ order.payment_method|title if order.payment_method else 'Paystack' }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <div style="color: #757575;">Payment Status</div>
+                        <span class="badge" style="background-color: {% if order.payment_status == 'paid' %}#28a745{% else %}#ffc107{% endif %}; color: white;">
+                            {{ order.payment_status|title if order.payment_status else 'Pending' }}
+                        </span>
+                    </div>
+                    {% if order.paystack_reference %}
+                    <div class="col-12 mt-3">
+                        <div style="color: #757575; font-size: 14px;">Transaction Reference</div>
+                        <code style="background: #f8f9fa; padding: 8px 12px; border-radius: 6px;">{{ order.paystack_reference }}</code>
                     </div>
                     {% endif %}
                 </div>
             </div>
+        </div>
 
-            <!-- Payment & Shipping Details -->
-            <div class="row">
-                <!-- Payment Summary -->
-                <div class="col-md-6 mb-4">
-                    <div class="card shadow-brand border-0 h-100 bg-white">
-                        <div class="card-header bg-soft-magenta border-0 py-3">
-                            <h5 class="mb-0 fw-bold text-charcoal">
-                                <i class="fas fa-credit-card me-2 text-magenta"></i>Payment Summary
-                            </h5>
-                        </div>
-                        <div class="card-body p-4">
-                            <div class="payment-summary">
-                                <div class="d-flex justify-content-between mb-2">
-                                    <span class="text-grey-medium">Subtotal ({{ order.items|length }} items):</span>
-                                    <span class="fw-bold text-charcoal">{{ format_price(order.subtotal) }}</span>
-                                </div>
-                                
-                                <div class="d-flex justify-content-between mb-2">
-                                    <span class="text-grey-medium">Delivery Fee:</span>
-                                    <span class="fw-bold text-charcoal">{{ format_price(order.delivery_fee) }}</span>
-                                </div>
-                                
-                                {% set county = order.shipping_address.county|lower if order.shipping_address and order.shipping_address.county else '' %}
-                                {% if order.subtotal >= 5000 and 'embu' in county %}
-                                <div class="d-flex justify-content-between mb-2">
-                                    <span class="text-grey-medium">Shipping Discount:</span>
-                                    <span class="text-cyan fw-bold">- {{ format_price(order.delivery_fee) }}</span>
-                                </div>
-                                {% endif %}
-                                
-                                <div class="d-flex justify-content-between mb-2">
-                                    <span class="text-grey-medium">Tax:</span>
-                                    <span class="text-charcoal">Included</span>
-                                </div>
-                                
-                                <hr class="my-3" style="border-color: rgba(117,117,117,0.2);">
-                                
-                                <div class="d-flex justify-content-between mb-4">
-                                    <span class="fs-5 fw-bold text-charcoal">Total Amount:</span>
-                                    <span class="fs-5 fw-bold text-magenta">{{ format_price(order.total) }}</span>
-                                </div>
-                                
-                                <!-- Payment Details -->
-                                <div class="payment-details">
-                                    <h6 class="mb-3 fw-bold text-charcoal">Payment Details</h6>
-                                    <div class="row">
-                                        <div class="col-6 mb-2">
-                                            <small class="text-grey-medium">Method:</small>
-                                            <p class="mb-0 fw-semibold text-charcoal">{{ order.payment_method|title if order.payment_method else 'Paystack' }}</p>
-                                        </div>
-                                        <div class="col-6 mb-2">
-                                            <small class="text-grey-medium">Status:</small>
-                                            <p class="mb-0">
-                                                <span class="badge bg-{{ 'success' if order.payment_status == 'paid' else 'warning' }} px-3 py-2">
-                                                    {{ order.payment_status|title if order.payment_status else 'Pending' }}
-                                                </span>
-                                            </p>
-                                        </div>
-                                        <div class="col-6">
-                                            <small class="text-grey-medium">Transaction ID:</small>
-                                            <p class="mb-0">
-                                                <code class="small text-charcoal">{{ order.paystack_reference[:12] if order.paystack_reference else 'N/A' }}</code>
-                                            </p>
-                                        </div>
-                                        <div class="col-6">
-                                            <small class="text-grey-medium">Payment Date:</small>
-                                            <p class="mb-0 text-charcoal">{{ format_date(order.created_at, '%b %d, %Y') }}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Shipping & Contact -->
-                <div class="col-md-6 mb-4">
-                    <div class="card shadow-brand border-0 h-100 bg-white">
-                        <div class="card-header bg-soft-cyan border-0 py-3">
-                            <h5 class="mb-0 fw-bold text-charcoal">
-                                <i class="fas fa-truck me-2 text-cyan"></i>Shipping & Contact
-                            </h5>
-                        </div>
-                        <div class="card-body p-4">
-                            {% if order.shipping_address %}
-                            <div class="shipping-contact">
-                                <!-- Shipping Address -->
-                                <div class="mb-4">
-                                    <h6 class="mb-3 fw-bold text-charcoal">Shipping Address</h6>
-                                    <div class="address-card bg-soft-magenta p-3 rounded-3">
-                                        <div class="d-flex align-items-start mb-2">
-                                            <i class="fas fa-user text-magenta me-3 mt-1"></i>
-                                            <div>
-                                                <p class="fw-bold mb-0 text-charcoal">{{ order.shipping_address.get('name', session.get('user_name', 'Customer')) }}</p>
-                                            </div>
-                                        </div>
-                                        <div class="d-flex align-items-start mb-2">
-                                            <i class="fas fa-map-marker-alt text-magenta me-3 mt-1"></i>
-                                            <div>
-                                                <p class="mb-0 text-charcoal">{{ order.shipping_address.street }}</p>
-                                                {% if order.shipping_address.additional_info %}
-                                                <p class="mb-0 text-grey-medium small">{{ order.shipping_address.additional_info }}</p>
-                                                {% endif %}
-                                            </div>
-                                        </div>
-                                        <div class="d-flex align-items-start mb-2">
-                                            <i class="fas fa-city text-magenta me-3 mt-1"></i>
-                                            <div>
-                                                <p class="mb-0 text-charcoal">
-                                                    {{ order.shipping_address.city }}, 
-                                                    {{ order.shipping_address.county }}
-                                                    {% if order.shipping_address.postal_code %}
-                                                    - {{ order.shipping_address.postal_code }}
-                                                    {% endif %}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div class="d-flex align-items-start">
-                                            <i class="fas fa-phone text-magenta me-3 mt-1"></i>
-                                            <div>
-                                                <p class="mb-0 text-charcoal">
-                                                    <a href="tel:{{ order.shipping_address.phone }}" class="text-decoration-none text-charcoal hover-magenta">
-                                                        +254{{ order.shipping_address.phone if order.shipping_address.phone else 'N/A' }}
-                                                    </a>
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Contact Information -->
-                                <div class="contact-info">
-                                    <h6 class="mb-3 fw-bold text-charcoal">Contact Information</h6>
-                                    <div class="row">
-                                        <div class="col-md-6 mb-2">
-                                            <small class="text-grey-medium">Email:</small>
-                                            <p class="mb-0">
-                                                <a href="mailto:{{ order.shipping_address.email if order.shipping_address.email else session.get('user_email', '') }}" 
-                                                   class="text-decoration-none text-cyan hover-magenta">
-                                                    {{ order.shipping_address.email if order.shipping_address.email else session.get('user_email', 'N/A') }}
-                                                </a>
-                                            </p>
-                                        </div>
-                                        <div class="col-md-6 mb-2">
-                                            <small class="text-grey-medium">Phone:</small>
-                                            <p class="mb-0 text-charcoal">
-                                                <a href="tel:{{ order.shipping_address.phone }}" class="text-decoration-none text-charcoal hover-magenta">
-                                                    +254{{ order.shipping_address.phone if order.shipping_address.phone else 'N/A' }}
-                                                </a>
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Delivery Estimate -->
-                                <div class="delivery-estimate mt-4">
-                                    <h6 class="mb-3 fw-bold text-charcoal">Delivery Information</h6>
-                                    <div class="alert bg-soft-cyan border-0">
-                                        <div class="d-flex">
-                                            <i class="fas fa-info-circle fa-lg me-3 text-cyan"></i>
-                                            <div>
-                                                <p class="mb-2 fw-bold text-charcoal">
-                                                    {% if 'embu' in county %}
-                                                        Estimated Delivery: <span class="text-cyan">1-2 Business Days</span>
-                                                        {% if order.subtotal >= 5000 %}
-                                                            <span class="badge bg-cyan ms-2">Free Shipping Applied</span>
-                                                        {% endif %}
-                                                    {% else %}
-                                                        Estimated Delivery: <span class="text-cyan">3-5 Business Days</span>
-                                                    {% endif %}
-                                                </p>
-                                                <p class="small mb-0 text-grey-medium">
-                                                    You will receive tracking information via email and SMS once your order is shipped.
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            {% else %}
-                            <div class="text-center py-4 bg-soft-magenta rounded-3">
-                                <i class="fas fa-exclamation-triangle fa-2x text-magenta mb-3"></i>
-                                <p class="text-charcoal">No shipping information available.</p>
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="card shadow-brand border-0 mt-4 bg-white">
-                <div class="card-body p-4">
-                    <div class="row align-items-center">
-                        <div class="col-md-8 mb-4 mb-md-0">
-                            <h5 class="mb-2 fw-bold text-charcoal">What would you like to do next?</h5>
-                            <p class="text-grey-medium mb-0">
-                                Track your order, view order history, or continue shopping.
-                            </p>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="d-grid gap-2">
-                                <a href="{{ url_for('account') }}" class="btn btn-magenta">
-                                    <i class="fas fa-user-circle me-2"></i> View in Account
-                                </a>
-                                <button class="btn btn-outline-cyan" onclick="window.print()">
-                                    <i class="fas fa-print me-2"></i> Print Receipt
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Customer Support -->
-            <div class="row mt-4">
-                <div class="col-12">
-                    <div class="card bg-soft-magenta border-0">
-                        <div class="card-body p-4">
-                            <h5 class="mb-4 fw-bold text-charcoal">
-                                <i class="fas fa-headset me-2 text-magenta"></i>Need Help With Your Order?
-                            </h5>
-                            <div class="row">
-                                <div class="col-md-4 mb-3">
-                                    <div class="support-card text-center p-3 bg-white rounded-3">
-                                        <i class="fas fa-phone fa-2x text-magenta mb-3"></i>
-                                        <h6 class="fw-bold text-charcoal">Call Us</h6>
-                                        <p class="small text-grey-medium mb-2">For immediate assistance</p>
-                                        <p class="fw-bold mb-0">
-                                            <a href="tel:0102850010" class="text-decoration-none text-cyan hover-magenta">
-                                                0102850010
-                                            </a>
-                                        </p>
-                                    </div>
-                                </div>
-                                <div class="col-md-4 mb-3">
-                                    <div class="support-card text-center p-3 bg-white rounded-3">
-                                        <i class="fab fa-whatsapp fa-2x text-cyan mb-3"></i>
-                                        <h6 class="fw-bold text-charcoal">WhatsApp</h6>
-                                        <p class="small text-grey-medium mb-2">Chat with our team</p>
-                                        <p class="fw-bold mb-0">
-                                            <a href="https://wa.me/254794025592" class="text-decoration-none text-cyan hover-magenta" target="_blank">
-                                                0794025592
-                                            </a>
-                                        </p>
-                                    </div>
-                                </div>
-                                <div class="col-md-4 mb-3">
-                                    <div class="support-card text-center p-3 bg-white rounded-3">
-                                        <i class="fas fa-envelope fa-2x text-magenta mb-3"></i>
-                                        <h6 class="fw-bold text-charcoal">Email</h6>
-                                        <p class="small text-grey-medium mb-2">For detailed inquiries</p>
-                                        <p class="fw-bold mb-0">
-                                            <a href="mailto:mufrafashions@gmail.com" class="text-decoration-none text-cyan hover-magenta">
-                                                mufrafashions@gmail.com
-                                            </a>
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="row mt-3">
-                                <div class="col-md-4 mb-3">
-                                    <div class="support-card text-center p-3 bg-white rounded-3">
-                                        <i class="fas fa-shipping-fast fa-2x text-cyan mb-3"></i>
-                                        <h6 class="fw-bold text-charcoal">Track Order</h6>
-                                        <p class="small text-grey-medium mb-2">Get delivery updates</p>
-                                        <a href="{{ url_for('account') }}" class="btn btn-sm btn-outline-cyan">Track Now</a>
-                                    </div>
-                                </div>
-                                <div class="col-md-4 mb-3">
-                                    <div class="support-card text-center p-3 bg-white rounded-3">
-                                        <i class="fas fa-undo fa-2x text-magenta mb-3"></i>
-                                        <h6 class="fw-bold text-charcoal">Returns & Refunds</h6>
-                                        <p class="small text-grey-medium mb-2">2-day return policy</p>
-                                        <a href="#" class="btn btn-sm btn-outline-magenta" data-bs-toggle="modal" data-bs-target="#returnPolicyModal">View Policy</a>
-                                    </div>
-                                </div>
-                                <div class="col-md-4 mb-3">
-                                    <div class="support-card text-center p-3 bg-white rounded-3">
-                                        <i class="fas fa-question-circle fa-2x text-cyan mb-3"></i>
-                                        <h6 class="fw-bold text-charcoal">FAQ</h6>
-                                        <p class="small text-grey-medium mb-2">Common questions</p>
-                                        <a href="{{ url_for('home') }}" class="btn btn-sm btn-outline-cyan">View FAQ</a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Continue Shopping -->
-            <div class="text-center mt-5">
-                <div class="mb-4">
-                    <h4 class="mb-3 fw-bold text-charcoal">Discover More</h4>
-                    <p class="text-grey-medium">Browse our latest collections and exclusive deals</p>
-                </div>
-                <div class="d-grid gap-2 d-md-flex justify-content-center">
-                    <a href="{{ url_for('categories') }}" class="btn btn-magenta btn-lg px-5">
-                        <i class="fas fa-shopping-bag me-2"></i> Continue Shopping
-                    </a>
-                    <a href="{{ url_for('home') }}" class="btn btn-outline-cyan btn-lg px-5">
-                        <i class="fas fa-home me-2"></i> Back to Home
-                    </a>
-                </div>
-            </div>
-
-            {% else %}
-            <!-- Order Not Found -->
-            <div class="card shadow-brand border-0 bg-white">
-                <div class="card-body text-center py-5">
-                    <div class="error-icon mb-4 bg-soft-magenta d-inline-block p-4 rounded-circle">
-                        <i class="fas fa-exclamation-triangle fa-4x text-magenta"></i>
-                    </div>
-                    <h3 class="mb-3 fw-bold text-charcoal">Order Not Found</h3>
-                    <p class="text-grey-medium mb-4">
-                        We couldn't find the order you're looking for. It may have been canceled or the order ID is incorrect.
-                    </p>
-                    <div class="d-grid gap-2 d-md-flex justify-content-md-center">
-                        <a href="{{ url_for('account') }}" class="btn btn-magenta btn-lg px-4">
-                            <i class="fas fa-user-circle me-2"></i> View My Orders
-                        </a>
-                        <a href="{{ url_for('home') }}" class="btn btn-outline-cyan btn-lg px-4">
-                            <i class="fas fa-home me-2"></i> Back to Home
-                        </a>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
+        <!-- Actions -->
+        <div class="text-center mt-4">
+            <a href="{{ url_for('account') }}#orders" class="btn-magenta me-md-2">
+                <i class="fas fa-user-circle me-2"></i>View My Orders
+            </a>
+            <a href="{{ url_for('categories') }}" class="btn-outline-cyan">
+                <i class="fas fa-shopping-bag me-2"></i>Continue Shopping
+            </a>
         </div>
     </div>
-</div>
-
-<!-- Return Policy Modal -->
-<div class="modal fade" id="returnPolicyModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0">
-            <div class="modal-header bg-magenta text-white border-0">
-                <h5 class="modal-title"><i class="fas fa-undo me-2"></i>Return Policy</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body p-4">
-                <h6 class="mb-3 fw-bold text-charcoal">Our Return Policy</h6>
-                <ul class="mb-4 text-grey-medium">
-                    <li class="mb-2">
-                        <i class="fas fa-check-circle me-2 text-cyan"></i>
-                        2-day return window from delivery date
-                    </li>
-                    <li class="mb-2">
-                        <i class="fas fa-check-circle me-2 text-cyan"></i>
-                        Items must be unworn, unused with original tags
-                    </li>
-                    <li class="mb-2">
-                        <i class="fas fa-check-circle me-2 text-cyan"></i>
-                        Original packaging must be intact
-                    </li>
-                    <li class="mb-2">
-                        <i class="fas fa-check-circle me-2 text-cyan"></i>
-                        Refunds processed within 7-14 business days
-                    </li>
-                    <li>
-                        <i class="fas fa-check-circle me-2 text-cyan"></i>
-                        Free return shipping for defective items
-                    </li>
-                </ul>
-                <div class="alert bg-soft-cyan border-0">
-                    <i class="fas fa-info-circle me-2 text-cyan"></i>
-                    <span class="text-charcoal">To initiate a return, please contact our customer support team.</span>
-                </div>
-            </div>
-            <div class="modal-footer border-0">
-                <button type="button" class="btn btn-magenta" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
-
-{% block extra_css %}
-<style>
-    /* ===== MUFRA FASHIONS BRAND COLORS ===== */
-    :root {
-        --magenta-vibrant: #D81B60;
-        --cyan-bright: #00ACC1;
-        --link-blue: #2196F3;
-        --charcoal-dark: #333333;
-        --grey-medium: #757575;
-        --bg-light-page: #F9F9F9;
-        --white-pure: #FFFFFF;
-        --footer-soft-grey: #EEEEEE;
-        --shadow-brand: 0 16px 32px -10px rgba(0,0,0,0.08);
-    }
-
-    .success-animation {
-        position: relative;
-    }
-
-    .success-icon {
-        width: 120px;
-        height: 120px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 0 auto;
-        transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-    }
-
-    .success-icon:hover {
-        transform: scale(1.1);
-    }
-
-    .pulse-animation {
-        animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.05); }
-        100% { transform: scale(1); }
-    }
-
-    .confetti {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        pointer-events: none;
-    }
-
-    .confetti-star {
-        position: absolute;
-        font-size: 1.2rem;
-        opacity: 0;
-        animation: confetti-fall 2s ease-out infinite;
-    }
-
-    .confetti-star.star-1 { left: 20%; animation-delay: 0s; }
-    .confetti-star.star-2 { left: 35%; animation-delay: 0.2s; }
-    .confetti-star.star-3 { left: 50%; animation-delay: 0.4s; }
-    .confetti-star.star-4 { left: 65%; animation-delay: 0.6s; }
-    .confetti-star.star-5 { left: 80%; animation-delay: 0.8s; }
-
-    @keyframes confetti-fall {
-        0% { transform: translateY(-50px) rotate(0deg); opacity: 1; }
-        100% { transform: translateY(100px) rotate(360deg); opacity: 0; }
-    }
-
-    .order-timeline {
-        display: flex;
-        justify-content: space-between;
-        position: relative;
-        padding: 20px 0;
-    }
-
-    .order-timeline::before {
-        content: '';
-        position: absolute;
-        top: 40px;
-        left: 0;
-        right: 0;
-        height: 2px;
-        background: linear-gradient(90deg, var(--cyan-bright) 0%, var(--magenta-vibrant) 100%);
-        opacity: 0.3;
-        z-index: 1;
-    }
-
-    .timeline-step {
-        position: relative;
-        z-index: 2;
-        text-align: center;
-        flex: 1;
-    }
-
-    .timeline-circle {
-        width: 80px;
-        height: 80px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.5rem;
-        margin: 0 auto 15px;
-        border: 4px solid var(--white-pure);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-    }
-
-    .timeline-step:hover .timeline-circle {
-        transform: scale(1.1);
-    }
-
-    .step-completed .timeline-circle {
-        background-color: var(--magenta-vibrant);
-        color: white;
-    }
-
-    .timeline-step.active .timeline-circle {
-        background-color: var(--cyan-bright);
-        color: white;
-        transform: scale(1.1);
-        box-shadow: 0 0 0 6px rgba(0,172,193,0.2);
-    }
-
-    .timeline-content h6 {
-        font-size: 0.9rem;
-        font-weight: 600;
-    }
-
-    .order-item-image {
-        width: 120px;
-        height: 120px;
-        object-fit: cover;
-        border-radius: 12px;
-        border: 1px solid rgba(216,27,96,0.1);
-    }
-
-    .order-item-card {
-        transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-        background: var(--white-pure);
-    }
-
-    .order-item-card:hover {
-        transform: translateY(-4px);
-        box-shadow: var(--shadow-brand);
-        border-color: var(--magenta-vibrant) !important;
-    }
-
-    .order-image-carousel {
-        border-radius: 12px;
-        overflow: hidden;
-    }
-
-    .order-image-carousel .carousel-control-prev,
-    .order-image-carousel .carousel-control-next {
-        width: 30px;
-        height: 30px;
-        background-color: rgba(216,27,96,0.8);
-        border-radius: 50%;
-        top: 50%;
-        transform: translateY(-50%);
-        opacity: 0;
-        transition: opacity 0.3s ease;
-    }
-
-    .order-image-carousel:hover .carousel-control-prev,
-    .order-image-carousel:hover .carousel-control-next {
-        opacity: 1;
-    }
-
-    .order-image-carousel .carousel-control-prev:hover,
-    .order-image-carousel .carousel-control-next:hover {
-        background-color: var(--magenta-vibrant);
-    }
-
-    .status-card {
-        transition: all 0.3s ease;
-    }
-
-    .status-card:hover {
-        transform: translateY(-4px);
-        box-shadow: var(--shadow-brand);
-    }
-
-    .support-card {
-        background: var(--white-pure);
-        border-radius: 16px;
-        border: 1px solid rgba(216,27,96,0.1);
-        transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-    }
-
-    .support-card:hover {
-        transform: translateY(-4px);
-        box-shadow: var(--shadow-brand);
-        border-color: var(--cyan-bright);
-    }
-
-    .address-card {
-        border-left: 4px solid var(--magenta-vibrant);
-        background: linear-gradient(to right, rgba(216,27,96,0.05), transparent);
-    }
-
-    .card {
-        border-radius: 20px;
-        overflow: hidden;
-    }
-
-    .card-header {
-        border-bottom: none;
-    }
-
-    /* Badge Styles */
-    .badge.bg-magenta {
-        background-color: var(--magenta-vibrant) !important;
-    }
-
-    .badge.bg-cyan {
-        background-color: var(--cyan-bright) !important;
-    }
-
-    .badge.bg-charcoal {
-        background-color: var(--charcoal-dark) !important;
-    }
-
-    .badge.bg-grey-medium {
-        background-color: var(--grey-medium) !important;
-    }
-
-    /* Link Hover Effects */
-    .hover-magenta {
-        transition: color 0.2s ease;
-    }
-
-    .hover-magenta:hover {
-        color: var(--magenta-vibrant) !important;
-    }
-
-    /* Toast Notifications */
-    .toast-container {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        z-index: 9999;
-    }
-
-    .toast {
-        min-width: 300px;
-        border-radius: 16px;
-        overflow: hidden;
-        box-shadow: var(--shadow-brand);
-        border-left: 6px solid;
-    }
-
-    .toast-header {
-        border-bottom: none;
-    }
-
-    .toast-header.bg-success {
-        background-color: var(--magenta-vibrant) !important;
-    }
-
-    .toast-header.bg-danger {
-        background-color: var(--cyan-bright) !important;
-    }
-
-    .toast-header.bg-warning {
-        background-color: var(--cyan-bright) !important;
-    }
-
-    .toast-header.bg-info {
-        background-color: var(--link-blue) !important;
-    }
-
-    /* Modal Styles */
-    .modal-content {
-        border-radius: 20px;
-        overflow: hidden;
-    }
-
-    .modal-header {
-        padding: 1.5rem;
-    }
-
-    .modal-body {
-        padding: 1.5rem;
-    }
-
-    .modal-footer {
-        padding: 1.5rem;
-        border-top: none;
-    }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-        .order-timeline {
-            flex-direction: column;
-            gap: 20px;
-        }
-        
-        .order-timeline::before {
-            display: none;
-        }
-        
-        .timeline-step {
-            display: flex;
-            align-items: center;
-            text-align: left;
-            margin-bottom: 20px;
-        }
-        
-        .timeline-circle {
-            width: 60px;
-            height: 60px;
-            font-size: 1.2rem;
-            margin: 0 15px 0 0;
-        }
-        
-        .order-item-image {
-            width: 80px;
-            height: 80px;
-        }
-        
-        .timeline-content {
-            flex-grow: 1;
-        }
-        
-        .status-card {
-            padding: 1rem !important;
-        }
-    }
-
-    @media (max-width: 576px) {
-        .success-icon {
-            width: 80px;
-            height: 80px;
-        }
-        
-        .success-icon i {
-            font-size: 2.5rem;
-        }
-        
-        .order-item-card {
-            padding: 1.5rem !important;
-        }
-        
-        .d-grid.gap-2.d-md-flex {
-            flex-direction: column;
-            gap: 10px !important;
-        }
-        
-        .btn-lg {
-            width: 100%;
-        }
-        
-        .order-timeline::before {
-            display: none;
-        }
-    }
-
-    /* Touch Device Optimizations */
-    @media (hover: none) and (pointer: coarse) {
-        .order-item-card:hover,
-        .status-card:hover,
-        .support-card:hover,
-        .success-icon:hover {
-            transform: none;
-        }
-        
-        .order-image-carousel .carousel-control-prev,
-        .order-image-carousel .carousel-control-next {
-            opacity: 1;
-            width: 36px;
-            height: 36px;
-        }
-        
-        .hover-magenta:hover {
-            color: var(--cyan-bright) !important;
-        }
-    }
-
-    /* Print Styles */
-    @media print {
-        .btn, .text-center.mt-5, .bg-soft-magenta:not(.address-card), 
-        .modal, .toast-container, .order-image-carousel .carousel-control-prev,
-        .order-image-carousel .carousel-control-next, .confetti {
-            display: none !important;
-        }
-        
-        .container {
-            max-width: 100% !important;
-            padding: 0 !important;
-        }
-        
-        .card {
-            border: 1px solid var(--grey-medium) !important;
-            box-shadow: none !important;
-            margin-bottom: 20px !important;
-            break-inside: avoid;
-        }
-        
-        .success-icon {
-            width: 80px !important;
-            height: 80px !important;
-            background-color: rgba(216,27,96,0.1) !important;
-        }
-        
-        .timeline-circle {
-            width: 60px !important;
-            height: 60px !important;
-            font-size: 1rem !important;
-            border: 2px solid var(--white-pure) !important;
-        }
-        
-        .order-timeline::before {
-            display: none !important;
-        }
-        
-        a {
-            text-decoration: none !important;
-            color: var(--charcoal-dark) !important;
-        }
-    }
-</style>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-$(document).ready(function() {
-    // ===== INITIALIZE CAROUSELS =====
-    $('.carousel').each(function() {
-        new bootstrap.Carousel(this, {
-            interval: 4000,
-            pause: 'hover',
-            wrap: true,
-            touch: true
-        });
-    });
-    
-    // ===== PRINT RECEIPT =====
-    $('.btn-outline-magenta, .btn-outline-cyan').click(function(e) {
-        if ($(this).text().includes('Print')) {
-            e.preventDefault();
-            window.print();
-        }
-    });
-    
-    // ===== COPY ORDER ID TO CLIPBOARD =====
-    $('.order-number-badge .badge').click(function() {
-        const orderId = $(this).text().replace('Order #', '').trim();
-        navigator.clipboard.writeText(orderId).then(() => {
-            showToast('Success', 'Order ID copied to clipboard!', 'success');
-        }).catch(() => {
-            showToast('Error', 'Failed to copy order ID', 'danger');
-        });
-    });
-    
-    // ===== TOAST NOTIFICATION FUNCTION =====
-    function showToast(title, message, type = 'info') {
-        if (window.Mufra && window.Mufra.notify) {
-            if (type === 'success') Mufra.notify.success(message);
-            else if (type === 'danger') Mufra.notify.error(message);
-            else Mufra.notify.info(message);
-            return;
-        }
-        
-        // Remove existing toasts
-        $('.toast-container').remove();
-        
-        const icon = type === 'success' ? 'check-circle' : 
-                    type === 'danger' ? 'exclamation-circle' : 
-                    type === 'warning' ? 'exclamation-triangle' : 'info-circle';
-        
-        const bgColor = type === 'success' ? 'var(--magenta-vibrant)' : 
-                       type === 'danger' ? 'var(--cyan-bright)' : 'var(--link-blue)';
-        
-        const toastHtml = `
-            <div class="toast-container">
-                <div class="toast show" role="alert" style="border-left: 6px solid ${bgColor};">
-                    <div class="toast-header bg-${type} text-white">
-                        <i class="fas fa-${icon} me-2"></i>
-                        <strong class="me-auto">${title}</strong>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
-                    </div>
-                    <div class="toast-body">
-                        ${message}
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        $('body').append(toastHtml);
-        
-        // Auto remove after 5 seconds
-        setTimeout(() => {
-            $('.toast-container').fadeOut(300, function() {
-                $(this).remove();
-            });
-        }, 5000);
-    }
-    
-    // ===== AUTO-HIDE SUCCESS ALERT =====
-    setTimeout(() => {
-        $('.alert-success').fadeOut('slow');
-    }, 5000);
-    
-    // ===== ADD ANIMATION TO SUCCESS ICON =====
-    setTimeout(() => {
-        $('.success-icon').addClass('pulse-animation');
-    }, 500);
-    
-    // ===== SAVE ORDER DETAILS FOR OFFLINE VIEWING =====
-    {% if order and order.order_id %}
-    const orderData = {
-        id: '{{ order.order_id }}',
-        date: '{{ order.created_at }}',
-        items: {{ order.items|length }},
-        total: '{{ order.total }}',
-        status: '{{ order.status }}'
-    };
-    
-    // Save to localStorage (limited to last 5 orders)
-    let savedOrders = JSON.parse(localStorage.getItem('mufra_orders') || '[]');
-    savedOrders = savedOrders.filter(o => o.id !== orderData.id);
-    savedOrders.unshift(orderData);
-    savedOrders = savedOrders.slice(0, 5);
-    localStorage.setItem('mufra_orders', JSON.stringify(savedOrders));
-    {% endif %}
-    
-    // ===== KEYBOARD SHORTCUTS =====
-    $(document).keydown(function(e) {
-        // Ctrl/Cmd + P to print
-        if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
-            e.preventDefault();
-            window.print();
-        }
-        // Escape to go back
-        if (e.key === 'Escape') {
-            window.history.back();
-        }
-    });
-    
-    // ===== SHARE ORDER FUNCTIONALITY =====
-    $('.btn-outline-secondary, .btn-outline-cyan').click(function(e) {
-        if ($(this).text().includes('Share')) {
-            e.preventDefault();
-            {% if order and order.order_id %}
-            if (navigator.share) {
-                navigator.share({
-                    title: 'My MUFRA FASHIONS Order',
-                    text: `I just ordered from MUFRA FASHIONS! Order #{{ order.order_id }}`,
-                    url: window.location.href
-                }).catch(() => {
-                    // User cancelled share
-                });
-            } else {
-                navigator.clipboard.writeText(window.location.href).then(() => {
-                    showToast('Link Copied', 'Order link copied to clipboard!', 'success');
-                });
-            }
-            {% endif %}
-        }
-    });
-    
-    // ===== TRACK ORDER BUTTON =====
-    $('a[href="{{ url_for('account') }}"]').click(function(e) {
-        // Optional: Add tracking click analytics
-        console.log('Order tracking clicked');
-    });
-    
-    // ===== RETURN POLICY MODAL =====
-    $('#returnPolicyModal').on('show.bs.modal', function() {
-        // Optional: Add modal open analytics
-        console.log('Return policy modal opened');
-    });
-});
-</script>
-{% endblock %}
+</body>
+</html>

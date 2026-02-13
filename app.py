@@ -1222,41 +1222,70 @@ def checkout():
 @app.route('/process-checkout', methods=['POST'])
 @login_required
 def process_checkout():
-    """Process checkout and create order - always uses Paystack"""
+    """Process checkout and redirect directly to Paystack"""
     try:
         users_collection = get_collection('users')
         products_collection = get_collection('products')
         orders_collection = get_collection('orders')
         
         user = users_collection.find_one({'_id': ObjectId(session['user_id'])})
+        if not user:
+            flash('User not found. Please login again.', 'danger')
+            return redirect(url_for('login'))
+        
         cart_items = user.get('cart', [])
         
         if not cart_items:
-            return jsonify({'success': False, 'message': 'Cart is empty'})
+            flash('Your cart is empty', 'warning')
+            return redirect(url_for('cart'))
         
         # Get shipping address
         shipping_address = {
-            'street': request.form.get('street', ''),
-            'city': request.form.get('city', ''),
-            'county': request.form.get('county', ''),
-            'postal_code': request.form.get('postal_code', ''),
-            'phone': request.form.get('phone', '')
+            'street': request.form.get('street', '').strip(),
+            'city': request.form.get('city', '').strip(),
+            'county': request.form.get('county', '').strip(),
+            'postal_code': request.form.get('postal_code', '').strip(),
+            'phone': request.form.get('phone', '').strip()
         }
         
         # Validate required fields
         required_fields = ['street', 'city', 'county', 'phone']
         for field in required_fields:
             if not shipping_address[field]:
-                return jsonify({'success': False, 'message': f'Please enter your {field}'})
+                flash(f'Please enter your {field.replace("_", " ")}', 'danger')
+                return redirect(url_for('checkout'))
+        
+        # Validate phone number
+        phone = shipping_address['phone']
+        if len(phone) != 9 or not phone.isdigit():
+            flash('Please enter a valid 9-digit phone number without leading 0', 'danger')
+            return redirect(url_for('checkout'))
+        
+        # Check stock availability before proceeding
+        for item in cart_items:
+            product = products_collection.find_one({'_id': ObjectId(item['product_id'])})
+            if not product:
+                flash(f'Product {item["name"]} not found', 'danger')
+                return redirect(url_for('cart'))
+            if product.get('stock', 0) < item.get('quantity', 1):
+                flash(f'{item["name"]} is out of stock', 'danger')
+                return redirect(url_for('cart'))
         
         # Calculate totals
         subtotal = sum(item.get('price', 0) * item.get('quantity', 1) for item in cart_items)
         county = shipping_address.get('county', '').lower()
         delivery_fee = 100 if 'embu' in county else 200
+        
+        # Free shipping for orders over 5000
+        if subtotal >= 5000:
+            delivery_fee = 0
+            
         total = subtotal + delivery_fee
         
-        # Create order
+        # Generate order ID
         order_id = generate_order_id()
+        
+        # Create order
         order = {
             'order_id': order_id,
             'user_id': ObjectId(session['user_id']),
@@ -1269,6 +1298,7 @@ def process_checkout():
             'status': 'pending',
             'payment_status': 'pending',
             'paystack_reference': None,
+            'paystack_authorization_url': None,
             'created_at': datetime.now(timezone.utc),
             'updated_at': datetime.now(timezone.utc)
         }
@@ -1287,40 +1317,47 @@ def process_checkout():
             )
             
             if paystack_response and paystack_response.get('status'):
-                # Update order with Paystack reference
+                # Get authorization URL
+                authorization_url = paystack_response.get('data', {}).get('authorization_url')
+                reference = paystack_response.get('data', {}).get('reference')
+                
+                # Update order with Paystack details
                 orders_collection.update_one(
                     {'order_id': order_id},
                     {'$set': {
-                        'paystack_reference': paystack_response.get('data', {}).get('reference'),
-                        'paystack_authorization_url': paystack_response.get('data', {}).get('authorization_url')
+                        'paystack_reference': reference,
+                        'paystack_authorization_url': authorization_url,
+                        'updated_at': datetime.now(timezone.utc)
                     }}
                 )
                 
-                return jsonify({
-                    'success': True,
-                    'message': 'Redirecting to secure payment...',
-                    'payment_method': 'paystack',
-                    'authorization_url': paystack_response.get('data', {}).get('authorization_url'),
-                    'reference': paystack_response.get('data', {}).get('reference'),
-                    'order_id': order_id,
-                    'amount': total
-                })
+                # ✅ DIRECT REDIRECT TO PAYSTACK - FULLY AUTOMATED
+                return redirect(authorization_url)
+                
             else:
-                return jsonify({
-                    'success': False,
-                    'message': 'Payment initialization failed. Please try again.'
-                })
+                # Payment initialization failed
+                error_msg = 'Payment initialization failed. Please try again.'
+                if paystack_response and 'message' in paystack_response:
+                    error_msg = paystack_response['message']
+                
+                flash(error_msg, 'danger')
+                return redirect(url_for('checkout'))
                 
         except Exception as paystack_error:
-            print(f"Paystack initialization error: {paystack_error}")
-            return jsonify({
-                'success': False,
-                'message': 'Payment service temporarily unavailable. Please try again.'
-            })
+            print(f"❌ Paystack initialization error: {paystack_error}")
+            import traceback
+            print(traceback.format_exc())
+            
+            flash('Payment service temporarily unavailable. Please try again later.', 'danger')
+            return redirect(url_for('checkout'))
         
     except Exception as e:
-        print(f"Error in process_checkout: {e}")
-        return jsonify({'success': False, 'message': str(e)})
+        print(f"❌ Error in process_checkout: {e}")
+        import traceback
+        print(traceback.format_exc())
+        
+        flash('An error occurred during checkout. Please try again.', 'danger')
+        return redirect(url_for('checkout'))
     
 
 
@@ -1350,70 +1387,121 @@ def verify_paystack_payment(reference):
 @app.route('/order-confirmation/<order_id>')
 @login_required
 def order_confirmation(order_id):
-    """Order confirmation page"""
+    """FIXED - Converts all MongoDB objects to plain Python dicts"""
     try:
-        print(f"\n🔍 DEBUG: Loading order confirmation for {order_id}")
-        print(f"🔍 DEBUG: User ID in session: {session.get('user_id')}")
-        
         orders_collection = get_collection('orders')
+        
+        # Find order
         order = orders_collection.find_one({'order_id': order_id})
         
-        print(f"🔍 DEBUG: Order found: {order is not None}")
-        
         if not order:
-            print(f"🔍 DEBUG: Order not found in database")
             flash('Order not found', 'danger')
-            return redirect(url_for('home'))
+            return redirect(url_for('account'))
         
-        if str(order['user_id']) != session['user_id']:
-            print(f"🔍 DEBUG: User mismatch. Order user: {order['user_id']}, Session user: {session['user_id']}")
+        # Check ownership
+        if str(order.get('user_id')) != session['user_id']:
             flash('Order not found', 'danger')
-            return redirect(url_for('home'))
+            return redirect(url_for('account'))
         
-        # Convert ObjectId to string for template safety
-        order['_id'] = str(order['_id'])
-        order['user_id'] = str(order['user_id'])
+        # ===== CRITICAL FIX: Convert EVERYTHING to plain Python =====
+        safe_order = {
+            'order_id': str(order.get('order_id', order_id)),
+            'status': str(order.get('status', 'pending')),
+            'payment_status': str(order.get('payment_status', 'pending')),
+            'payment_method': str(order.get('payment_method', 'paystack')),
+            'subtotal': float(order.get('subtotal', 0)),
+            'delivery_fee': float(order.get('delivery_fee', 0)),
+            'total': float(order.get('total', 0)),
+            'items': [],  # Start with empty list
+            'shipping_address': {},
+            'created_at': order.get('created_at', datetime.utcnow()),
+            'paystack_reference': str(order.get('paystack_reference', ''))
+        }
         
-        # Ensure items is properly formatted as a list
-        if 'items' in order:
-            if not isinstance(order['items'], list):
-                order['items'] = []
+        # ===== FIX ITEMS: Convert SON/list to plain Python list of dicts =====
+        items_data = order.get('items', [])
         
-        # Ensure all items have product_id as string
-        for item in order.get('items', []):
-            if 'product_id' in item:
-                item['product_id'] = str(item['product_id'])
+        # Check if items is callable (function/method)
+        if callable(items_data):
+            print("⚠️ Items is a function, trying to call it")
+            try:
+                items_data = items_data()
+            except:
+                items_data = []
         
-        # Ensure all required fields exist in order
-        order.setdefault('subtotal', 0)
-        order.setdefault('delivery_fee', 0)
-        order.setdefault('total', 0)
-        order.setdefault('status', 'pending')
-        order.setdefault('payment_status', 'pending')
-        order.setdefault('payment_method', 'paystack')  # Changed from mpesa to paystack
-        order.setdefault('shipping_address', {})
-        order.setdefault('created_at', datetime.now(timezone.utc))  # Fixed deprecation
-        order.setdefault('updated_at', datetime.now(timezone.utc))  # Fixed deprecation
+        # Now process as list
+        if isinstance(items_data, list):
+            for item in items_data:
+                if isinstance(item, dict):
+                    safe_item = {
+                        'product_id': str(item.get('product_id', '')),
+                        'name': str(item.get('name', 'Product')),
+                        'price': float(item.get('price', 0)),
+                        'quantity': int(item.get('quantity', 1)),
+                        'size': str(item.get('size', '')),
+                        'color': str(item.get('color', '')),
+                        'image': str(item.get('image', ''))
+                    }
+                    safe_order['items'].append(safe_item)
+                elif hasattr(item, 'to_dict'):  # Handle SON objects
+                    try:
+                        item_dict = item.to_dict()
+                        safe_item = {
+                            'product_id': str(item_dict.get('product_id', '')),
+                            'name': str(item_dict.get('name', 'Product')),
+                            'price': float(item_dict.get('price', 0)),
+                            'quantity': int(item_dict.get('quantity', 1)),
+                            'size': str(item_dict.get('size', '')),
+                            'color': str(item_dict.get('color', '')),
+                            'image': str(item_dict.get('image', ''))
+                        }
+                        safe_order['items'].append(safe_item)
+                    except:
+                        pass
         
-        print(f"🔍 DEBUG: Order prepared for template. Items count: {len(order.get('items', []))}")
-        print(f"🔍 DEBUG: Order keys: {list(order.keys())}")
+        # ===== FIX SHIPPING ADDRESS =====
+        shipping = order.get('shipping_address', {})
+        if callable(shipping):
+            try:
+                shipping = shipping()
+            except:
+                shipping = {}
         
-        # Check payment status from query parameter
-        payment_status = request.args.get('payment', '')
-        if payment_status == 'success':
-            order['payment_status'] = 'paid'
-        elif payment_status == 'pending':
-            order['payment_status'] = 'pending'
+        if isinstance(shipping, dict):
+            safe_order['shipping_address'] = {
+                'street': str(shipping.get('street', '')),
+                'city': str(shipping.get('city', '')),
+                'county': str(shipping.get('county', '')),
+                'postal_code': str(shipping.get('postal_code', '')),
+                'phone': str(shipping.get('phone', '')),
+                'name': str(shipping.get('name', ''))
+            }
+        elif hasattr(shipping, 'to_dict'):
+            try:
+                shipping_dict = shipping.to_dict()
+                safe_order['shipping_address'] = {
+                    'street': str(shipping_dict.get('street', '')),
+                    'city': str(shipping_dict.get('city', '')),
+                    'county': str(shipping_dict.get('county', '')),
+                    'postal_code': str(shipping_dict.get('postal_code', '')),
+                    'phone': str(shipping_dict.get('phone', '')),
+                    'name': str(shipping_dict.get('name', ''))
+                }
+            except:
+                pass
         
-        return render_template('order_confirmation.html', order=order)
+        print(f"✅ Final items type: {type(safe_order['items'])}")
+        print(f"✅ Final items length: {len(safe_order['items'])}")
+        print(f"✅ Final items[0] type: {type(safe_order['items'][0]) if safe_order['items'] else 'None'}")
+        
+        return render_template('order_confirmation.html', order=safe_order)
         
     except Exception as e:
-        print(f"\n❌ ERROR in order_confirmation: {e}")
+        print(f"❌ CRITICAL ERROR: {e}")
         import traceback
-        print(f"❌ ERROR Traceback: {traceback.format_exc()}")
-        
-        flash('Error loading order confirmation', 'danger')
-        return redirect(url_for('home'))
+        traceback.print_exc()
+        flash('Error loading order confirmation. Please check your orders page.', 'danger')
+        return redirect(url_for('account'))
 @app.route('/debug-order/<order_id>')
 @login_required
 def debug_order(order_id):
@@ -1669,144 +1757,236 @@ def logout():
 @app.route('/account')
 @login_required
 def account():
-    """User account dashboard"""
+    """User account dashboard - COMPLETELY REWRITTEN FOR STABILITY"""
     try:
-        print(f"\n🔍 ACCOUNT ROUTE CALLED:")
-        print(f"🔍 User ID: {session.get('user_id')}")
-        print(f"🔍 User Name: {session.get('user_name')}")
+        print(f"\n🔍 ===== ACCOUNT PAGE LOADING =====")
+        print(f"🔍 User ID in session: {session.get('user_id')}")
         
+        # Get collections
         users_collection = get_collection('users')
         orders_collection = get_collection('orders')
         
-        # Get user
-        user = users_collection.find_one({'_id': ObjectId(session['user_id'])})
+        # ===== 1. GET USER - WITH MULTIPLE FALLBACKS =====
+        user = None
+        user_id = session.get('user_id')
         
+        if user_id:
+            try:
+                # Try as ObjectId first
+                user = users_collection.find_one({'_id': ObjectId(user_id)})
+            except:
+                try:
+                    # Try as string
+                    user = users_collection.find_one({'_id': user_id})
+                except:
+                    pass
+        
+        # If still no user, create minimal user object
         if not user:
-            print(f"❌ User not found in database")
-            flash('User not found', 'danger')
-            return redirect(url_for('home'))
+            print(f"❌ User not found, creating minimal user object")
+            user = {
+                '_id': user_id,
+                'name': 'Customer',
+                'email': '',
+                'phone': '',
+                'role': 'customer',
+                'verified': False,
+                'cart': [],
+                'wishlist': [],
+                'created_at': datetime.utcnow(),
+                'last_login': datetime.utcnow()
+            }
         
-        print(f"✅ User found: {user.get('name')}")
+        # ===== 2. SAFELY CONVERT USER OBJECT =====
+        safe_user = {}
         
-        # Convert ObjectId to string
-        user['_id'] = str(user['_id'])
+        # Copy all fields safely
+        for key, value in user.items():
+            if isinstance(value, ObjectId):
+                safe_user[key] = str(value)
+            elif isinstance(value, datetime):
+                safe_user[key] = value
+            elif key == 'cart':
+                # Ensure cart is a list
+                if isinstance(value, list):
+                    safe_user[key] = value
+                else:
+                    safe_user[key] = []
+            elif key == 'wishlist':
+                # Ensure wishlist is a list
+                if isinstance(value, list):
+                    safe_user[key] = value
+                else:
+                    safe_user[key] = []
+            else:
+                safe_user[key] = value
         
-        # Ensure all required fields exist with defaults
-        defaults = {
+        # Set defaults for missing fields
+        user_defaults = {
             'name': 'Customer',
             'email': '',
             'phone': '',
             'role': 'customer',
+            'verified': False,
             'cart': [],
             'wishlist': [],
             'addresses': [],
             'profile_picture': '',
-            'verified': False,
-            'created_at': datetime.now(),
-            'last_login': datetime.now()
+            'created_at': datetime.utcnow(),
+            'last_login': datetime.utcnow()
         }
         
-        for key, default_value in defaults.items():
-            if key not in user:
-                user[key] = default_value
+        for key, default_value in user_defaults.items():
+            if key not in safe_user or safe_user[key] is None:
+                safe_user[key] = default_value
         
-        # Handle cart and wishlist specifically
-        if isinstance(user.get('cart'), list):
-            user['cart'] = user['cart']
-        else:
-            user['cart'] = []
-            
-        if isinstance(user.get('wishlist'), list):
-            user['wishlist'] = user['wishlist']
-        else:
-            user['wishlist'] = []
+        # ===== 3. GET ORDERS - WITH COMPLETE ERROR HANDLING =====
+        safe_orders = []
         
-        print(f"🔍 Cart items: {len(user['cart'])}")
-        print(f"🔍 Wishlist items: {len(user['wishlist'])}")
-        
-        # Get orders
         try:
-            orders = list(orders_collection.find({'user_id': ObjectId(session['user_id'])})
-                         .sort('created_at', -1).limit(20))
-            print(f"🔍 Orders retrieved: {len(orders)}")
-            
-            # Process each order
-            processed_orders = []
-            for order in orders:
-                order_copy = dict(order)  # Convert to regular dict
-                order_copy['_id'] = str(order_copy['_id'])
-                order_copy['user_id'] = str(order_copy['user_id'])
+            if user_id:
+                # Try to find orders
+                try:
+                    orders_cursor = orders_collection.find({'user_id': ObjectId(user_id)}).sort('created_at', -1)
+                    db_orders = list(orders_cursor)
+                except:
+                    try:
+                        orders_cursor = orders_collection.find({'user_id': user_id}).sort('created_at', -1)
+                        db_orders = list(orders_cursor)
+                    except:
+                        db_orders = []
                 
-                # CRITICAL FIX: Ensure items is a proper list
-                if 'items' in order_copy:
-                    # Check if items is a method/function
-                    if callable(order_copy['items']):
-                        print(f"⚠️ Order {order_copy.get('order_id', 'N/A')}: items is a method/function")
-                        order_copy['items'] = []
-                    elif isinstance(order_copy['items'], list):
-                        # Ensure all items have proper structure
-                        fixed_items = []
-                        for item in order_copy['items']:
-                            if isinstance(item, dict):
-                                fixed_items.append(item)
-                            else:
-                                print(f"⚠️ Item is not a dict: {type(item)}")
-                        order_copy['items'] = fixed_items
-                    else:
-                        print(f"⚠️ Order {order_copy.get('order_id', 'N/A')}: items is {type(order_copy['items'])}")
-                        order_copy['items'] = []
-                else:
-                    order_copy['items'] = []
-                
-                # Set defaults for order fields
-                order_defaults = {
-                    'order_id': order_copy.get('order_id', f'ORDER-{str(order_copy["_id"])[:8]}'),
-                    'status': 'pending',
-                    'payment_status': 'pending',
-                    'subtotal': 0,
-                    'delivery_fee': 0,
-                    'total': 0,
-                    'payment_method': 'mpesa',
-                    'shipping_address': {},
-                    'created_at': datetime.now(),
-                    'updated_at': datetime.now()
-                }
-                
-                for key, value in order_defaults.items():
-                    if key not in order_copy:
-                        order_copy[key] = value
-                
-                processed_orders.append(order_copy)
-            
-            orders = processed_orders
-            
-        except Exception as order_error:
-            print(f"⚠ Error fetching orders: {order_error}")
-            import traceback
-            print(f"⚠ Order error traceback: {traceback.format_exc()}")
-            orders = []
+                # Process each order safely
+                for order in db_orders:
+                    try:
+                        safe_order = {
+                            '_id': str(order.get('_id', '')),
+                            'order_id': str(order.get('order_id', f"ORD-{str(order.get('_id', ''))[-8:]}")),
+                            'user_id': str(order.get('user_id', '')),
+                            'status': order.get('status', 'pending'),
+                            'payment_status': order.get('payment_status', 'pending'),
+                            'payment_method': order.get('payment_method', 'paystack'),
+                            'subtotal': 0,
+                            'delivery_fee': 0,
+                            'total': 0,
+                            'items': [],
+                            'shipping_address': {},
+                            'created_at': order.get('created_at', datetime.utcnow()),
+                            'updated_at': order.get('updated_at', datetime.utcnow())
+                        }
+                        
+                        # Safely get subtotal
+                        try:
+                            safe_order['subtotal'] = float(order.get('subtotal', 0))
+                        except:
+                            safe_order['subtotal'] = 0
+                        
+                        # Safely get delivery_fee
+                        try:
+                            safe_order['delivery_fee'] = float(order.get('delivery_fee', 0))
+                        except:
+                            safe_order['delivery_fee'] = 0
+                        
+                        # Safely get total
+                        try:
+                            safe_order['total'] = float(order.get('total', 0))
+                        except:
+                            safe_order['total'] = 0
+                        
+                        # Safely process items
+                        if 'items' in order and isinstance(order['items'], list):
+                            items = []
+                            for item in order['items']:
+                                if isinstance(item, dict):
+                                    safe_item = {}
+                                    for ik, iv in item.items():
+                                        if isinstance(iv, ObjectId):
+                                            safe_item[ik] = str(iv)
+                                        elif ik == 'price' or ik == 'quantity':
+                                            try:
+                                                safe_item[ik] = float(iv) if ik == 'price' else int(iv)
+                                            except:
+                                                safe_item[ik] = 0 if ik == 'price' else 1
+                                        else:
+                                            safe_item[ik] = iv
+                                    items.append(safe_item)
+                            safe_order['items'] = items
+                        
+                        # Safely process shipping address
+                        if 'shipping_address' in order and isinstance(order['shipping_address'], dict):
+                            safe_order['shipping_address'] = order['shipping_address']
+                        
+                        safe_orders.append(safe_order)
+                        
+                    except Exception as order_error:
+                        print(f"⚠️ Error processing individual order: {order_error}")
+                        continue
+                        
+        except Exception as orders_error:
+            print(f"⚠️ Error fetching orders: {orders_error}")
+            safe_orders = []
         
-        print(f"✅ Account data prepared successfully")
-        print(f"✅ Rendering template with {len(orders)} orders")
+        # ===== 4. CALCULATE STATISTICS SAFELY =====
+        total_orders = len(safe_orders)
+        pending_count = 0
+        delivered_count = 0
+        total_spent = 0
         
-        # Debug: Check first order structure
-        if orders:
-            print(f"🔍 First order structure:")
-            print(f"  - Order ID: {orders[0].get('order_id')}")
-            print(f"  - Items type: {type(orders[0].get('items'))}")
-            print(f"  - Items length: {len(orders[0].get('items', []))}")
-            print(f"  - Items content: {orders[0].get('items', [])[:2]}")
+        for order in safe_orders:
+            # Count pending
+            if order.get('status') == 'pending':
+                pending_count += 1
+            # Count delivered
+            if order.get('status') == 'delivered':
+                delivered_count += 1
+            # Calculate total spent (only paid orders)
+            if order.get('payment_status') == 'paid' and order.get('total'):
+                try:
+                    total_spent += float(order['total'])
+                except:
+                    pass
         
-        return render_template('account.html', user=user, orders=orders)
+        print(f"✅ User loaded: {safe_user.get('name')}")
+        print(f"✅ Orders found: {len(safe_orders)}")
+        print(f"✅ Pending: {pending_count}, Delivered: {delivered_count}")
+        print(f"✅ Total spent: {total_spent}")
+        
+        # ===== 5. RENDER TEMPLATE WITH ALL DATA =====
+        return render_template(
+            'account.html',
+            user=safe_user,
+            orders=safe_orders,
+            total_orders=total_orders,
+            pending_count=pending_count,
+            delivered_count=delivered_count,
+            total_spent=total_spent
+        )
         
     except Exception as e:
         print(f"\n❌ CRITICAL ERROR in account route: {e}")
         import traceback
-        print(f"❌ TRACEBACK: {traceback.format_exc()}")
-        flash('Error loading account page. Please try again.', 'danger')
-        return redirect(url_for('home'))
-
-# ADD THESE ROUTES RIGHT HERE, RIGHT AFTER THE ACCOUNT ROUTE:
+        print(f"❌ Traceback: {traceback.format_exc()}")
+        
+        # Even on error, show a basic page
+        flash('Unable to load your account details. Please try again.', 'warning')
+        return render_template(
+            'account.html',
+            user={
+                'name': session.get('user_name', 'Customer'),
+                'email': '',
+                'phone': '',
+                'role': 'customer',
+                'verified': False,
+                'cart': [],
+                'wishlist': [],
+                'created_at': datetime.utcnow()
+            },
+            orders=[],
+            total_orders=0,
+            pending_count=0,
+            delivered_count=0,
+            total_spent=0
+        )
 
 @app.route('/update_profile', methods=['POST'])
 @login_required

@@ -5,26 +5,21 @@
 {% block content %}
 <div class="container py-4">
     <div class="row">
-        <!-- Sidebar -->
+        <!-- ===== SIDEBAR ===== -->
         <div class="col-lg-3 mb-4">
             <div class="card shadow-brand border-0 bg-white">
                 <div class="card-body p-4">
+                    <!-- Profile Avatar -->
                     <div class="text-center mb-4">
                         <div class="avatar-circle mb-3 bg-gradient-magenta">
-                            {% if user.profile_picture %}
-                                <img src="{{ user.profile_picture }}" 
-                                     class="rounded-circle" 
-                                     alt="{{ user.name }}"
-                                     style="width: 100px; height: 100px; object-fit: cover; border: 4px solid var(--white-pure);"
-                                     onerror="this.src='https://via.placeholder.com/100x100?text=MF'">
-                            {% else %}
-                                <div class="avatar-initials">
-                                    <span class="display-5 fw-bold text-white">{{ user.name[:1]|upper }}</span>
-                                </div>
-                            {% endif %}
+                            <div class="avatar-initials">
+                                <span class="display-5 fw-bold text-white">
+                                    {{ user.name[:1]|upper if user.name else 'U' }}
+                                </span>
+                            </div>
                         </div>
-                        <h5 class="fw-bold text-charcoal mb-1">{{ user.name }}</h5>
-                        <p class="text-grey-medium small mb-2">{{ user.email }}</p>
+                        <h5 class="fw-bold text-charcoal mb-1">{{ user.name|default('Customer') }}</h5>
+                        <p class="text-grey-medium small mb-2">{{ user.email|default('') }}</p>
                         <div class="d-flex justify-content-center gap-2">
                             <span class="badge bg-{{ 'success' if user.verified else 'warning' }} px-3 py-2">
                                 <i class="fas fa-{{ 'check-circle' if user.verified else 'exclamation-circle' }} me-1"></i>
@@ -33,10 +28,16 @@
                         </div>
                         <p class="small text-grey-medium mt-2 mb-0">
                             <i class="fas fa-calendar me-1 text-cyan"></i>
-                            Member since {{ format_date(user.created_at, '%B %Y') if user.created_at else 'N/A' }}
+                            Member since 
+                            {% if user.created_at %}
+                                {{ user.created_at.strftime('%B %Y') }}
+                            {% else %}
+                                N/A
+                            {% endif %}
                         </p>
                     </div>
                     
+                    <!-- Navigation Menu -->
                     <ul class="nav flex-column account-nav" id="accountNav">
                         <li class="nav-item">
                             <a class="nav-link active" href="#dashboard" data-bs-toggle="tab">
@@ -90,20 +91,20 @@
                     <p class="small text-grey-medium mb-2">Contact our support team</p>
                     <div class="d-flex align-items-center mb-2">
                         <i class="fas fa-phone text-magenta me-2"></i>
-                        <a href="tel:0102850010" class="text-decoration-none text-cyan hover-magenta small">0102850010</a>
+                        <a href="tel:0102850010" class="text-decoration-none text-cyan small">0102850010</a>
                     </div>
                     <div class="d-flex align-items-center">
                         <i class="fas fa-envelope text-magenta me-2"></i>
-                        <a href="mailto:mufrafashions@gmail.com" class="text-decoration-none text-cyan hover-magenta small">mufrafashions@gmail.com</a>
+                        <a href="mailto:mufrafashions@gmail.com" class="text-decoration-none text-cyan small">mufrafashions@gmail.com</a>
                     </div>
                 </div>
             </div>
         </div>
         
-        <!-- Main Content -->
+        <!-- ===== MAIN CONTENT ===== -->
         <div class="col-lg-9">
             <div class="tab-content">
-                <!-- Dashboard Tab -->
+                <!-- ===== DASHBOARD TAB ===== -->
                 <div class="tab-pane fade show active" id="dashboard">
                     <div class="card shadow-brand border-0 bg-white">
                         <div class="card-header bg-white border-0 pt-4 px-4">
@@ -119,11 +120,12 @@
                                         <i class="fas fa-hand-wave fa-2x text-cyan"></i>
                                     </div>
                                     <div class="flex-grow-1 ms-3">
-                                        <h6 class="fw-bold text-charcoal mb-1">Welcome back, {{ user.name.split()[0] }}!</h6>
+                                        <h6 class="fw-bold text-charcoal mb-1">
+                                            Welcome back, {{ user.name.split()[0] if user.name and user.name.split() else 'Customer' }}!
+                                        </h6>
                                         <p class="small text-charcoal mb-0">
-                                            {% if orders and orders|length > 0 %}
-                                                You have {{ orders|length }} order{% if orders|length > 1 %}s{% endif %}. 
-                                                {% set pending_count = orders|selectattr('status', 'equalto', 'pending')|list|length %}
+                                            {% if total_orders > 0 %}
+                                                You have {{ total_orders }} order{% if total_orders > 1 %}s{% endif %}.
                                                 {% if pending_count > 0 %}
                                                     <span class="text-magenta">{{ pending_count }} pending</span> order{% if pending_count > 1 %}s{% endif %}.
                                                 {% endif %}
@@ -144,7 +146,7 @@
                                             <i class="fas fa-shopping-bag"></i>
                                         </div>
                                         <h6 class="mb-1 text-charcoal fw-semibold">Total Orders</h6>
-                                        <h4 class="mb-0 text-magenta fw-bold">{{ orders|length if orders else 0 }}</h4>
+                                        <h4 class="mb-0 text-magenta fw-bold">{{ total_orders|default(0) }}</h4>
                                     </div>
                                 </div>
                                 <div class="col-md-3 col-sm-6 mb-3">
@@ -154,13 +156,7 @@
                                             <i class="fas fa-clock"></i>
                                         </div>
                                         <h6 class="mb-1 text-charcoal fw-semibold">Pending</h6>
-                                        <h4 class="mb-0 text-cyan fw-bold">
-                                            {% if orders %}
-                                                {{ orders|selectattr('status', 'equalto', 'pending')|list|length }}
-                                            {% else %}
-                                                0
-                                            {% endif %}
-                                        </h4>
+                                        <h4 class="mb-0 text-cyan fw-bold">{{ pending_count|default(0) }}</h4>
                                     </div>
                                 </div>
                                 <div class="col-md-3 col-sm-6 mb-3">
@@ -170,13 +166,7 @@
                                             <i class="fas fa-check-circle"></i>
                                         </div>
                                         <h6 class="mb-1 text-charcoal fw-semibold">Delivered</h6>
-                                        <h4 class="mb-0 text-magenta fw-bold">
-                                            {% if orders %}
-                                                {{ orders|selectattr('status', 'equalto', 'delivered')|list|length }}
-                                            {% else %}
-                                                0
-                                            {% endif %}
-                                        </h4>
+                                        <h4 class="mb-0 text-magenta fw-bold">{{ delivered_count|default(0) }}</h4>
                                     </div>
                                 </div>
                                 <div class="col-md-3 col-sm-6 mb-3">
@@ -186,22 +176,14 @@
                                             <i class="fas fa-money-bill-wave"></i>
                                         </div>
                                         <h6 class="mb-1 text-charcoal fw-semibold">Total Spent</h6>
-                                        <h4 class="mb-0 text-cyan fw-bold">
-                                            {% if orders %}
-                                                {% set total_spent = orders|sum(attribute='total') %}
-                                                {{ format_price(total_spent|int) }}
-                                            {% else %}
-                                                KES 0
-                                            {% endif %}
-                                        </h4>
+                                        <h4 class="mb-0 text-cyan fw-bold">{{ format_price(total_spent|int) }}</h4>
                                     </div>
                                 </div>
                             </div>
                             
-                            <!-- Recent Activity -->
+                            <!-- Recent Orders -->
                             <div class="row">
-                                <!-- Recent Orders -->
-                                <div class="col-md-8 mb-4">
+                                <div class="col-12 mb-4">
                                     <div class="d-flex justify-content-between align-items-center mb-3">
                                         <h5 class="fw-bold text-charcoal mb-0">
                                             <i class="fas fa-clock me-2 text-cyan"></i>Recent Orders
@@ -229,16 +211,28 @@
                                                     <td>
                                                         <span class="fw-semibold text-charcoal">#{{ order.order_id }}</span>
                                                     </td>
-                                                    <td class="text-grey-medium">{{ format_date(order.created_at, '%b %d') }}</td>
+                                                    <td class="text-grey-medium">
+                                                        {% if order.created_at %}
+                                                            {{ order.created_at.strftime('%b %d, %Y') }}
+                                                        {% else %}
+                                                            N/A
+                                                        {% endif %}
+                                                    </td>
                                                     <td>
-                                                        <span class="badge bg-{{ 'warning' if order.status == 'pending' else 'info' if order.status == 'processing' else 'success' if order.status == 'delivered' else 'danger' if order.status == 'cancelled' else 'secondary' }} px-3 py-2">
-                                                            {{ order.status|title }}
+                                                        {% set status_class = {
+                                                            'pending': 'warning',
+                                                            'processing': 'info',
+                                                            'delivered': 'success',
+                                                            'cancelled': 'danger'
+                                                        } %}
+                                                        <span class="badge bg-{{ status_class.get(order.status, 'secondary') }} px-3 py-2">
+                                                            {{ order.status|title if order.status else 'Pending' }}
                                                         </span>
                                                     </td>
                                                     <td class="fw-bold text-magenta">{{ format_price(order.total) }}</td>
                                                     <td>
                                                         <a href="{{ url_for('order_confirmation', order_id=order.order_id) }}" 
-                                                           class="btn btn-sm btn-outline-cyan rounded-circle" 
+                                                           class="btn btn-sm btn-outline-cyan rounded-circle"
                                                            style="width: 32px; height: 32px;"
                                                            title="View Order">
                                                             <i class="fas fa-eye"></i>
@@ -262,50 +256,6 @@
                                         </a>
                                     </div>
                                     {% endif %}
-                                </div>
-                                
-                                <!-- Account Summary -->
-                                <div class="col-md-4 mb-4">
-                                    <div class="card border-0 bg-soft-magenta">
-                                        <div class="card-header bg-transparent border-0 pt-3 px-3">
-                                            <h6 class="mb-0 fw-bold text-charcoal">
-                                                <i class="fas fa-user-circle me-2 text-magenta"></i>Account Summary
-                                            </h6>
-                                        </div>
-                                        <div class="card-body pt-0 px-3 pb-3">
-                                            <div class="mb-3">
-                                                <small class="text-grey-medium d-block">Account Type</small>
-                                                <span class="badge bg-cyan px-3 py-2 mt-1">{{ user.role|title }}</span>
-                                            </div>
-                                            <div class="mb-3">
-                                                <small class="text-grey-medium d-block">Member Since</small>
-                                                <strong class="d-block text-charcoal">{{ format_date(user.created_at, '%B %Y') if user.created_at else 'N/A' }}</strong>
-                                            </div>
-                                            <div class="mb-3">
-                                                <small class="text-grey-medium d-block">Last Login</small>
-                                                <strong class="d-block text-charcoal">
-                                                    {% if user.last_login %}
-                                                        {{ format_date(user.last_login, '%b %d, %Y') }}
-                                                    {% else %}
-                                                        {{ format_date(user.created_at, '%b %d, %Y') if user.created_at else 'N/A' }}
-                                                    {% endif %}
-                                                </strong>
-                                            </div>
-                                            <div class="mb-3">
-                                                <small class="text-grey-medium d-block">Cart Items</small>
-                                                <strong class="d-block text-charcoal">
-                                                    <span class="badge bg-magenta px-3 py-2 mt-1">
-                                                        {{ user.cart|length if user.cart else 0 }} items
-                                                    </span>
-                                                </strong>
-                                            </div>
-                                            <div class="text-center mt-3">
-                                                <a href="#settings" class="btn btn-outline-cyan btn-sm w-100" data-bs-toggle="tab">
-                                                    <i class="fas fa-cog me-1"></i> Manage Account
-                                                </a>
-                                            </div>
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
                             
@@ -343,7 +293,7 @@
                     </div>
                 </div>
                 
-                <!-- Orders Tab -->
+                <!-- ===== ORDERS TAB ===== -->
                 <div class="tab-pane fade" id="orders">
                     <div class="card shadow-brand border-0 bg-white">
                         <div class="card-header bg-white border-0 pt-4 px-4">
@@ -370,13 +320,19 @@
                             <!-- Orders List -->
                             <div class="orders-list">
                                 {% for order in orders %}
-                                <div class="order-card card mb-4 border-0 shadow-soft" data-status="{{ order.status }}">
+                                <div class="order-card card mb-4 border-0 shadow-soft" data-status="{{ order.status|lower }}">
                                     <div class="card-body p-4">
                                         <!-- Order Header -->
-                                        <div class="row align-items-center mb-3">
-                                            <div class="col-md-4">
+                                        <div class="row align-items-center">
+                                            <div class="col-md-4 mb-3 mb-md-0">
                                                 <div class="d-flex align-items-center">
-                                                    <div class="order-status-icon bg-soft-{{ 'warning' if order.status == 'pending' else 'info' if order.status == 'processing' else 'success' if order.status == 'delivered' else 'danger' if order.status == 'cancelled' else 'secondary' }} rounded-circle me-3 d-flex align-items-center justify-content-center"
+                                                    <div class="order-status-icon bg-soft-{{ 
+                                                        'warning' if order.status == 'pending' else 
+                                                        'info' if order.status == 'processing' else 
+                                                        'success' if order.status == 'delivered' else 
+                                                        'danger' if order.status == 'cancelled' else 
+                                                        'secondary' 
+                                                    }} rounded-circle me-3 d-flex align-items-center justify-content-center"
                                                          style="width: 50px; height: 50px;">
                                                         {% if order.status == 'pending' %}
                                                             <i class="fas fa-clock fa-2x text-cyan"></i>
@@ -393,18 +349,23 @@
                                                     <div>
                                                         <h6 class="mb-1 fw-bold text-charcoal">Order #{{ order.order_id }}</h6>
                                                         <small class="text-grey-medium">
-                                                            <i class="fas fa-calendar me-1"></i>{{ format_date(order.created_at, '%B %d, %Y') }}
+                                                            <i class="fas fa-calendar me-1"></i>
+                                                            {% if order.created_at %}
+                                                                {{ order.created_at.strftime('%B %d, %Y') }}
+                                                            {% else %}
+                                                                N/A
+                                                            {% endif %}
                                                         </small>
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div class="col-md-2">
+                                            <div class="col-md-2 mb-3 mb-md-0">
                                                 <div class="text-center">
                                                     <small class="text-grey-medium d-block">Items</small>
                                                     <strong class="text-charcoal">{{ order.items|length if order.items else 0 }}</strong>
                                                 </div>
                                             </div>
-                                            <div class="col-md-3">
+                                            <div class="col-md-3 mb-3 mb-md-0">
                                                 <div class="text-center">
                                                     <small class="text-grey-medium d-block">Total Amount</small>
                                                     <strong class="text-magenta">{{ format_price(order.total) }}</strong>
@@ -412,8 +373,14 @@
                                             </div>
                                             <div class="col-md-3">
                                                 <div class="d-flex gap-2 justify-content-end">
-                                                    <span class="badge bg-{{ 'warning' if order.status == 'pending' else 'info' if order.status == 'processing' else 'success' if order.status == 'delivered' else 'danger' if order.status == 'cancelled' else 'secondary' }} px-3 py-2">
-                                                        {{ order.status|title }}
+                                                    <span class="badge bg-{{ 
+                                                        'warning' if order.status == 'pending' else 
+                                                        'info' if order.status == 'processing' else 
+                                                        'success' if order.status == 'delivered' else 
+                                                        'danger' if order.status == 'cancelled' else 
+                                                        'secondary' 
+                                                    }} px-3 py-2">
+                                                        {{ order.status|title if order.status else 'Pending' }}
                                                     </span>
                                                     <a href="{{ url_for('order_confirmation', order_id=order.order_id) }}" 
                                                        class="btn btn-sm btn-outline-cyan rounded-circle"
@@ -425,158 +392,22 @@
                                             </div>
                                         </div>
                                         
-                                        <!-- Order Status Timeline -->
+                                        <!-- Order Items Preview -->
                                         <div class="mt-3 pt-3 border-top border-grey-medium border-opacity-25">
-                                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                                <h6 class="mb-0 fw-semibold text-charcoal small">
-                                                    <i class="fas fa-history me-2 text-cyan"></i>Status Progress
-                                                </h6>
-                                                <button class="btn btn-sm btn-link text-cyan p-0" 
-                                                        onclick="toggleOrderTimeline('order-{{ order.order_id }}')">
-                                                    <i class="fas fa-chevron-down"></i> History
-                                                </button>
-                                            </div>
-                                            
-                                            <!-- Status Badges -->
-                                            <div class="d-flex flex-wrap gap-2 mb-3">
-                                                <span class="badge bg-{{ 'warning' if order.status == 'pending' else 'secondary' }} px-3 py-2">
-                                                    <i class="fas fa-hourglass-start me-1"></i>Pending
-                                                </span>
-                                                <span class="badge bg-{{ 'info' if order.status == 'processing' else 'secondary' }} px-3 py-2">
-                                                    <i class="fas fa-cog me-1"></i>Processing
-                                                </span>
-                                                <span class="badge bg-{{ 'primary' if order.status == 'shipped' else 'secondary' }} px-3 py-2">
-                                                    <i class="fas fa-truck me-1"></i>Shipped
-                                                </span>
-                                                <span class="badge bg-{{ 'success' if order.status == 'delivered' else 'secondary' }} px-3 py-2">
-                                                    <i class="fas fa-check-circle me-1"></i>Delivered
-                                                </span>
-                                            </div>
-                                            
-                                            <!-- Timeline Popup -->
-                                            <div id="timeline-order-{{ order.order_id }}" class="status-timeline-popup collapse">
-                                                <div class="bg-soft-cyan p-3 rounded-3 mt-2">
-                                                    <div class="timeline-container">
-                                                        {% if order.status_history %}
-                                                            {% for history in order.status_history|reverse %}
-                                                            <div class="timeline-item d-flex gap-3 mb-3 {% if not loop.last %}pb-3 border-bottom border-grey-medium border-opacity-25{% endif %}">
-                                                                <div class="timeline-marker flex-shrink-0">
-                                                                    <div class="timeline-dot bg-magenta"></div>
-                                                                </div>
-                                                                <div class="flex-grow-1">
-                                                                    <div class="d-flex justify-content-between align-items-start">
-                                                                        <div>
-                                                                            <h6 class="mb-1 fw-semibold text-cyan">{{ history.status|title }}</h6>
-                                                                            <small class="text-grey-medium d-block">
-                                                                                <i class="fas fa-calendar me-1"></i>
-                                                                                {{ format_date(history.timestamp, '%B %d, %Y %I:%M %p') if history.timestamp else 'N/A' }}
-                                                                            </small>
-                                                                            {% if history.updated_by %}
-                                                                            <small class="text-grey-medium d-block">
-                                                                                <i class="fas fa-user-circle me-1"></i>
-                                                                                By: {{ history.updated_by }}
-                                                                            </small>
-                                                                            {% endif %}
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            {% endfor %}
-                                                        {% else %}
-                                                            <div class="text-center text-grey-medium py-2">
-                                                                <small>No status history available yet</small>
-                                                            </div>
+                                            <div class="row">
+                                                <div class="col-12">
+                                                    <div class="d-flex flex-wrap align-items-center gap-3">
+                                                        <span class="small text-grey-medium">Items:</span>
+                                                        {% for item in order.items[:3] %}
+                                                        <span class="badge bg-soft-cyan text-cyan px-3 py-2">
+                                                            {{ item.name|truncate(20) }} x{{ item.quantity }}
+                                                        </span>
+                                                        {% endfor %}
+                                                        {% if order.items|length > 3 %}
+                                                        <span class="badge bg-soft-magenta text-magenta px-3 py-2">
+                                                            +{{ order.items|length - 3 }} more
+                                                        </span>
                                                         {% endif %}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Order Items -->
-                                        <div class="mt-3 pt-3 border-top border-grey-medium border-opacity-25">
-                                            <h6 class="mb-3 fw-semibold text-charcoal small">Order Items:</h6>
-                                            {% for item in order.items %}
-                                            <div class="d-flex align-items-center mb-3 pb-2 {% if not loop.last %}border-bottom border-grey-medium border-opacity-25{% endif %}">
-                                                <!-- Product Image -->
-                                                {% set product = get_product_by_id(item.product_id) %}
-                                                {% set item_image = get_main_product_image(product) if product else get_cart_item_image(item) %}
-                                                <div class="flex-shrink-0">
-                                                    <img src="{{ item_image }}" 
-                                                         class="img-fluid rounded-3" 
-                                                         style="width: 60px; height: 60px; object-fit: cover; border: 1px solid rgba(216,27,96,0.1);"
-                                                         alt="{{ item.name }}"
-                                                         onerror="this.src='https://via.placeholder.com/60x60?text=MF'">
-                                                </div>
-                                                
-                                                <div class="flex-grow-1 ms-3">
-                                                    <div class="row align-items-center">
-                                                        <div class="col-md-6">
-                                                            <span class="fw-semibold text-cyan">{{ item.name }}</span>
-                                                            <div class="d-flex gap-2 mt-1">
-                                                                {% if item.size %}
-                                                                <span class="badge bg-soft-cyan text-cyan border border-cyan">
-                                                                    <i class="fas fa-ruler me-1"></i>{{ item.size }}
-                                                                </span>
-                                                                {% endif %}
-                                                                {% if item.color %}
-                                                                <span class="badge bg-soft-magenta text-magenta border border-magenta">
-                                                                    <i class="fas fa-palette me-1"></i>{{ item.color }}
-                                                                </span>
-                                                                {% endif %}
-                                                                <span class="badge bg-soft-cyan text-cyan border border-cyan">
-                                                                    <i class="fas fa-hashtag me-1"></i>Qty: {{ item.quantity }}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-md-3">
-                                                            <small class="text-grey-medium d-block">Unit Price</small>
-                                                            <span class="text-charcoal">{{ format_price(item.price) }}</span>
-                                                        </div>
-                                                        <div class="col-md-3 text-end">
-                                                            <small class="text-grey-medium d-block">Total</small>
-                                                            <span class="fw-bold text-magenta">{{ format_price(item.price * item.quantity) }}</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            {% endfor %}
-                                            
-                                            <!-- Order Summary -->
-                                            <div class="row mt-3 pt-3 border-top border-grey-medium border-opacity-25">
-                                                <div class="col-md-7">
-                                                    <div class="d-flex align-items-center">
-                                                        <i class="fas fa-map-marker-alt text-cyan me-2"></i>
-                                                        <div>
-                                                            <small class="text-grey-medium d-block">Shipping Address</small>
-                                                            <span class="small text-charcoal">
-                                                                {% if order.shipping_address %}
-                                                                    {{ order.shipping_address.street }}, 
-                                                                    {{ order.shipping_address.city }}, 
-                                                                    {{ order.shipping_address.county }}
-                                                                    {% if order.shipping_address.postal_code %}
-                                                                        - {{ order.shipping_address.postal_code }}
-                                                                    {% endif %}
-                                                                {% else %}
-                                                                    No address provided
-                                                                {% endif %}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-5">
-                                                    <div class="d-flex justify-content-end gap-4">
-                                                        <div class="text-end">
-                                                            <small class="text-grey-medium d-block">Subtotal</small>
-                                                            <span class="text-charcoal">{{ format_price(order.subtotal) }}</span>
-                                                        </div>
-                                                        <div class="text-end">
-                                                            <small class="text-grey-medium d-block">Delivery</small>
-                                                            <span class="text-charcoal">{{ format_price(order.delivery_fee) }}</span>
-                                                        </div>
-                                                        <div class="text-end">
-                                                            <small class="text-grey-medium d-block">Total</small>
-                                                            <span class="fw-bold text-magenta">{{ format_price(order.total) }}</span>
-                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -602,7 +433,7 @@
                     </div>
                 </div>
                 
-                <!-- Shopping Cart Tab -->
+                <!-- ===== CART TAB ===== -->
                 <div class="tab-pane fade" id="cart">
                     <div class="card shadow-brand border-0 bg-white">
                         <div class="card-header bg-white border-0 pt-4 px-4">
@@ -620,71 +451,61 @@
                             <div class="row">
                                 <!-- Cart Items -->
                                 <div class="col-lg-8">
-                                    <div class="cart-items">
-                                        {% for item in user.cart %}
-                                        <div class="cart-item card mb-3 border-0 shadow-soft">
-                                            <div class="card-body">
-                                                <div class="row align-items-center">
-                                                    <div class="col-md-2 col-4">
-                                                        {% set product = get_product_by_id(item.product_id) %}
-                                                        {% set item_image = get_main_product_image(product) if product else get_cart_item_image(item) %}
-                                                        <img src="{{ item_image }}" 
-                                                             class="img-fluid rounded-3" 
-                                                             style="width: 80px; height: 80px; object-fit: cover; border: 1px solid rgba(216,27,96,0.1);"
-                                                             alt="{{ item.name }}"
-                                                             onerror="this.src='https://via.placeholder.com/80x80?text=MF'">
-                                                    </div>
-                                                    <div class="col-md-5 col-8">
-                                                        <h6 class="mb-1 fw-semibold">
-                                                            <a href="{{ url_for('product_details', product_id=item.product_id) }}" 
-                                                               class="text-cyan hover-magenta text-decoration-none">
-                                                                {{ item.name }}
-                                                            </a>
-                                                        </h6>
-                                                        <div class="d-flex flex-wrap gap-2 mt-2">
-                                                            {% if item.size %}
-                                                            <span class="badge bg-soft-cyan text-cyan border border-cyan">
-                                                                <i class="fas fa-ruler me-1"></i>{{ item.size }}
-                                                            </span>
-                                                            {% endif %}
-                                                            {% if item.color %}
-                                                            <span class="badge bg-soft-magenta text-magenta border border-magenta">
-                                                                <i class="fas fa-palette me-1"></i>{{ item.color }}
-                                                            </span>
-                                                            {% endif %}
-                                                        </div>
-                                                        <p class="mb-0 text-magenta fw-bold mt-2">{{ format_price(item.price) }} each</p>
-                                                    </div>
-                                                    <div class="col-md-3 col-6 mt-3 mt-md-0">
-                                                        <div class="d-flex align-items-center">
-                                                            <span class="text-grey-medium me-2">Qty:</span>
-                                                            <span class="badge bg-soft-cyan text-cyan px-3 py-2">{{ item.quantity }}</span>
-                                                        </div>
-                                                        <div class="mt-2">
-                                                            <small class="text-grey-medium">Total:</small>
-                                                            <span class="fw-bold text-magenta ms-2">{{ format_price(item.price * item.quantity) }}</span>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-md-2 col-6 text-end">
-                                                        <a href="{{ url_for('remove_from_cart', item_index=loop.index0) }}" 
-                                                           class="btn btn-outline-magenta btn-sm rounded-circle remove-btn"
-                                                           style="width: 36px; height: 36px;"
-                                                           title="Remove from Cart"
-                                                           data-item-name="{{ item.name }}">
-                                                            <i class="fas fa-trash"></i>
+                                    {% for item in user.cart %}
+                                    <div class="cart-item card mb-3 border-0 shadow-soft">
+                                        <div class="card-body">
+                                            <div class="row align-items-center">
+                                                <div class="col-md-2 col-4">
+                                                    <img src="{{ get_cart_item_image(item) }}" 
+                                                         class="img-fluid rounded-3" 
+                                                         style="width: 80px; height: 80px; object-fit: cover;"
+                                                         alt="{{ item.name }}"
+                                                         onerror="this.src='https://via.placeholder.com/80x80?text=MF'">
+                                                </div>
+                                                <div class="col-md-5 col-8">
+                                                    <h6 class="mb-1 fw-semibold">
+                                                        <a href="{{ url_for('product_details', product_id=item.product_id) }}" 
+                                                           class="text-cyan text-decoration-none">
+                                                            {{ item.name }}
                                                         </a>
-                                                        <div class="mt-2">
-                                                            <a href="{{ url_for('product_details', product_id=item.product_id) }}" 
-                                                               class="btn btn-link btn-sm text-cyan text-decoration-none p-0">
-                                                                <i class="fas fa-eye me-1"></i>View
-                                                            </a>
-                                                        </div>
+                                                    </h6>
+                                                    <div class="d-flex flex-wrap gap-2 mt-2">
+                                                        {% if item.size %}
+                                                        <span class="badge bg-soft-cyan text-cyan">
+                                                            <i class="fas fa-ruler me-1"></i>{{ item.size }}
+                                                        </span>
+                                                        {% endif %}
+                                                        {% if item.color %}
+                                                        <span class="badge bg-soft-magenta text-magenta">
+                                                            <i class="fas fa-palette me-1"></i>{{ item.color }}
+                                                        </span>
+                                                        {% endif %}
                                                     </div>
+                                                    <p class="mb-0 text-magenta fw-bold mt-2">{{ format_price(item.price) }} each</p>
+                                                </div>
+                                                <div class="col-md-3 col-6 mt-3 mt-md-0">
+                                                    <div class="d-flex align-items-center">
+                                                        <span class="text-grey-medium me-2">Qty:</span>
+                                                        <span class="badge bg-soft-cyan text-cyan px-3 py-2">{{ item.quantity }}</span>
+                                                    </div>
+                                                    <div class="mt-2">
+                                                        <small class="text-grey-medium">Total:</small>
+                                                        <span class="fw-bold text-magenta ms-2">{{ format_price(item.price * item.quantity) }}</span>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-2 col-6 text-end">
+                                                    <a href="{{ url_for('remove_from_cart', item_index=loop.index0) }}" 
+                                                       class="btn btn-outline-magenta btn-sm rounded-circle remove-btn"
+                                                       style="width: 36px; height: 36px;"
+                                                       title="Remove from Cart"
+                                                       onclick="return confirm('Remove this item from your cart?')">
+                                                        <i class="fas fa-trash"></i>
+                                                    </a>
                                                 </div>
                                             </div>
                                         </div>
-                                        {% endfor %}
                                     </div>
+                                    {% endfor %}
                                 </div>
                                 
                                 <!-- Cart Summary -->
@@ -696,29 +517,29 @@
                                             </h6>
                                         </div>
                                         <div class="card-body pt-0">
-                                            {% set subtotal = 0 %}
+                                            {% set ns = namespace(subtotal=0) %}
                                             {% for item in user.cart %}
-                                                {% set subtotal = subtotal + (item.price * item.quantity) %}
+                                                {% set ns.subtotal = ns.subtotal + (item.price * item.quantity) %}
                                             {% endfor %}
                                             
-                                            {% set delivery_fee = 200 if subtotal < 5000 else 0 %}
-                                            {% set total = subtotal + delivery_fee %}
+                                            {% set delivery_fee = 200 if ns.subtotal < 5000 else 0 %}
+                                            {% set total = ns.subtotal + delivery_fee %}
                                             
                                             <div class="d-flex justify-content-between mb-2">
                                                 <span class="text-grey-medium">Subtotal</span>
-                                                <span class="fw-bold text-charcoal">{{ format_price(subtotal) }}</span>
+                                                <span class="fw-bold text-charcoal">{{ format_price(ns.subtotal) }}</span>
                                             </div>
                                             <div class="d-flex justify-content-between mb-2">
                                                 <span class="text-grey-medium">Delivery Fee</span>
                                                 <span class="fw-bold text-charcoal">{{ format_price(delivery_fee) }}</span>
                                             </div>
-                                            {% if subtotal >= 5000 %}
+                                            {% if ns.subtotal >= 5000 %}
                                             <div class="d-flex justify-content-between mb-2 text-cyan">
                                                 <span><i class="fas fa-truck me-1"></i>Free Shipping</span>
                                                 <span>-{{ format_price(delivery_fee) }}</span>
                                             </div>
                                             {% endif %}
-                                            <hr class="my-3" style="border-color: rgba(117,117,117,0.2);">
+                                            <hr class="my-3">
                                             <div class="d-flex justify-content-between mb-4">
                                                 <span class="fw-bold text-charcoal">Total</span>
                                                 <span class="fw-bold text-magenta fs-5">{{ format_price(total) }}</span>
@@ -731,13 +552,6 @@
                                                 <a href="{{ url_for('categories') }}" class="btn btn-outline-cyan py-2">
                                                     <i class="fas fa-shopping-bag me-2"></i> Continue Shopping
                                                 </a>
-                                            </div>
-                                            
-                                            <div class="mt-3">
-                                                <small class="text-grey-medium d-block text-center">
-                                                    <i class="fas fa-info-circle me-1 text-cyan"></i>
-                                                    Free delivery on orders over KES 5,000 in Embu County
-                                                </small>
                                             </div>
                                         </div>
                                     </div>
@@ -760,7 +574,7 @@
                     </div>
                 </div>
                 
-                <!-- Wishlist Tab -->
+                <!-- ===== WISHLIST TAB ===== -->
                 <div class="tab-pane fade" id="wishlist">
                     <div class="card shadow-brand border-0 bg-white">
                         <div class="card-header bg-white border-0 pt-4 px-4">
@@ -781,59 +595,22 @@
                                     <div class="card h-100 product-card border-0 shadow-soft">
                                         <div class="position-relative">
                                             <a href="{{ url_for('product_details', product_id=product._id) }}">
-                                                {% set product_images = get_product_images(product) %}
-                                                <div class="product-image-container" style="height: 200px;">
-                                                    <img src="{{ get_main_product_image(product) }}" 
-                                                         class="card-img-top product-image" 
-                                                         alt="{{ product.name }}"
-                                                         style="height: 200px; object-fit: cover; border-radius: 16px 16px 0 0;"
-                                                         onerror="this.src='https://via.placeholder.com/300x200?text=MF'">
-                                                    {% if product_images|length > 1 %}
-                                                    <span class="position-absolute top-0 end-0 m-2 badge bg-charcoal bg-opacity-85">
-                                                        <i class="fas fa-images me-1"></i>{{ product_images|length }}
-                                                    </span>
-                                                    {% endif %}
-                                                </div>
+                                                <img src="{{ get_product_main_image(product) }}" 
+                                                     class="card-img-top" 
+                                                     alt="{{ product.name }}"
+                                                     style="height: 200px; object-fit: cover; border-radius: 16px 16px 0 0;"
+                                                     onerror="this.src='https://via.placeholder.com/300x200?text=MF'">
                                             </a>
-                                            <button class="btn btn-light btn-sm position-absolute top-0 start-0 m-2 wishlist-btn active rounded-circle" 
-                                                    data-product-id="{{ product._id }}"
-                                                    title="Remove from wishlist"
-                                                    style="width: 36px; height: 36px;">
-                                                <i class="fas fa-heart text-magenta"></i>
-                                            </button>
-                                            {% if product.condition == 'Second Hand' or product.condition == 'Used' %}
-                                            <span class="badge bg-grey-medium position-absolute bottom-0 start-0 m-2">
-                                                Pre-owned
-                                            </span>
-                                            {% endif %}
                                         </div>
                                         <div class="card-body">
                                             <h6 class="card-title mb-2">
                                                 <a href="{{ url_for('product_details', product_id=product._id) }}" 
-                                                   class="text-cyan hover-magenta text-decoration-none fw-semibold">
+                                                   class="text-cyan text-decoration-none fw-semibold">
                                                     {{ product.name|truncate(40) }}
                                                 </a>
                                             </h6>
                                             <div class="d-flex justify-content-between align-items-center">
                                                 <span class="price fw-bold text-magenta">{{ format_price(product.price) }}</span>
-                                                {% if product.rating and product.rating > 0 %}
-                                                <small class="text-cyan">
-                                                    <i class="fas fa-star"></i> {{ product.rating }}
-                                                </small>
-                                                {% endif %}
-                                            </div>
-                                        </div>
-                                        <div class="card-footer bg-white border-top-0 pb-3">
-                                            <div class="d-grid gap-2">
-                                                <a href="{{ url_for('product_details', product_id=product._id) }}" 
-                                                   class="btn btn-outline-cyan btn-sm">
-                                                    <i class="fas fa-eye me-1"></i> View Details
-                                                </a>
-                                                <button class="btn btn-magenta btn-sm add-to-cart-btn" 
-                                                        data-product-id="{{ product._id }}"
-                                                        onclick="Mufra?.cart?.add('{{ product._id }}')">
-                                                    <i class="fas fa-cart-plus me-1"></i> Add to Cart
-                                                </button>
                                             </div>
                                         </div>
                                     </div>
@@ -857,7 +634,7 @@
                     </div>
                 </div>
                 
-                <!-- Settings Tab -->
+                <!-- ===== SETTINGS TAB ===== -->
                 <div class="tab-pane fade" id="settings">
                     <div class="card shadow-brand border-0 bg-white">
                         <div class="card-header bg-white border-0 pt-4 px-4">
@@ -868,7 +645,7 @@
                         <div class="card-body p-4">
                             <!-- Profile Settings -->
                             <form id="profileForm" action="{{ url_for('update_profile') }}" method="POST">
-                                <h5 class="mb-4 pb-3 border-bottom border-grey-medium border-opacity-25 fw-bold text-charcoal">
+                                <h5 class="mb-4 pb-3 border-bottom fw-bold text-charcoal">
                                     <i class="fas fa-user-circle me-2 text-magenta"></i>Profile Information
                                 </h5>
                                 
@@ -876,44 +653,43 @@
                                     <div class="col-md-6">
                                         <label class="form-label fw-semibold text-charcoal">Full Name *</label>
                                         <div class="input-group">
-                                            <span class="input-group-text bg-soft-magenta text-magenta border-grey-medium">
+                                            <span class="input-group-text bg-soft-magenta text-magenta">
                                                 <i class="fas fa-user"></i>
                                             </span>
-                                            <input type="text" class="form-control border-grey-medium" name="name" 
-                                                   value="{{ user.name }}" required>
+                                            <input type="text" class="form-control" name="name" 
+                                                   value="{{ user.name|default('') }}" required>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label fw-semibold text-charcoal">Email Address</label>
                                         <div class="input-group">
-                                            <span class="input-group-text bg-soft-cyan text-cyan border-grey-medium">
+                                            <span class="input-group-text bg-soft-cyan text-cyan">
                                                 <i class="fas fa-envelope"></i>
                                             </span>
-                                            <input type="email" class="form-control border-grey-medium" value="{{ user.email }}" readonly>
+                                            <input type="email" class="form-control" value="{{ user.email|default('') }}" readonly>
                                         </div>
-                                        <small class="text-grey-medium"><i class="fas fa-info-circle me-1 text-cyan"></i>Email cannot be changed</small>
+                                        <small class="text-grey-medium">Email cannot be changed</small>
                                     </div>
                                 </div>
                                 
-                                <div class="row">
+                                <div class="row mb-3">
                                     <div class="col-md-6">
                                         <label class="form-label fw-semibold text-charcoal">Phone Number *</label>
                                         <div class="input-group">
-                                            <span class="input-group-text bg-soft-magenta text-magenta border-grey-medium">
+                                            <span class="input-group-text bg-soft-magenta text-magenta">
                                                 <i class="fas fa-phone"></i>
                                             </span>
-                                            <input type="tel" class="form-control border-grey-medium" name="phone" 
-                                                   value="{{ user.phone }}" required>
+                                            <input type="tel" class="form-control" name="phone" 
+                                                   value="{{ user.phone|default('') }}" required>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label fw-semibold text-charcoal">Account Type</label>
                                         <div class="input-group">
-                                            <span class="input-group-text bg-soft-cyan text-cyan border-grey-medium">
+                                            <span class="input-group-text bg-soft-cyan text-cyan">
                                                 <i class="fas fa-shield-alt"></i>
                                             </span>
-                                            <input type="text" class="form-control border-grey-medium" 
-                                                   value="{{ user.role|title }}" readonly>
+                                            <input type="text" class="form-control" value="{{ user.role|title if user.role else 'Customer' }}" readonly>
                                         </div>
                                     </div>
                                 </div>
@@ -922,26 +698,23 @@
                                     <button type="submit" class="btn btn-magenta px-4" id="saveProfileBtn">
                                         <i class="fas fa-save me-2"></i> Save Profile
                                     </button>
-                                    <button type="reset" class="btn btn-outline-cyan px-4">
-                                        <i class="fas fa-undo me-2"></i> Reset
-                                    </button>
                                 </div>
                             </form>
                             
                             <!-- Change Password -->
                             <form id="passwordForm" class="mt-5" action="{{ url_for('change_password') }}" method="POST">
-                                <h5 class="mb-4 pb-3 border-bottom border-grey-medium border-opacity-25 fw-bold text-charcoal">
+                                <h5 class="mb-4 pb-3 border-bottom fw-bold text-charcoal">
                                     <i class="fas fa-key me-2 text-cyan"></i>Change Password
                                 </h5>
                                 
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
                                         <label class="form-label fw-semibold text-charcoal">Current Password *</label>
                                         <div class="input-group">
-                                            <span class="input-group-text bg-soft-cyan text-cyan border-grey-medium">
+                                            <span class="input-group-text bg-soft-cyan text-cyan">
                                                 <i class="fas fa-lock"></i>
                                             </span>
-                                            <input type="password" class="form-control border-grey-medium" name="current_password" required>
+                                            <input type="password" class="form-control" name="current_password" required>
                                         </div>
                                     </div>
                                 </div>
@@ -950,29 +723,20 @@
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label fw-semibold text-charcoal">New Password *</label>
                                         <div class="input-group">
-                                            <span class="input-group-text bg-soft-magenta text-magenta border-grey-medium">
+                                            <span class="input-group-text bg-soft-magenta text-magenta">
                                                 <i class="fas fa-lock"></i>
                                             </span>
-                                            <input type="password" class="form-control border-grey-medium" name="new_password" id="new_password" required>
-                                            <button class="btn btn-outline-grey-medium toggle-password" type="button">
-                                                <i class="fas fa-eye"></i>
-                                            </button>
+                                            <input type="password" class="form-control" name="new_password" id="new_password" required>
                                         </div>
                                         <small class="text-grey-medium">Minimum 6 characters</small>
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label fw-semibold text-charcoal">Confirm New Password *</label>
                                         <div class="input-group">
-                                            <span class="input-group-text bg-soft-magenta text-magenta border-grey-medium">
+                                            <span class="input-group-text bg-soft-magenta text-magenta">
                                                 <i class="fas fa-lock"></i>
                                             </span>
-                                            <input type="password" class="form-control border-grey-medium" name="confirm_password" id="confirm_password" required>
-                                            <button class="btn btn-outline-grey-medium toggle-password" type="button">
-                                                <i class="fas fa-eye"></i>
-                                            </button>
-                                        </div>
-                                        <div class="invalid-feedback d-block" id="password-error" style="display: none !important;">
-                                            Passwords do not match
+                                            <input type="password" class="form-control" name="confirm_password" id="confirm_password" required>
                                         </div>
                                     </div>
                                 </div>
@@ -981,27 +745,8 @@
                                     <button type="submit" class="btn btn-magenta px-4" id="changePasswordBtn">
                                         <i class="fas fa-key me-2"></i> Change Password
                                     </button>
-                                    <button type="reset" class="btn btn-outline-cyan px-4">
-                                        <i class="fas fa-undo me-2"></i> Clear
-                                    </button>
                                 </div>
                             </form>
-                            
-                            <!-- Danger Zone -->
-                            <div class="mt-5 pt-4 border-top border-grey-medium border-opacity-25">
-                                <h5 class="mb-4 fw-bold text-magenta">
-                                    <i class="fas fa-exclamation-triangle me-2"></i>Danger Zone
-                                </h5>
-                                <div class="alert bg-soft-magenta border-0 d-flex align-items-center justify-content-between">
-                                    <div>
-                                        <h6 class="fw-bold text-charcoal mb-1">Deactivate Account</h6>
-                                        <p class="small text-grey-medium mb-0">Once you deactivate your account, you will lose access to your orders and wishlist.</p>
-                                    </div>
-                                    <button class="btn btn-outline-magenta" disabled>
-                                        Deactivate
-                                    </button>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -1009,382 +754,205 @@
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block extra_css %}
 <style>
-    /* ===== MUFRA FASHIONS BRAND COLORS ===== */
-    :root {
-        --magenta-vibrant: #D81B60;
-        --cyan-bright: #00ACC1;
-        --link-blue: #2196F3;
-        --charcoal-dark: #333333;
-        --grey-medium: #757575;
-        --bg-light-page: #F9F9F9;
-        --white-pure: #FFFFFF;
-        --footer-soft-grey: #EEEEEE;
-        --shadow-brand: 0 16px 32px -10px rgba(0,0,0,0.08);
-        --shadow-soft: 0 8px 24px -8px rgba(0,0,0,0.05);
-    }
+:root {
+    --magenta-vibrant: #D81B60;
+    --cyan-bright: #00ACC1;
+    --charcoal-dark: #333333;
+    --grey-medium: #757575;
+    --shadow-brand: 0 16px 32px -10px rgba(0,0,0,0.08);
+    --shadow-soft: 0 8px 24px -8px rgba(0,0,0,0.05);
+}
 
-    /* Account Navigation */
-    .account-nav .nav-link {
-        color: var(--charcoal-dark);
-        padding: 0.75rem 1rem;
-        border-radius: 12px;
-        margin-bottom: 0.25rem;
-        transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-        border-left: 4px solid transparent;
-        font-weight: 500;
-    }
+/* Account Navigation */
+.account-nav .nav-link {
+    color: var(--charcoal-dark);
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    margin-bottom: 0.25rem;
+    transition: all 0.3s ease;
+    border-left: 4px solid transparent;
+    font-weight: 500;
+}
 
-    .account-nav .nav-link:hover {
-        background-color: rgba(216,27,96,0.05);
-        color: var(--magenta-vibrant);
-        border-left-color: var(--magenta-vibrant);
-        transform: translateX(5px);
-    }
+.account-nav .nav-link:hover {
+    background-color: rgba(216,27,96,0.05);
+    color: var(--magenta-vibrant);
+    border-left-color: var(--magenta-vibrant);
+}
 
-    .account-nav .nav-link.active {
-        background: linear-gradient(90deg, rgba(216,27,96,0.1), transparent);
-        color: var(--magenta-vibrant);
-        border-left-color: var(--magenta-vibrant);
-        font-weight: 600;
-    }
+.account-nav .nav-link.active {
+    background: linear-gradient(90deg, rgba(216,27,96,0.1), transparent);
+    color: var(--magenta-vibrant);
+    border-left-color: var(--magenta-vibrant);
+    font-weight: 600;
+}
 
-    .account-nav .nav-link i {
-        width: 20px;
-        text-align: center;
-    }
+/* Avatar */
+.avatar-circle {
+    width: 120px;
+    height: 120px;
+    background: linear-gradient(145deg, var(--magenta-vibrant), #B21550);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+}
 
-    /* Avatar Circle */
+/* Stat Cards */
+.stat-card {
+    transition: all 0.3s ease;
+    border: 1px solid rgba(216,27,96,0.1);
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-brand);
+}
+
+.stat-icon {
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover .stat-icon {
+    transform: scale(1.1);
+}
+
+/* Order Cards */
+.order-card {
+    transition: all 0.3s ease;
+    border: 1px solid rgba(216,27,96,0.05);
+}
+
+.order-card:hover {
+    box-shadow: var(--shadow-brand);
+}
+
+/* Product Cards */
+.product-card {
+    transition: all 0.3s ease;
+    border: 1px solid rgba(216,27,96,0.05);
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.product-card:hover {
+    transform: translateY(-6px);
+    box-shadow: var(--shadow-brand);
+}
+
+/* Cart Items */
+.cart-item {
+    transition: all 0.3s ease;
+}
+
+.cart-item:hover {
+    background-color: rgba(216,27,96,0.02);
+}
+
+.remove-btn:hover {
+    background-color: var(--magenta-vibrant);
+    color: white;
+    border-color: var(--magenta-vibrant);
+}
+
+/* Form Controls */
+.form-control, .form-select {
+    border: 2px solid rgba(117,117,117,0.2);
+    border-radius: 12px;
+    padding: 0.6rem 1rem;
+}
+
+.form-control:focus {
+    border-color: var(--magenta-vibrant);
+    box-shadow: 0 0 0 0.25rem rgba(216,27,96,0.1);
+}
+
+.form-control[readonly] {
+    background-color: rgba(117,117,117,0.05);
+}
+
+.input-group-text {
+    border-radius: 12px 0 0 12px;
+    border: 2px solid rgba(117,117,117,0.2);
+    border-right: none;
+    background-color: rgba(216,27,96,0.05);
+    color: var(--magenta-vibrant);
+}
+
+.input-group .form-control {
+    border-radius: 0 12px 12px 0;
+}
+
+/* Button Styles */
+.btn-magenta {
+    background-color: var(--magenta-vibrant);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-magenta:hover {
+    background-color: #B21550;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(216,27,96,0.3);
+}
+
+.btn-outline-cyan {
+    border: 2px solid var(--cyan-bright);
+    color: var(--charcoal-dark);
+    background: transparent;
+    border-radius: 12px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-cyan:hover,
+.btn-outline-cyan.active {
+    background: var(--cyan-bright);
+    color: white;
+}
+
+.btn-outline-magenta {
+    border: 2px solid var(--magenta-vibrant);
+    color: var(--charcoal-dark);
+    background: transparent;
+    border-radius: 12px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-magenta:hover {
+    background: var(--magenta-vibrant);
+    color: white;
+}
+
+/* Badge Colors */
+.badge.bg-magenta { background-color: var(--magenta-vibrant) !important; }
+.badge.bg-cyan { background-color: var(--cyan-bright) !important; }
+.bg-soft-magenta { background-color: rgba(216,27,96,0.05) !important; }
+.bg-soft-cyan { background-color: rgba(0,172,193,0.05) !important; }
+.text-magenta { color: var(--magenta-vibrant) !important; }
+.text-cyan { color: var(--cyan-bright) !important; }
+.text-charcoal { color: var(--charcoal-dark) !important; }
+.text-grey-medium { color: var(--grey-medium) !important; }
+
+/* Responsive */
+@media (max-width: 768px) {
     .avatar-circle {
-        width: 120px;
-        height: 120px;
-        background: linear-gradient(145deg, var(--magenta-vibrant), #B21550);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 0 auto;
-        color: white;
-        box-shadow: 0 8px 20px rgba(216,27,96,0.2);
-        transition: all 0.3s ease;
+        width: 100px;
+        height: 100px;
     }
-
-    .avatar-circle:hover {
-        transform: scale(1.05);
-        box-shadow: 0 12px 28px rgba(216,27,96,0.3);
-    }
-
-    .avatar-initials {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        height: 100%;
-    }
-
-    /* Stat Cards */
-    .stat-card {
-        transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-        min-height: 140px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        border: 1px solid rgba(216,27,96,0.1);
-    }
-
-    .stat-card:hover {
-        transform: translateY(-5px);
-        box-shadow: var(--shadow-brand);
-        border-color: var(--magenta-vibrant);
-    }
-
-    .stat-icon {
-        transition: all 0.3s ease;
-    }
-
-    .stat-card:hover .stat-icon {
-        transform: scale(1.1);
-    }
-
-    /* Order Cards */
-    .order-card {
-        transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-        border: 1px solid rgba(216,27,96,0.05);
-    }
-
-    .order-card:hover {
-        box-shadow: var(--shadow-brand);
-        border-color: rgba(0,172,193,0.2);
-    }
-
-    .order-status-icon {
-        transition: all 0.3s ease;
-    }
-
-    .order-card:hover .order-status-icon {
-        transform: scale(1.1);
-    }
-
-    /* Product Cards */
-    .product-card {
-        transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-        border: 1px solid rgba(216,27,96,0.05);
-        border-radius: 16px;
-        overflow: hidden;
-    }
-
-    .product-card:hover {
-        transform: translateY(-6px);
-        box-shadow: var(--shadow-brand);
-        border-color: var(--magenta-vibrant);
-    }
-
-    .product-image {
-        transition: transform 0.5s ease;
-    }
-
-    .product-card:hover .product-image {
-        transform: scale(1.08);
-    }
-
-    /* Cart Items */
-    .cart-item {
-        transition: all 0.3s ease;
-    }
-
-    .cart-item:hover {
-        background-color: rgba(216,27,96,0.02);
-    }
-
-    .remove-btn {
-        transition: all 0.2s ease;
-    }
-
-    .remove-btn:hover {
-        background-color: var(--magenta-vibrant);
-        color: white;
-        border-color: var(--magenta-vibrant);
-        transform: scale(1.1);
-    }
-
-    /* Form Controls */
-    .form-control, .form-select {
-        border: 2px solid rgba(117,117,117,0.2);
-        border-radius: 12px;
-        padding: 0.6rem 1rem;
-        transition: all 0.2s ease;
-        color: var(--charcoal-dark);
-    }
-
-    .form-control:focus, .form-select:focus {
-        border-color: var(--magenta-vibrant);
-        box-shadow: 0 0 0 0.25rem rgba(216,27,96,0.1);
-    }
-
-    .form-control[readonly] {
-        background-color: rgba(117,117,117,0.05);
-        cursor: not-allowed;
-    }
-
-    .input-group-text {
-        border-radius: 12px 0 0 12px;
-        border: 2px solid rgba(117,117,117,0.2);
-        border-right: none;
-        background-color: rgba(216,27,96,0.05);
-        color: var(--magenta-vibrant);
-        font-weight: 600;
-        padding: 0.6rem 1rem;
-    }
-
-    .input-group .form-control {
-        border-radius: 0 12px 12px 0;
-    }
-
-    .input-group .btn-outline-grey-medium {
-        border: 2px solid rgba(117,117,117,0.2);
-        border-left: none;
-        border-radius: 0 12px 12px 0;
-        color: var(--grey-medium);
-        background: white;
-        transition: all 0.2s ease;
-    }
-
-    .input-group .btn-outline-grey-medium:hover {
-        background-color: var(--cyan-bright);
-        color: white;
-        border-color: var(--cyan-bright);
-    }
-
-    /* Badge Styles */
-    .badge.bg-magenta {
-        background-color: var(--magenta-vibrant) !important;
-    }
-
-    .badge.bg-cyan {
-        background-color: var(--cyan-bright) !important;
-    }
-
-    .badge.bg-soft-magenta {
-        background-color: rgba(216,27,96,0.1) !important;
-        color: var(--magenta-vibrant);
-    }
-
-    .badge.bg-soft-cyan {
-        background-color: rgba(0,172,193,0.1) !important;
-        color: var(--cyan-bright);
-    }
-
-    /* Button Outlines */
-    .btn-outline-cyan {
-        border: 2px solid var(--cyan-bright);
-        color: var(--charcoal-dark);
-        background: transparent;
-        transition: all 0.3s ease;
-        border-radius: 12px;
-        font-weight: 500;
-    }
-
-    .btn-outline-cyan:hover {
-        background: var(--cyan-bright);
-        color: white;
-        transform: translateY(-2px);
-    }
-
-    .btn-outline-cyan.active {
-        background: var(--cyan-bright);
-        color: white;
-    }
-
-    .btn-outline-magenta {
-        border: 2px solid var(--magenta-vibrant);
-        color: var(--charcoal-dark);
-        background: transparent;
-        transition: all 0.3s ease;
-        border-radius: 12px;
-        font-weight: 500;
-    }
-
-    .btn-outline-magenta:hover {
-        background: var(--magenta-vibrant);
-        color: white;
-        transform: translateY(-2px);
-    }
-
-    .btn-magenta {
-        background-color: var(--magenta-vibrant);
-        color: white;
-        border: none;
-        transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-        border-radius: 12px;
-        font-weight: 600;
-    }
-
-    .btn-magenta:hover {
-        background-color: #B21550;
-        transform: translateY(-2px);
-        box-shadow: 0 8px 16px rgba(216,27,96,0.3);
-    }
-
-    /* Background Gradients */
-    .bg-gradient-magenta {
-        background: linear-gradient(145deg, var(--magenta-vibrant), #B21550);
-    }
-
-    /* Empty State Icons */
-    .empty-state-icon {
-        transition: all 0.3s ease;
-    }
-
-    .empty-state-icon:hover {
-        transform: scale(1.1);
-    }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-        .stat-card {
-            min-height: 120px;
-        }
-        
-        .order-card .row > div {
-            margin-bottom: 1rem;
-        }
-        
-        .order-card .order-status-icon {
-            width: 40px;
-            height: 40px;
-        }
-        
-        .order-card .order-status-icon i {
-            font-size: 1.2rem;
-        }
-        
-        .avatar-circle {
-            width: 100px;
-            height: 100px;
-        }
-    }
-
-    /* Toast Notifications */
-    .toast-container {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        z-index: 9999;
-    }
-
-    .toast {
-        min-width: 300px;
-        border-radius: 16px;
-        overflow: hidden;
-        box-shadow: var(--shadow-brand);
-        border-left: 6px solid;
-    }
-
-    .toast-header {
-        border-bottom: none;
-    }
-
-    .toast-header.bg-success {
-        background-color: var(--magenta-vibrant) !important;
-    }
-
-    .toast-header.bg-danger {
-        background-color: var(--cyan-bright) !important;
-    }
-
-    .toast-header.bg-warning {
-        background-color: var(--cyan-bright) !important;
-    }
-
-    .toast-header.bg-info {
-        background-color: var(--link-blue) !important;
-    }
-
-    /* Print Styles */
-    @media print {
-        .account-nav,
-        .btn,
-        .toast-container,
-        .card-footer {
-            display: none !important;
-        }
-        
-        .card {
-            break-inside: avoid;
-            box-shadow: none !important;
-            border: 1px solid var(--grey-medium) !important;
-        }
-    }
+}
 </style>
-{% endblock %}
 
-{% block extra_js %}
 <script>
 $(document).ready(function() {
-    // ===== TAB FUNCTIONALITY =====
+    // ===== TAB MANAGEMENT =====
     $('.account-nav a').click(function(e) {
         e.preventDefault();
         $('.account-nav a').removeClass('active');
@@ -1392,18 +960,12 @@ $(document).ready(function() {
         const target = $(this).attr('href');
         $('.tab-pane').removeClass('show active');
         $(target).addClass('show active');
-        
-        // Update URL hash
         window.location.hash = target.substring(1);
     });
     
-    // Restore active tab from URL hash
     if (window.location.hash) {
         const hash = window.location.hash.substring(1);
-        const tab = document.querySelector(`.account-nav a[href="#${hash}"]`);
-        if (tab) {
-            $(tab).click();
-        }
+        $(`.account-nav a[href="#${hash}"]`).click();
     }
     
     // ===== ORDER FILTERS =====
@@ -1420,311 +982,77 @@ $(document).ready(function() {
         }
     });
     
-    // ===== TOGGLE PASSWORD VISIBILITY =====
-    $('.toggle-password').click(function() {
-        const input = $(this).closest('.input-group').find('input');
-        const icon = $(this).find('i');
-        
-        if (input.attr('type') === 'password') {
-            input.attr('type', 'text');
-            icon.removeClass('fa-eye').addClass('fa-eye-slash');
-        } else {
-            input.attr('type', 'password');
-            icon.removeClass('fa-eye-slash').addClass('fa-eye');
-        }
-    });
-    
-    // ===== PASSWORD CONFIRMATION =====
-    $('#confirm_password, #new_password').on('input', function() {
-        const password = $('#new_password').val();
-        const confirm = $('#confirm_password').val();
-        
-        if (confirm.length > 0) {
-            if (password !== confirm) {
-                $('#confirm_password').addClass('is-invalid').removeClass('is-valid');
-                $('#password-error').css('display', 'block');
-            } else {
-                $('#confirm_password').addClass('is-valid').removeClass('is-invalid');
-                $('#password-error').css('display', 'none');
-            }
-        } else {
-            $('#confirm_password').removeClass('is-valid is-invalid');
-            $('#password-error').css('display', 'none');
-        }
-    });
-    
-    // ===== PROFILE FORM SUBMISSION =====
+    // ===== PROFILE FORM =====
     $('#profileForm').submit(function(e) {
         e.preventDefault();
-        
         const form = $(this);
-        const submitBtn = $('#saveProfileBtn');
-        const originalText = submitBtn.html();
+        const btn = $('#saveProfileBtn');
+        const original = btn.html();
         
-        // Show loading state
-        submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>Saving...');
+        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>Saving...');
         
         $.ajax({
             url: form.attr('action'),
             type: 'POST',
             data: form.serialize(),
-            success: function(response) {
-                showToast('Success', 'Profile updated successfully', 'success');
-                setTimeout(() => location.reload(), 1500);
-            },
-            error: function(xhr) {
-                let errorMessage = 'Update failed';
-                try {
-                    const response = xhr.responseJSON;
-                    errorMessage = response.message || errorMessage;
-                } catch (e) {
-                    // Use default message
+            success: function(res) {
+                if (res.success) {
+                    alert('Profile updated successfully!');
+                    location.reload();
+                } else {
+                    alert(res.message || 'Update failed');
                 }
-                showToast('Error', errorMessage, 'danger');
-                submitBtn.prop('disabled', false).html(originalText);
+                btn.prop('disabled', false).html(original);
+            },
+            error: function() {
+                alert('Update failed. Please try again.');
+                btn.prop('disabled', false).html(original);
             }
         });
     });
     
-    // ===== PASSWORD FORM SUBMISSION =====
+    // ===== PASSWORD FORM =====
     $('#passwordForm').submit(function(e) {
         e.preventDefault();
         
-        const form = $(this);
-        const submitBtn = $('#changePasswordBtn');
-        const originalText = submitBtn.html();
         const password = $('#new_password').val();
         const confirm = $('#confirm_password').val();
         
-        // Validation
         if (password !== confirm) {
-            showToast('Error', 'Passwords do not match', 'danger');
+            alert('Passwords do not match!');
             return false;
         }
         
         if (password.length < 6) {
-            showToast('Error', 'Password must be at least 6 characters', 'danger');
+            alert('Password must be at least 6 characters!');
             return false;
         }
         
-        // Show loading state
-        submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>Changing...');
+        const form = $(this);
+        const btn = $('#changePasswordBtn');
+        const original = btn.html();
+        
+        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>Changing...');
         
         $.ajax({
             url: form.attr('action'),
             type: 'POST',
             data: form.serialize(),
-            success: function(response) {
-                showToast('Success', 'Password changed successfully', 'success');
-                form[0].reset();
-                submitBtn.prop('disabled', false).html(originalText);
+            success: function(res) {
+                if (res.success) {
+                    alert('Password changed successfully!');
+                    form[0].reset();
+                } else {
+                    alert(res.message || 'Password change failed');
+                }
+                btn.prop('disabled', false).html(original);
             },
-            error: function(xhr) {
-                let errorMessage = 'Password change failed';
-                try {
-                    const response = xhr.responseJSON;
-                    errorMessage = response.message || errorMessage;
-                } catch (e) {
-                    // Use default message
-                }
-                showToast('Error', errorMessage, 'danger');
-                submitBtn.prop('disabled', false).html(originalText);
+            error: function() {
+                alert('Password change failed. Please try again.');
+                btn.prop('disabled', false).html(original);
             }
         });
     });
-    
-    // ===== REMOVE FROM CART =====
-    $('.remove-btn').click(function(e) {
-        e.preventDefault();
-        const itemName = $(this).data('item-name') || 'this item';
-        
-        if (window.Mufra && window.Mufra.cart) {
-            const itemIndex = $(this).closest('.cart-item').index();
-            if (confirm(`Remove "${itemName}" from your cart?`)) {
-                window.Mufra.cart.remove(itemIndex);
-            }
-        } else {
-            if (confirm(`Remove "${itemName}" from your cart?`)) {
-                window.location.href = $(this).attr('href');
-            }
-        }
-    });
-    
-    // ===== WISHLIST TOGGLE =====
-    $('.wishlist-btn').click(function(e) {
-        e.preventDefault();
-        const button = $(this);
-        const productId = button.data('product-id');
-        
-        if (window.Mufra && window.Mufra.wishlist) {
-            window.Mufra.wishlist.toggle(productId)
-                .then((response) => {
-                    if (response.in_wishlist) {
-                        button.addClass('active');
-                        button.find('i').removeClass('far').addClass('fas');
-                        showToast('Success', 'Added to wishlist', 'success');
-                    } else {
-                        button.removeClass('active');
-                        button.find('i').removeClass('fas').addClass('far');
-                        showToast('Info', 'Removed from wishlist', 'info');
-                        setTimeout(() => location.reload(), 1000);
-                    }
-                });
-        }
-    });
-    
-    // ===== TOAST NOTIFICATION =====
-    function showToast(title, message, type = 'info') {
-        if (window.Mufra && window.Mufra.notify) {
-            if (type === 'success') Mufra.notify.success(message);
-            else if (type === 'danger') Mufra.notify.error(message);
-            else Mufra.notify.info(message);
-            return;
-        }
-        
-        // Remove existing toasts
-        $('.toast-container').remove();
-        
-        const icon = type === 'success' ? 'check-circle' : 
-                    type === 'danger' ? 'exclamation-circle' : 
-                    type === 'warning' ? 'exclamation-triangle' : 'info-circle';
-        
-        const bgColor = type === 'success' ? 'var(--magenta-vibrant)' : 
-                       type === 'danger' ? 'var(--cyan-bright)' : 'var(--link-blue)';
-        
-        const toastHtml = `
-            <div class="toast-container">
-                <div class="toast show" role="alert" style="border-left: 6px solid ${bgColor};">
-                    <div class="toast-header bg-${type} text-white">
-                        <i class="fas fa-${icon} me-2"></i>
-                        <strong class="me-auto">${title}</strong>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
-                    </div>
-                    <div class="toast-body">
-                        ${message}
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        $('body').append(toastHtml);
-        
-        // Auto remove after 3 seconds
-        setTimeout(() => {
-            $('.toast-container').fadeOut(300, function() {
-                $(this).remove();
-            });
-        }, 3000);
-    }
-    
-    // ===== ORDER STATUS TIMELINE =====
-    function toggleOrderTimeline(orderId) {
-        const timelineId = `timeline-${orderId}`;
-        const timelineElement = document.getElementById(timelineId);
-        
-        if (timelineElement) {
-            if (timelineElement.classList.contains('show')) {
-                timelineElement.classList.remove('show');
-            } else {
-                timelineElement.classList.add('show');
-                // Fetch latest status from server (optional real-time update)
-                updateOrderStatus(orderId);
-            }
-        }
-    }
-    
-    function updateOrderStatus(orderId) {
-        fetch(`/api/order-status/${orderId}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.success && data.order) {
-                    // Update the status badge in the UI
-                    const orderCard = document.querySelector(`[data-status]`);
-                    if (orderCard) {
-                        orderCard.setAttribute('data-status', data.order.status);
-                    }
-                    console.log('Order status updated:', data.order.status);
-                }
-            })
-            .catch(error => console.log('Error updating status:', error));
-    }
-    
-    // Auto-refresh order statuses every 30 seconds
-    setInterval(() => {
-        const orderCards = document.querySelectorAll('.order-card');
-        orderCards.forEach(card => {
-            const orderId = card.getAttribute('data-order-id') || 
-                           card.querySelector('h6')?.textContent?.match(/#(\w+)/)?.[1];
-            if (orderId) {
-                updateOrderStatus(orderId);
-            }
-        });
-    }, 30000);
 });
-
-// Add CSS for timeline
-const style = document.createElement('style');
-style.textContent = `
-    .status-timeline-popup {
-        transition: all 0.3s ease;
-    }
-    
-    .status-timeline-popup.collapse:not(.show) {
-        display: none !important;
-    }
-    
-    .status-timeline-popup.collapse.show {
-        display: block !important;
-    }
-    
-    .timeline-container {
-        position: relative;
-        padding: 0;
-    }
-    
-    .timeline-item {
-        position: relative;
-    }
-    
-    .timeline-item .timeline-marker {
-        min-width: 30px;
-    }
-    
-    .timeline-dot {
-        width: 16px;
-        height: 16px;
-        border-radius: 50%;
-        background-color: var(--magenta-vibrant);
-        border: 3px solid rgba(216, 27, 96, 0.2);
-        position: relative;
-        display: inline-block;
-    }
-    
-    .timeline-item:first-child .timeline-dot {
-        width: 20px;
-        height: 20px;
-        border-width: 2px;
-        box-shadow: 0 0 0 4px rgba(216, 27, 96, 0.1);
-    }
-    
-    .timeline-item .timeline-marker::before {
-        content: '';
-        position: absolute;
-        left: 7px;
-        top: 16px;
-        width: 2px;
-        height: calc(100% + 12px);
-        background: linear-gradient(to bottom, var(--magenta-vibrant), transparent);
-        opacity: 0.3;
-    }
-    
-    .status-progress-bar {
-        background: linear-gradient(to right, var(--magenta-vibrant) 0%, var(--magenta-vibrant) calc(var(--progress) * 100%), rgba(216, 27, 96, 0.2) calc(var(--progress) * 100%), rgba(216, 27, 96, 0.2) 100%);
-        height: 4px;
-        border-radius: 2px;
-        margin-bottom: 1rem;
-    }
-`;
-document.head.appendChild(style);
 </script>
 {% endblock %}
