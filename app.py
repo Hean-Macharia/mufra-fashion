@@ -59,7 +59,9 @@ mail = Mail(app)
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # ========== HELPER FUNCTIONS ==========
-
+def now():
+    """Return current datetime for templates"""
+    return datetime.now()
 def get_db():
     """Get database instance"""
     return mongo.db
@@ -102,9 +104,11 @@ def generate_order_id():
     return 'MUFRA' + ''.join(random.choices(string.digits, k=8))
 
 def send_email(to, subject, template, **kwargs):
-    """Robust email sending for production with timeout"""
+    """Robust email sending for production - FIXED version"""
     import os
-    import socket
+    import smtplib
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
     
     # Check if we're in production
     is_production = os.getenv('FLASK_ENV') == 'production' or not app.debug
@@ -118,12 +122,10 @@ def send_email(to, subject, template, **kwargs):
     # Always log OTP for debugging
     if 'otp' in kwargs:
         print(f"🔐 OTP FOR {to}: {kwargs['otp']}")
-        print(f"   User can enter this code to verify")
     
     # Check if email sending is suppressed
     if app.config.get('MAIL_SUPPRESS_SEND', False):
         print(f"⚠️  MAIL_SUPPRESS_SEND=True - Email suppressed")
-        print(f"✅ Returning success (simulated)")
         print(f"{'='*60}\n")
         return True
     
@@ -131,11 +133,8 @@ def send_email(to, subject, template, **kwargs):
         # Check if credentials are configured
         if not app.config.get('MAIL_USERNAME') or not app.config.get('MAIL_PASSWORD'):
             print(f"⚠️  Email credentials not configured - skipping email")
-            print(f"   MAIL_USERNAME: {bool(app.config.get('MAIL_USERNAME'))}")
-            print(f"   MAIL_PASSWORD: {bool(app.config.get('MAIL_PASSWORD'))}")
-            print(f"✅ Continuing without email")
             print(f"{'='*60}\n")
-            return True  # Don't fail registration if email isn't configured
+            return True
         
         # Create email content
         try:
@@ -152,11 +151,7 @@ def send_email(to, subject, template, **kwargs):
             """
             text_body = f"{subject}\nHello {kwargs.get('name', 'User')},\nYour verification code is: {kwargs.get('otp', 'N/A')}"
         
-        # Send using SMTP with timeout
-        import smtplib
-        from email.mime.text import MIMEText
-        from email.mime.multipart import MIMEMultipart
-        
+        # Create message
         msg = MIMEMultipart('alternative')
         msg['Subject'] = subject
         msg['From'] = app.config['MAIL_DEFAULT_SENDER']
@@ -165,12 +160,9 @@ def send_email(to, subject, template, **kwargs):
         msg.attach(MIMEText(text_body, 'plain'))
         msg.attach(MIMEText(html_body, 'html'))
         
-        # Set timeout to 5 seconds to prevent hanging
-        socket.setdefaulttimeout(5)
-        
+        # Send email - FIXED: removed .settimeout()
         try:
-            with smtplib.SMTP(app.config['MAIL_SERVER'], app.config['MAIL_PORT'], timeout=5) as server:
-                server.settimeout(5)
+            with smtplib.SMTP(app.config['MAIL_SERVER'], app.config['MAIL_PORT'], timeout=10) as server:
                 server.starttls()
                 server.login(app.config['MAIL_USERNAME'], app.config['MAIL_PASSWORD'])
                 server.send_message(msg)
@@ -178,53 +170,17 @@ def send_email(to, subject, template, **kwargs):
             print(f"✅ Email sent successfully")
             print(f"{'='*60}\n")
             
-            # Log successful send in production
-            if is_production:
-                try:
-                    email_logs = get_collection('email_logs')
-                    email_logs.insert_one({
-                        'to': to,
-                        'subject': subject,
-                        'status': 'sent',
-                        'timestamp': datetime.utcnow()
-                    })
-                except:
-                    pass
-            
             return True
-        finally:
-            socket.setdefaulttimeout(None)  # Reset timeout
-        
-    except socket.timeout:
-        print(f"❌ EMAIL TIMEOUT (5 seconds) - continuing without email")
-        print(f"{'='*60}\n")
-        # Don't fail registration due to timeout
-        return True
+            
+        except Exception as e:
+            print(f"❌ EMAIL SEND FAILED: {str(e)}")
+            print(f"{'='*60}\n")
+            return True  # Continue despite email failure
         
     except Exception as e:
-        print(f"❌ EMAIL SEND FAILED: {str(e)}")
-        print(f"   Error Type: {type(e).__name__}")
-        print(f"   Continuing despite email failure")
-        
-        # Log failed send in production
-        if is_production:
-            try:
-                email_logs = get_collection('email_logs')
-                email_logs.insert_one({
-                    'to': to,
-                    'subject': subject,
-                    'status': 'failed',
-                    'error': str(e),
-                    'timestamp': datetime.utcnow()
-                })
-            except:
-                pass
-        
+        print(f"❌ EMAIL SETUP FAILED: {str(e)}")
         print(f"{'='*60}\n")
-        
-        # Return True anyway so registration doesn't fail
-        return True
-
+        return True  
 def send_verification_email(email, name, otp):
     """Send OTP verification email"""
     subject = "Verify Your Email - MUFRA FASHIONS"
@@ -517,9 +473,10 @@ def initialize_sample_data():
         
     except Exception as e:
         print(f"⚠ Warning during database initialization: {e}")
+
 @app.route('/paystack/callback')
 def paystack_callback():
-    """Handle Paystack callback after payment"""
+    """Handle Paystack callback after payment - COMPLETELY REWRITTEN"""
     try:
         reference = request.args.get('reference', '')
         
@@ -527,96 +484,241 @@ def paystack_callback():
             flash('Invalid payment reference', 'danger')
             return redirect(url_for('account'))
         
-        print(f"🔍 Paystack callback received for reference: {reference}")
+        print(f"\n🔍 ===== PAYSTACK CALLBACK =====")
+        print(f"Reference: {reference}")
         
         # Verify payment
         verification = verify_paystack_payment(reference)
         
-        if verification and verification.get('status'):
-            data = verification.get('data', {})
-            status = data.get('status', 'failed')
-            metadata = data.get('metadata', {})
-            order_id = metadata.get('order_id', '')
-            
-            print(f"🔍 Verification status: {status}, Order ID: {order_id}")
-            
-            if not order_id:
-                flash('Order ID not found in payment metadata', 'danger')
-                return redirect(url_for('account'))
-            
-            orders_collection = get_collection('orders')
-            products_collection = get_collection('products')
-            users_collection = get_collection('users')
-            
-            # Find order
-            order = orders_collection.find_one({'order_id': order_id})
-            
-            if not order:
-                flash('Order not found', 'danger')
-                return redirect(url_for('account'))
-            
-            if status == 'success':
-                # Payment successful
-                orders_collection.update_one(
-                    {'order_id': order_id},
-                    {'$set': {
-                        'payment_status': 'paid',
-                        'status': 'processing',
-                        'payment_reference': reference,
-                        'payment_date': datetime.now(timezone.utc),
-                        'updated_at': datetime.now(timezone.utc)
-                    }}
-                )
-                
-                # Update product stock
-                for item in order.get('items', []):
-                    products_collection.update_one(
-                        {'_id': item.get('product_id')},
-                        {'$inc': {'stock': -item.get('quantity', 1)}}
-                    )
-                
-                # Clear user's cart
-                users_collection.update_one(
-                    {'_id': order['user_id']},
-                    {'$set': {'cart': []}}
-                )
-                
-                # Get user email
-                user = users_collection.find_one({'_id': order['user_id']})
-                if user:
-                    # Send order confirmation email
-                    send_order_confirmation(
-                        email=user['email'],
-                        order_id=order_id,
-                        total=order.get('total', 0),
-                        items=order.get('items', []),
-                        shipping_address=order.get('shipping_address', {})
-                    )
-                
-                flash('Payment successful! Your order has been confirmed.', 'success')
-                return redirect(url_for('order_confirmation', order_id=order_id))
-            else:
-                # Payment failed
-                orders_collection.update_one(
-                    {'order_id': order_id},
-                    {'$set': {
-                        'payment_status': 'failed',
-                        'status': 'failed',
-                        'updated_at': datetime.now(timezone.utc)
-                    }}
-                )
-                
-                flash('Payment failed. Please try again.', 'danger')
-                return redirect(url_for('checkout'))
-        else:
+        if not verification or not verification.get('status'):
             flash('Payment verification failed', 'danger')
+            return redirect(url_for('checkout'))
+        
+        data = verification.get('data', {})
+        status = data.get('status', 'failed')
+        metadata = data.get('metadata', {})
+        order_id_from_metadata = metadata.get('order_id', '')
+        
+        print(f"Payment status: {status}")
+        print(f"Order ID from metadata: {order_id_from_metadata}")
+        
+        if not order_id_from_metadata:
+            flash('Order ID not found in payment metadata', 'danger')
+            return redirect(url_for('account'))
+        
+        # Get collections
+        orders_collection = get_collection('orders')
+        products_collection = get_collection('products')
+        users_collection = get_collection('users')
+        
+        # ===== FIND THE ORDER =====
+        order = None
+        
+        # Method 1: Try with order_id field (MUFRA format)
+        order = orders_collection.find_one({'order_id': order_id_from_metadata})
+        if order:
+            print(f"✅ Found order by order_id field: {order_id_from_metadata}")
+        
+        # Method 2: Try with paystack_reference
+        if not order:
+            order = orders_collection.find_one({'paystack_reference': reference})
+            if order:
+                print(f"✅ Found order by paystack_reference: {reference}")
+                # Get the actual order_id from this order
+                order_id_from_metadata = order.get('order_id')
+        
+        # Method 3: Search by partial order_id (some orders might have MUFRA prefix in different places)
+        if not order:
+            # Extract the numeric part if it's in MUFRAXXXX format
+            if order_id_from_metadata.startswith('MUFRA'):
+                numeric_part = order_id_from_metadata[5:]  # Remove MUFRA prefix
+                order = orders_collection.find_one({'order_id': {'$regex': f'MUFRA{numeric_part}'}})
+                if order:
+                    print(f"✅ Found order by regex match: MUFRA{numeric_part}")
+        
+        if not order:
+            print(f"❌ Order not found with ID: {order_id_from_metadata}")
+            flash('Order not found. Please check your orders page.', 'danger')
+            return redirect(url_for('account'))
+        
+        # Get the actual order_id from the found order
+        actual_order_id = order.get('order_id')
+        if not actual_order_id:
+            actual_order_id = str(order.get('_id'))
+        
+        print(f"Actual order ID to use: {actual_order_id}")
+        
+        if status == 'success':
+            # Update order status
+            update_result = orders_collection.update_one(
+                {'_id': order['_id']},
+                {'$set': {
+                    'payment_status': 'paid',
+                    'status': 'processing',
+                    'payment_reference': reference,
+                    'paystack_reference': reference,
+                    'payment_date': datetime.now(timezone.utc),
+                    'updated_at': datetime.now(timezone.utc)
+                }}
+            )
+            
+            print(f"✅ Order updated: {update_result.modified_count} document(s) modified")
+            
+            # Update product stock
+            for item in order.get('items', []):
+                try:
+                    product_id = item.get('product_id')
+                    quantity = item.get('quantity', 1)
+                    if product_id:
+                        # Convert to ObjectId if it's a string
+                        if isinstance(product_id, str):
+                            try:
+                                product_id = ObjectId(product_id)
+                            except:
+                                pass
+                        
+                        products_collection.update_one(
+                            {'_id': product_id},
+                            {'$inc': {'stock': -quantity}}
+                        )
+                        print(f"✅ Updated stock for product: {product_id}, reduced by {quantity}")
+                except Exception as stock_error:
+                    print(f"⚠️ Error updating stock: {stock_error}")
+            
+            # Clear user's cart
+            if order.get('user_id'):
+                try:
+                    user_id = order['user_id']
+                    users_collection.update_one(
+                        {'_id': user_id},
+                        {'$set': {'cart': []}}
+                    )
+                    print(f"✅ Cart cleared for user: {user_id}")
+                    
+                    # Send order confirmation email
+                    user = users_collection.find_one({'_id': user_id})
+                    if user:
+                        try:
+                            send_order_confirmation(
+                                email=user['email'],
+                                order_id=actual_order_id,
+                                total=order.get('total', 0),
+                                items=order.get('items', []),
+                                shipping_address=order.get('shipping_address', {})
+                            )
+                            print(f"✅ Order confirmation email sent")
+                        except Exception as email_error:
+                            print(f"⚠️ Error sending email: {email_error}")
+                except Exception as cart_error:
+                    print(f"⚠️ Error clearing cart: {cart_error}")
+            
+            flash('Payment successful! Your order has been confirmed.', 'success')
+            print(f"✅ Redirecting to order confirmation: {actual_order_id}")
+            
+            # DIRECT REDIRECT - NO COMPLEX LOGIC
+            return redirect(url_for('order_confirmation', order_id=actual_order_id))
+            
+        else:
+            # Payment failed
+            orders_collection.update_one(
+                {'_id': order['_id']},
+                {'$set': {
+                    'payment_status': 'failed',
+                    'status': 'failed',
+                    'updated_at': datetime.now(timezone.utc)
+                }}
+            )
+            
+            flash('Payment failed. Please try again.', 'danger')
             return redirect(url_for('checkout'))
             
     except Exception as e:
-        print(f"Error in paystack_callback: {e}")
-        flash('Error processing payment. Please contact support.', 'danger')
+        print(f"❌ CRITICAL ERROR in paystack_callback: {e}")
+        import traceback
+        traceback.print_exc()
+        flash('Error processing payment. Please check your orders page.', 'danger')
         return redirect(url_for('account'))
-    
+# ========== CUSTOM JINJA2 FILTERS ==========
+@app.template_filter('safe_length')
+def safe_length_filter(value):
+    """Safely get the length of a value, handling functions and None"""
+    if value is None:
+        return 0
+    if callable(value):
+        try:
+            value = value()
+        except:
+            return 0
+    if hasattr(value, '__len__'):
+        try:
+            return len(value)
+        except:
+            return 0
+    if isinstance(value, (list, tuple, dict, str)):
+        return len(value)
+    return 0
+
+@app.template_filter('is_list')
+def is_list_filter(value):
+    """Check if value is a list (not a function)"""
+    if value is None:
+        return False
+    if callable(value):
+        return False
+    return isinstance(value, (list, tuple))
+
+@app.template_filter('safe_items')
+def safe_items_filter(value):
+    """Safely get items as a list, handling functions"""
+    if value is None:
+        return []
+    if callable(value):
+        try:
+            value = value()
+        except:
+            return []
+    if isinstance(value, list):
+        return value
+    if hasattr(value, '__iter__'):
+        try:
+            return list(value)
+        except:
+            return []
+    return []
+
+@app.route('/debug-order-json/<order_id>')
+@login_required
+def debug_order_json(order_id):
+    """Debug endpoint to see raw order data"""
+    try:
+        orders_collection = get_collection('orders')
+        order = orders_collection.find_one({'order_id': order_id})
+        
+        if not order:
+            return jsonify({'error': 'Order not found'})
+        
+        # Check ownership
+        if str(order.get('user_id')) != session['user_id']:
+            return jsonify({'error': 'Unauthorized'})
+        
+        # Convert to serializable format
+        def convert_to_serializable(obj):
+            if isinstance(obj, ObjectId):
+                return str(obj)
+            if isinstance(obj, datetime):
+                return obj.isoformat()
+            if isinstance(obj, dict):
+                return {k: convert_to_serializable(v) for k, v in obj.items()}
+            if isinstance(obj, list):
+                return [convert_to_serializable(item) for item in obj]
+            return obj
+        
+        safe_order = convert_to_serializable(order)
+        
+        return jsonify(safe_order)
+    except Exception as e:
+        return jsonify({'error': str(e), 'traceback': traceback.format_exc()})
+
 @app.route('/paystack/webhook', methods=['POST'])
 def paystack_webhook():
     """Handle Paystack webhook for payment notifications"""
@@ -701,7 +803,7 @@ def fix_admin_password():
     
     except Exception as e:
         return f"<h2>Error:</h2><p>{str(e)}</p>"
-    
+
 @app.route('/check-flask-mail-config')
 def check_flask_mail_config():
     """Check Flask mail configuration"""
@@ -722,6 +824,7 @@ def check_flask_mail_config():
     <pre>{json.dumps(config_info, indent=2)}</pre>
     <p><strong>Note:</strong> Password is {'correctly set' if config_info['MAIL_PASSWORD_SET'] else 'NOT SET!'}</p>
     """
+
 # ========== ROUTES ==========
 
 @app.route('/')
@@ -819,7 +922,6 @@ def home():
                              featured_products=[],
                              categories=[],
                              recommended_products=[])
-    
 
 @app.route('/migrate-products-images')
 @admin_required
@@ -1023,7 +1125,7 @@ def product_details(product_id):
 
 @app.route('/add-to-cart/<product_id>', methods=['POST'])
 def add_to_cart(product_id):
-    """Add item to cart"""
+    """Add item to cart - FIXED to include all product details"""
     try:
         products_collection = get_collection('products')
         product = products_collection.find_one({'_id': ObjectId(product_id)})
@@ -1040,37 +1142,59 @@ def add_to_cart(product_id):
         if product.get('stock', 0) < quantity:
             return jsonify({'success': False, 'message': 'Insufficient stock'})
         
-        # Create cart item - FIX: Convert ObjectId to string for guest users
+        # Get product image
+        product_image = ''
+        if 'images' in product and product['images']:
+            # Get main image or first image
+            for img in product['images']:
+                if img.get('is_main', False):
+                    product_image = img.get('url', '')
+                    break
+            if not product_image and product['images']:
+                product_image = product['images'][0].get('url', '')
+        elif 'image' in product:
+            product_image = product['image']
+        
+        # Create cart item with ALL product details
         cart_item = {
-            'product_id': str(product_id),  # ← CHANGE THIS: Convert to string
-            'name': product['name'],
-            'price': product['price'],
+            'product_id': str(product_id),
+            'name': product.get('name', 'Product'),
+            'price': float(product.get('price', 0)),
             'size': size,
             'color': color,
             'quantity': quantity,
-            'image': product.get('image', ''),
-            'stock': product.get('stock', 0)
+            'image': product_image,
+            'stock': product.get('stock', 0),
+            'description': product.get('description', ''),
+            'category': product.get('category', '')
         }
         
         if 'user_id' in session:
-            # Logged in user - store in database (keep as ObjectId)
-            cart_item['product_id'] = ObjectId(product_id)  # ObjectId for DB
+            # Logged in user - store in database
+            cart_item_for_db = cart_item.copy()
+            cart_item_for_db['product_id'] = ObjectId(product_id)  # ObjectId for DB
+            
             users_collection = get_collection('users')
             user = users_collection.find_one({'_id': ObjectId(session['user_id'])})
             cart = user.get('cart', [])
             
-            # Check if item already exists
+            # Check if item already exists (same product, size, color)
             item_found = False
-            for item in cart:
+            for i, item in enumerate(cart):
                 if (str(item['product_id']) == product_id and 
                     item.get('size') == size and 
                     item.get('color') == color):
-                    item['quantity'] += quantity
+                    # Update existing item
+                    cart[i]['quantity'] += quantity
+                    # Update price and name in case they changed
+                    cart[i]['name'] = cart_item['name']
+                    cart[i]['price'] = cart_item['price']
+                    cart[i]['image'] = cart_item['image']
                     item_found = True
                     break
             
             if not item_found:
-                cart.append(cart_item)
+                cart.append(cart_item_for_db)
             
             users_collection.update_one(
                 {'_id': ObjectId(session['user_id'])},
@@ -1078,16 +1202,20 @@ def add_to_cart(product_id):
             )
             cart_count = len(cart)
         else:
-            # Guest user - store in session (use string ID)
+            # Guest user - store in session
             cart = session.get('cart', [])
             
             # Check if item already exists
             item_found = False
-            for item in cart:
-                if (str(item['product_id']) == product_id and  # Compare as strings
+            for i, item in enumerate(cart):
+                if (str(item['product_id']) == product_id and 
                     item.get('size') == size and 
                     item.get('color') == color):
-                    item['quantity'] += quantity
+                    cart[i]['quantity'] += quantity
+                    # Update price and name in case they changed
+                    cart[i]['name'] = cart_item['name']
+                    cart[i]['price'] = cart_item['price']
+                    cart[i]['image'] = cart_item['image']
                     item_found = True
                     break
             
@@ -1097,10 +1225,23 @@ def add_to_cart(product_id):
             session['cart'] = cart
             cart_count = len(cart)
         
-        return jsonify({'success': True, 'message': 'Added to cart', 'cart_count': cart_count})
+        return jsonify({
+            'success': True, 
+            'message': 'Added to cart', 
+            'cart_count': cart_count,
+            'item': {
+                'name': cart_item['name'],
+                'price': cart_item['price'],
+                'quantity': cart_item['quantity']
+            }
+        })
     except Exception as e:
         print(f"Error in add_to_cart: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'message': 'Error adding to cart'})
+    
+
 @app.route('/cart')
 def cart():
     """Shopping cart page"""
@@ -1285,11 +1426,41 @@ def process_checkout():
         # Generate order ID
         order_id = generate_order_id()
         
-        # Create order
+        # Process cart items to ensure proper format with ALL product details
+        processed_items = []
+        for item in cart_items:
+            # Get full product details from database
+            product = products_collection.find_one({'_id': ObjectId(item['product_id'])})
+            
+            if product:
+                processed_item = {
+                    'product_id': str(item['product_id']),
+                    'name': str(product.get('name', item.get('name', 'Product'))),
+                    'price': float(product.get('price', item.get('price', 0))),
+                    'quantity': int(item.get('quantity', 1)),
+                    'size': str(item.get('size', '')),
+                    'color': str(item.get('color', '')),
+                    'image': str(product.get('image', item.get('image', ''))),
+                    'description': str(product.get('description', ''))
+                }
+            else:
+                # Fallback to cart item data
+                processed_item = {
+                    'product_id': str(item['product_id']),
+                    'name': str(item.get('name', 'Product')),
+                    'price': float(item.get('price', 0)),
+                    'quantity': int(item.get('quantity', 1)),
+                    'size': str(item.get('size', '')),
+                    'color': str(item.get('color', '')),
+                    'image': str(item.get('image', ''))
+                }
+            processed_items.append(processed_item)
+        
+        # Create order with processed items
         order = {
             'order_id': order_id,
             'user_id': ObjectId(session['user_id']),
-            'items': cart_items,
+            'items': processed_items,  # Use processed items with full details
             'shipping_address': shipping_address,
             'payment_method': 'paystack',
             'subtotal': subtotal,
@@ -1358,67 +1529,58 @@ def process_checkout():
         
         flash('An error occurred during checkout. Please try again.', 'danger')
         return redirect(url_for('checkout'))
-    
 
 
-def verify_paystack_payment(reference):
-    """Verify Paystack payment"""
-    try:
-        headers = {
-            'Authorization': f'Bearer {PAYSTACK_SECRET_KEY}',
-            'Content-Type': 'application/json'
-        }
-        
-        response = requests.get(
-            f'{PAYSTACK_BASE_URL}/transaction/verify/{reference}',
-            headers=headers,
-            timeout=30
-        )
-        
-        if response.status_code == 200:
-            return response.json()
-        else:
-            print(f"Paystack verification error: {response.status_code}")
-            return None
-            
-    except Exception as e:
-        print(f"Error verifying Paystack payment: {e}")
-        return None
+
 @app.route('/order-confirmation/<order_id>')
 @login_required
 def order_confirmation(order_id):
-    """FIXED - Converts all MongoDB objects to plain Python dicts"""
+    """FIXED order confirmation page - ensures items is a list"""
     try:
+        print(f"\n🔍 ===== ORDER CONFIRMATION =====")
+        print(f"Looking for order with ID: {order_id}")
+        
         orders_collection = get_collection('orders')
         
-        # Find order
+        # Try to find the order
+        order = None
+        
+        # Try as order_id field first
         order = orders_collection.find_one({'order_id': order_id})
+        if order:
+            print(f"✅ Found by order_id: {order_id}")
+        
+        # If not found, try as _id
+        if not order:
+            try:
+                if len(order_id) == 24:  # Possible ObjectId
+                    order = orders_collection.find_one({'_id': ObjectId(order_id)})
+                    if order:
+                        print(f"✅ Found by _id (ObjectId): {order_id}")
+            except:
+                pass
+        
+        # If still not found, try as string _id
+        if not order:
+            order = orders_collection.find_one({'_id': order_id})
+            if order:
+                print(f"✅ Found by _id (string): {order_id}")
         
         if not order:
+            print(f"❌ Order not found: {order_id}")
             flash('Order not found', 'danger')
             return redirect(url_for('account'))
         
         # Check ownership
-        if str(order.get('user_id')) != session['user_id']:
-            flash('Order not found', 'danger')
-            return redirect(url_for('account'))
+        user_id = order.get('user_id')
+        if user_id:
+            user_id_str = str(user_id)
+            if user_id_str != session['user_id']:
+                print(f"❌ Order belongs to {user_id_str}, not {session['user_id']}")
+                flash('Order not found', 'danger')
+                return redirect(url_for('account'))
         
-        # ===== CRITICAL FIX: Convert EVERYTHING to plain Python =====
-        safe_order = {
-            'order_id': str(order.get('order_id', order_id)),
-            'status': str(order.get('status', 'pending')),
-            'payment_status': str(order.get('payment_status', 'pending')),
-            'payment_method': str(order.get('payment_method', 'paystack')),
-            'subtotal': float(order.get('subtotal', 0)),
-            'delivery_fee': float(order.get('delivery_fee', 0)),
-            'total': float(order.get('total', 0)),
-            'items': [],  # Start with empty list
-            'shipping_address': {},
-            'created_at': order.get('created_at', datetime.utcnow()),
-            'paystack_reference': str(order.get('paystack_reference', ''))
-        }
-        
-        # ===== FIX ITEMS: Convert SON/list to plain Python list of dicts =====
+        # ===== CRITICAL FIX: Handle items that might be functions =====
         items_data = order.get('items', [])
         
         # Check if items is callable (function/method)
@@ -1426,42 +1588,85 @@ def order_confirmation(order_id):
             print("⚠️ Items is a function, trying to call it")
             try:
                 items_data = items_data()
+            except Exception as e:
+                print(f"❌ Error calling items function: {e}")
+                items_data = []
+        
+        # Ensure items is a list
+        if not isinstance(items_data, list):
+            print(f"⚠️ Items is not a list: {type(items_data)}")
+            # Try to convert to list if it's a cursor or other iterable
+            try:
+                items_data = list(items_data)
             except:
                 items_data = []
         
-        # Now process as list
-        if isinstance(items_data, list):
-            for item in items_data:
-                if isinstance(item, dict):
+        # Process each item to ensure it's a proper dict
+        processed_items = []
+        for item in items_data:
+            if item is None:
+                continue
+                
+            if isinstance(item, dict):
+                # Item is already a dict
+                safe_item = {
+                    'name': str(item.get('name', 'Product')),
+                    'price': float(item.get('price', 0)),
+                    'quantity': int(item.get('quantity', 1)),
+                    'size': str(item.get('size', '')),
+                    'color': str(item.get('color', ''))
+                }
+                processed_items.append(safe_item)
+            elif hasattr(item, 'to_dict'):  # Handle MongoDB SON objects
+                try:
+                    item_dict = item.to_dict()
                     safe_item = {
-                        'product_id': str(item.get('product_id', '')),
-                        'name': str(item.get('name', 'Product')),
-                        'price': float(item.get('price', 0)),
-                        'quantity': int(item.get('quantity', 1)),
-                        'size': str(item.get('size', '')),
-                        'color': str(item.get('color', '')),
-                        'image': str(item.get('image', ''))
+                        'name': str(item_dict.get('name', 'Product')),
+                        'price': float(item_dict.get('price', 0)),
+                        'quantity': int(item_dict.get('quantity', 1)),
+                        'size': str(item_dict.get('size', '')),
+                        'color': str(item_dict.get('color', ''))
                     }
-                    safe_order['items'].append(safe_item)
-                elif hasattr(item, 'to_dict'):  # Handle SON objects
-                    try:
-                        item_dict = item.to_dict()
-                        safe_item = {
-                            'product_id': str(item_dict.get('product_id', '')),
-                            'name': str(item_dict.get('name', 'Product')),
-                            'price': float(item_dict.get('price', 0)),
-                            'quantity': int(item_dict.get('quantity', 1)),
-                            'size': str(item_dict.get('size', '')),
-                            'color': str(item_dict.get('color', '')),
-                            'image': str(item_dict.get('image', ''))
-                        }
-                        safe_order['items'].append(safe_item)
-                    except:
-                        pass
+                    processed_items.append(safe_item)
+                except Exception as e:
+                    print(f"❌ Error processing item with to_dict: {e}")
         
-        # ===== FIX SHIPPING ADDRESS =====
+        # ===== SAFELY EXTRACT OTHER ORDER DATA =====
+        safe_order = {
+            'order_id': str(order.get('order_id', order_id)),
+            'status': str(order.get('status', 'pending')),
+            'payment_status': str(order.get('payment_status', 'pending')),
+            'payment_method': str(order.get('payment_method', 'paystack')),
+            'subtotal': 0,
+            'delivery_fee': 0,
+            'total': 0,
+            'created_at': order.get('created_at', datetime.now()),
+            'paystack_reference': str(order.get('paystack_reference', '')),
+            'items': processed_items,  # Use the processed items list
+            'shipping_address': {}
+        }
+        
+        # Safely get numeric values
+        try:
+            safe_order['subtotal'] = float(order.get('subtotal', 0))
+        except:
+            safe_order['subtotal'] = 0
+            
+        try:
+            safe_order['delivery_fee'] = float(order.get('delivery_fee', 0))
+        except:
+            safe_order['delivery_fee'] = 0
+            
+        try:
+            safe_order['total'] = float(order.get('total', 0))
+        except:
+            safe_order['total'] = 0
+        
+        # ===== PROCESS SHIPPING ADDRESS SAFELY =====
         shipping = order.get('shipping_address', {})
+        
         if callable(shipping):
+            print("⚠️ Shipping address is a function")
             try:
                 shipping = shipping()
             except:
@@ -1473,8 +1678,7 @@ def order_confirmation(order_id):
                 'city': str(shipping.get('city', '')),
                 'county': str(shipping.get('county', '')),
                 'postal_code': str(shipping.get('postal_code', '')),
-                'phone': str(shipping.get('phone', '')),
-                'name': str(shipping.get('name', ''))
+                'phone': str(shipping.get('phone', ''))
             }
         elif hasattr(shipping, 'to_dict'):
             try:
@@ -1484,24 +1688,82 @@ def order_confirmation(order_id):
                     'city': str(shipping_dict.get('city', '')),
                     'county': str(shipping_dict.get('county', '')),
                     'postal_code': str(shipping_dict.get('postal_code', '')),
-                    'phone': str(shipping_dict.get('phone', '')),
-                    'name': str(shipping_dict.get('name', ''))
+                    'phone': str(shipping_dict.get('phone', ''))
                 }
             except:
                 pass
         
-        print(f"✅ Final items type: {type(safe_order['items'])}")
-        print(f"✅ Final items length: {len(safe_order['items'])}")
-        print(f"✅ Final items[0] type: {type(safe_order['items'][0]) if safe_order['items'] else 'None'}")
+        print(f"✅ Items found and processed: {len(safe_order['items'])}")
+        print(f"✅ Items type: {type(safe_order['items'])}")
+        print(f"✅ First item: {safe_order['items'][0] if safe_order['items'] else 'None'}")
         
         return render_template('order_confirmation.html', order=safe_order)
         
     except Exception as e:
-        print(f"❌ CRITICAL ERROR: {e}")
+        print(f"❌ ERROR in order_confirmation: {e}")
         import traceback
         traceback.print_exc()
-        flash('Error loading order confirmation. Please check your orders page.', 'danger')
-        return redirect(url_for('account'))
+        
+        # Try to create a minimal order object from what we know
+        try:
+            # Try to find the order again to get at least basic info
+            orders_collection = get_collection('orders')
+            order = orders_collection.find_one({'order_id': order_id})
+            
+            if order:
+                # Try to get items
+                items_data = order.get('items', [])
+                if callable(items_data):
+                    try:
+                        items_data = items_data()
+                    except:
+                        items_data = []
+                
+                items_list = []
+                if isinstance(items_data, list):
+                    for item in items_data:
+                        if isinstance(item, dict):
+                            items_list.append({
+                                'name': item.get('name', 'Product'),
+                                'price': float(item.get('price', 0)),
+                                'quantity': int(item.get('quantity', 1)),
+                                'size': item.get('size', ''),
+                                'color': item.get('color', '')
+                            })
+                
+                minimal_order = {
+                    'order_id': order_id,
+                    'status': str(order.get('status', 'processing')),
+                    'payment_status': str(order.get('payment_status', 'paid')),
+                    'payment_method': 'paystack',
+                    'subtotal': float(order.get('subtotal', 0)),
+                    'delivery_fee': float(order.get('delivery_fee', 0)),
+                    'total': float(order.get('total', 0)),
+                    'created_at': order.get('created_at', datetime.now()),
+                    'paystack_reference': str(order.get('paystack_reference', '')),
+                    'items': items_list,
+                    'shipping_address': {}
+                }
+                
+                # Process shipping address
+                shipping = order.get('shipping_address', {})
+                if isinstance(shipping, dict):
+                    minimal_order['shipping_address'] = {
+                        'street': str(shipping.get('street', '')),
+                        'city': str(shipping.get('city', '')),
+                        'county': str(shipping.get('county', '')),
+                        'postal_code': str(shipping.get('postal_code', '')),
+                        'phone': str(shipping.get('phone', ''))
+                    }
+                
+                flash('Order found but there was an error loading full details. Showing available information.', 'warning')
+                return render_template('order_confirmation.html', order=minimal_order)
+            else:
+                flash('Order not found', 'danger')
+                return redirect(url_for('account'))
+        except:
+            flash('Error loading order confirmation. Please check your orders page.', 'danger')
+            return redirect(url_for('account'))
 @app.route('/debug-order/<order_id>')
 @login_required
 def debug_order(order_id):
@@ -1510,7 +1772,7 @@ def debug_order(order_id):
         orders_collection = get_collection('orders')
         order = orders_collection.find_one({'order_id': order_id})
         
-        if not order or str(order['user_id']) != session['user_id']:
+        if not order or str(order.get('user_id')) != session['user_id']:
             return jsonify({'error': 'Order not found or not authorized'})
         
         # Convert ObjectId to string for JSON serialization
@@ -1747,6 +2009,7 @@ def login():
         print(f"Error in login: {e}")
         flash('Error during login', 'danger')
         return render_template('login.html')
+
 @app.route('/logout')
 def logout():
     """User logout"""
@@ -1757,7 +2020,7 @@ def logout():
 @app.route('/account')
 @login_required
 def account():
-    """User account dashboard - COMPLETELY REWRITTEN FOR STABILITY"""
+    """User account dashboard - FIXED for function/method items"""
     try:
         print(f"\n🔍 ===== ACCOUNT PAGE LOADING =====")
         print(f"🔍 User ID in session: {session.get('user_id')}")
@@ -1793,8 +2056,8 @@ def account():
                 'verified': False,
                 'cart': [],
                 'wishlist': [],
-                'created_at': datetime.utcnow(),
-                'last_login': datetime.utcnow()
+                'created_at': datetime.now(),
+                'last_login': datetime.now()
             }
         
         # ===== 2. SAFELY CONVERT USER OBJECT =====
@@ -1832,8 +2095,8 @@ def account():
             'wishlist': [],
             'addresses': [],
             'profile_picture': '',
-            'created_at': datetime.utcnow(),
-            'last_login': datetime.utcnow()
+            'created_at': datetime.now(),
+            'last_login': datetime.now()
         }
         
         for key, default_value in user_defaults.items():
@@ -1859,6 +2122,26 @@ def account():
                 # Process each order safely
                 for order in db_orders:
                     try:
+                        # ===== FIX: Handle items that might be functions =====
+                        items_data = order.get('items', [])
+                        if callable(items_data):
+                            try:
+                                items_data = items_data()
+                            except:
+                                items_data = []
+                        
+                        # Ensure items is a list
+                        if not isinstance(items_data, list):
+                            items_data = []
+                        
+                        # Process items count safely
+                        items_count = 0
+                        for item in items_data:
+                            if isinstance(item, dict):
+                                items_count += 1
+                            elif hasattr(item, 'to_dict'):
+                                items_count += 1
+                        
                         safe_order = {
                             '_id': str(order.get('_id', '')),
                             'order_id': str(order.get('order_id', f"ORD-{str(order.get('_id', ''))[-8:]}")),
@@ -1869,10 +2152,11 @@ def account():
                             'subtotal': 0,
                             'delivery_fee': 0,
                             'total': 0,
-                            'items': [],
+                            'items': [],  # Empty list for template
+                            'items_count': items_count,  # Store count separately
                             'shipping_address': {},
-                            'created_at': order.get('created_at', datetime.utcnow()),
-                            'updated_at': order.get('updated_at', datetime.utcnow())
+                            'created_at': order.get('created_at', datetime.now()),
+                            'updated_at': order.get('updated_at', datetime.now())
                         }
                         
                         # Safely get subtotal
@@ -1893,28 +2177,21 @@ def account():
                         except:
                             safe_order['total'] = 0
                         
-                        # Safely process items
-                        if 'items' in order and isinstance(order['items'], list):
-                            items = []
-                            for item in order['items']:
-                                if isinstance(item, dict):
-                                    safe_item = {}
-                                    for ik, iv in item.items():
-                                        if isinstance(iv, ObjectId):
-                                            safe_item[ik] = str(iv)
-                                        elif ik == 'price' or ik == 'quantity':
-                                            try:
-                                                safe_item[ik] = float(iv) if ik == 'price' else int(iv)
-                                            except:
-                                                safe_item[ik] = 0 if ik == 'price' else 1
-                                        else:
-                                            safe_item[ik] = iv
-                                    items.append(safe_item)
-                            safe_order['items'] = items
-                        
                         # Safely process shipping address
-                        if 'shipping_address' in order and isinstance(order['shipping_address'], dict):
-                            safe_order['shipping_address'] = order['shipping_address']
+                        shipping = order.get('shipping_address', {})
+                        if callable(shipping):
+                            try:
+                                shipping = shipping()
+                            except:
+                                shipping = {}
+                        
+                        if isinstance(shipping, dict):
+                            safe_order['shipping_address'] = shipping
+                        elif hasattr(shipping, 'to_dict'):
+                            try:
+                                safe_order['shipping_address'] = shipping.to_dict()
+                            except:
+                                safe_order['shipping_address'] = {}
                         
                         safe_orders.append(safe_order)
                         
@@ -1979,7 +2256,7 @@ def account():
                 'verified': False,
                 'cart': [],
                 'wishlist': [],
-                'created_at': datetime.utcnow()
+                'created_at': datetime.now()
             },
             orders=[],
             total_orders=0,
@@ -1987,7 +2264,6 @@ def account():
             delivered_count=0,
             total_spent=0
         )
-
 @app.route('/update_profile', methods=['POST'])
 @login_required
 def update_profile():
@@ -2058,13 +2334,6 @@ def change_password():
     except Exception as e:
         print(f"Error in change_password: {e}")
         return jsonify({'success': False, 'message': str(e)})
-
-
-# ========== ACCOUNT MANAGEMENT ROUTES ==========
-
-
-
-# ========== OTHER ROUTES ==========
 
 @app.route('/add-review/<product_id>', methods=['POST'])
 @login_required
@@ -2248,7 +2517,7 @@ def admin_dashboard():
         
         flash('Error loading admin dashboard', 'danger')
         return redirect(url_for('home'))
-    
+
 @app.route('/debug-categories')
 @admin_required
 def debug_categories():
@@ -2263,6 +2532,7 @@ def debug_categories():
         })
     except Exception as e:
         return jsonify({'error': str(e)})
+
 @app.route('/admin/products')
 @admin_required
 def admin_products():
@@ -2275,7 +2545,6 @@ def admin_products():
         print(f"Error in admin_products: {e}")
         flash('Error loading products', 'danger')
         return render_template('admin/products.html', products=[])
-
 
 @app.route('/wishlist')
 def wishlist_redirect():
@@ -2509,6 +2778,7 @@ def edit_product(product_id):
         print(f"Traceback: {traceback.format_exc()}")
         flash('Error updating product', 'danger')
         return redirect(url_for('admin_products'))
+
 @app.route('/admin/delete-product/<product_id>')
 @admin_required
 def delete_product(product_id):
@@ -2694,7 +2964,7 @@ def admin_orders():
         print(traceback.format_exc())
         flash(f'Error loading orders: {str(e)}', 'danger')
         return render_template('admin/orders.html', orders=[])
-    
+
 @app.route('/admin/debug-orders-direct')
 @admin_required
 def debug_orders_direct():
@@ -2743,6 +3013,7 @@ def debug_orders_direct():
             'error': str(e),
             'traceback': traceback.format_exc()
         }), 500
+
 @app.route('/admin/update-order-status/<order_id>', methods=['POST'])
 @admin_required
 def update_order_status(order_id):
@@ -3126,6 +3397,7 @@ def contact():
             return redirect(url_for('contact'))
     
     return render_template('contact.html')
+
 @app.route('/resend-otp', methods=['POST'])
 def resend_otp():
     """Resend OTP"""
@@ -4150,8 +4422,10 @@ def utility_processor():
         PAYSTACK_PUBLIC_KEY=PAYSTACK_PUBLIC_KEY,
         PAYSTACK_BASE_URL=PAYSTACK_BASE_URL
     )
+
 # ========== APPLICATION STARTUP ==========
 # ========== JINJA2 FILTERS ==========
+app.jinja_env.globals.update(now=now)
 @app.route('/admin/bulk-delete-products', methods=['POST'])
 @admin_required
 def bulk_delete_products():
@@ -4179,7 +4453,7 @@ def bulk_delete_products():
     except Exception as e:
         print(f"Error in bulk_delete_products: {e}")
         return jsonify({'success': False, 'message': 'Error deleting products'}), 500
-    
+
 @app.route('/admin/toggle-product-status/<product_id>')
 @admin_required
 def toggle_product_status(product_id):
@@ -4232,7 +4506,7 @@ def toggle_featured(product_id):
         print(f"Error in toggle_featured: {e}")
         flash('Error updating featured status', 'danger')
         return redirect(url_for('admin_products'))
-    
+
 @app.route('/admin/duplicate-product/<product_id>', methods=['GET', 'POST'])
 @admin_required
 def duplicate_product(product_id):
@@ -4281,6 +4555,7 @@ def duplicate_product(product_id):
         print(f"Error in duplicate_product: {e}")
         flash('Error duplicating product', 'danger')
         return redirect(url_for('admin_products'))
+
 # Register format_number as a Jinja2 filter
 @app.template_filter('format_number')
 def format_number_filter(number, decimals=0):

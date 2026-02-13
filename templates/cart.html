@@ -58,7 +58,7 @@
                                             <div class="carousel-inner rounded-3">
                                                 {% for img in product_images %}
                                                 <div class="carousel-item {% if loop.first %}active{% endif %}">
-                                                    <img src="{{ img.url if img.url.startswith('http') else url_for('static', filename='uploads/' + img.filename) if img.filename else img.url }}" 
+                                                    <img src="{% if img.url and img.url.startswith('http') %}{{ img.url }}{% elif img.filename %}{{ url_for('static', filename='uploads/' + img.filename) }}{% else %}{{ img.url }}{% endif %}" 
                                                          class="d-block w-100 cart-item-image" 
                                                          alt="{{ item.name }} - Image {{ loop.index }}"
                                                          onerror="this.src='https://via.placeholder.com/100x100?text=MF'">
@@ -81,7 +81,7 @@
                                     <a href="{{ url_for('product_details', product_id=item.product_id) if item.product_id else '#' }}">
                                         <img src="{{ get_cart_item_image(item) }}" 
                                              class="img-fluid rounded-3 cart-item-image" 
-                                             alt="{{ item.name }}"
+                                             alt="{{ item.name if item.name else 'Product' }}"
                                              onerror="this.src='https://via.placeholder.com/100x100?text=MF'">
                                     </a>
                                     {% endif %}
@@ -97,28 +97,30 @@
                                 </div>
                             </div>
                             
-                            <!-- Product Details -->
+                            <!-- Product Details - FIXED: Ensure item.name and item.price are displayed -->
                             <div class="col-md-4 col-8">
                                 <h6 class="mb-1 fw-bold">
                                     <a href="{{ url_for('product_details', product_id=item.product_id) if item.product_id else '#' }}" 
                                        class="text-decoration-none text-cyan hover-magenta product-title">
-                                        {{ item.name }}
+                                        {{ item.name if item.name and item.name != 'Product' else (product.name if product else 'Product') }}
                                     </a>
                                 </h6>
                                 <div class="mb-2">
-                                    {% if item.size %}
+                                    {% if item.size and item.size != 'None' %}
                                     <span class="badge bg-soft-cyan text-cyan border border-cyan me-2">
                                         <i class="fas fa-ruler me-1"></i>{{ item.size }}
                                     </span>
                                     {% endif %}
-                                    {% if item.color %}
+                                    {% if item.color and item.color != 'None' %}
                                     <span class="badge bg-soft-magenta text-magenta border border-magenta">
                                         <i class="fas fa-palette me-1"></i>{{ item.color }}
                                     </span>
                                     {% endif %}
                                 </div>
-                                <p class="mb-2 fw-bold text-magenta">{{ format_price(item.price) }} each</p>
-                                {% set stock_status = get_product_stock_status(item.stock) %}
+                                <p class="mb-2 fw-bold text-magenta">
+                                    {{ format_price(item.price|float) if item.price else (format_price(product.price|float) if product else 'KES 0') }} each
+                                </p>
+                                {% set stock_status = get_product_stock_status(item.stock if item.stock else (product.stock if product else 0)) %}
                                 <span class="badge bg-{{ 'success' if stock_status.color == 'success' else 'warning' if stock_status.color == 'warning' else 'danger' }} small">
                                     <i class="fas fa-{{ 'check-circle' if stock_status.color == 'success' else 'exclamation-circle' }} me-1"></i>
                                     {{ stock_status.text }}
@@ -133,9 +135,9 @@
                                         <i class="fas fa-minus"></i>
                                     </button>
                                     <input type="number" class="form-control text-center quantity-input border-grey-medium" 
-                                           value="{{ item.quantity }}" min="1" max="{{ item.stock }}" 
+                                           value="{{ item.quantity }}" min="1" max="{{ item.stock if item.stock else (product.stock if product else 99) }}" 
                                            data-index="{{ loop.index0 }}"
-                                           data-price="{{ item.price }}"
+                                           data-price="{{ item.price if item.price else (product.price if product else 0) }}"
                                            data-product-id="{{ item.product_id }}"
                                            onkeypress="return event.charCode >= 48 && event.charCode <= 57">
                                     <button class="btn btn-outline-grey-medium quantity-btn plus" 
@@ -145,11 +147,12 @@
                                 </div>
                                 <div class="mt-2">
                                     <small class="text-grey-medium d-block">
-                                        <i class="fas fa-box me-1 text-cyan"></i>Max: {{ item.stock }} available
+                                        <i class="fas fa-box me-1 text-cyan"></i>Max: {{ item.stock if item.stock else (product.stock if product else 99) }} available
                                     </small>
-                                    {% if item.stock > 0 and item.quantity > item.stock %}
+                                    {% set max_stock = item.stock if item.stock else (product.stock if product else 0) %}
+                                    {% if max_stock > 0 and item.quantity > max_stock %}
                                     <small class="text-magenta">
-                                        <i class="fas fa-exclamation-triangle me-1"></i>Only {{ item.stock }} left!
+                                        <i class="fas fa-exclamation-triangle me-1"></i>Only {{ max_stock }} left!
                                     </small>
                                     {% endif %}
                                 </div>
@@ -157,8 +160,10 @@
                             
                             <!-- Item Total & Actions -->
                             <div class="col-md-3 col-6 mt-3 mt-md-0 text-end">
+                                {% set item_price = item.price|float if item.price else (product.price|float if product else 0) %}
+                                {% set item_quantity = item.quantity|int if item.quantity else 1 %}
                                 <h6 class="mb-2 fw-bold item-total text-magenta" data-index="{{ loop.index0 }}">
-                                    {{ format_price(item.price * item.quantity) }}
+                                    {{ format_price(item_price * item_quantity) }}
                                 </h6>
                                 <div class="d-flex gap-2 justify-content-end">
                                     <button class="btn btn-sm btn-outline-cyan wishlist-btn rounded-circle" 
@@ -169,7 +174,7 @@
                                     </button>
                                     <a href="{{ url_for('remove_from_cart', item_index=loop.index0) }}" 
                                        class="btn btn-sm btn-outline-magenta remove-btn rounded-circle"
-                                       data-item-name="{{ item.name }}"
+                                       data-item-name="{{ item.name if item.name else 'this item' }}"
                                        title="Remove from Cart"
                                        style="width: 36px; height: 36px;">
                                         <i class="fas fa-trash"></i>
@@ -185,7 +190,8 @@
                         </div>
                         
                         <!-- Save for Later (if out of stock) -->
-                        {% if item.stock == 0 %}
+                        {% set max_stock = item.stock if item.stock else (product.stock if product else 0) %}
+                        {% if max_stock == 0 %}
                         <div class="row mt-3">
                             <div class="col-12">
                                 <div class="alert bg-soft-cyan d-flex align-items-center justify-content-between rounded-3 border-0">
@@ -236,23 +242,23 @@
                     </h6>
                 </div>
                 <div class="card-body px-4 pb-4">
-                    <div class="row">
+                    <div class="row g-3">
                         {% for product in recently_viewed[:3] %}
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-4">
                             <div class="d-flex align-items-center">
                                 <div class="position-relative">
                                     <img src="{{ get_main_product_image(product) }}" 
                                          class="img-fluid rounded-3" 
                                          style="width: 70px; height: 70px; object-fit: cover; border: 1px solid rgba(216,27,96,0.1);"
-                                         alt="{{ product.name }}"
+                                         alt="{{ product.name if product.name else 'Product' }}"
                                          onerror="this.src='https://via.placeholder.com/70x70?text=MF'">
                                 </div>
                                 <div class="ms-3">
-                                    <h6 class="mb-1 small fw-bold text-cyan">{{ product.name[:25] }}{% if product.name|length > 25 %}...{% endif %}</h6>
-                                    <p class="mb-1 text-magenta small fw-bold">{{ format_price(product.price) }}</p>
+                                    <h6 class="mb-1 small fw-bold text-cyan">{{ (product.name if product.name else 'Product')[:25] }}{% if product.name and product.name|length > 25 %}...{% endif %}</h6>
+                                    <p class="mb-1 text-magenta small fw-bold">{{ format_price(product.price|float) if product.price else 'KES 0' }}</p>
                                     <button class="btn btn-link btn-sm p-0 text-cyan hover-magenta quick-add-btn" 
                                             data-product-id="{{ product._id }}"
-                                            onclick="Mufra?.cart?.add('{{ product._id }}')">
+                                            onclick="quickAddToCart('{{ product._id }}')">
                                         <i class="fas fa-cart-plus me-1"></i>Add
                                     </button>
                                 </div>
@@ -536,9 +542,7 @@
     </div>
     {% endif %}
 </div>
-{% endblock %}
 
-{% block extra_css %}
 <style>
     /* ===== MUFRA FASHIONS BRAND COLORS ===== */
     :root {
@@ -954,7 +958,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
     
-    // ===== CART MANAGEMENT WITH MUFRA API =====
+    // ===== CART MANAGEMENT FUNCTIONS =====
     
     // Function to update cart item quantity
     function updateCartItem(index, quantity) {
@@ -967,58 +971,35 @@ document.addEventListener('DOMContentLoaded', function() {
         const originalValue = input.value;
         input.value = quantity;
         
-        // Use Mufra API if available
-        if (window.Mufra && window.Mufra.cart) {
-            window.Mufra.cart.updateQuantity(index, quantity)
-                .then(() => {
-                    // Update the item total
-                    updateItemTotal(index, quantity);
-                    // Update cart totals
-                    updateCartTotals();
-                })
-                .catch(() => {
-                    // Revert on error
-                    input.value = originalValue;
-                });
-        } else {
-            // Fallback AJAX
-            fetch('{{ url_for("update_cart") }}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: `item_index=${index}&quantity=${quantity}`
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Update the item total
-                    updateItemTotal(index, quantity);
-                    // Update cart totals
-                    updateCartTotals();
-                    
-                    // Update cart count in navbar
-                    if (data.cart_count !== undefined) {
-                        if (window.Mufra) {
-                            window.Mufra.cart.updateCount(data.cart_count);
-                        } else {
-                            updateCartCount(data.cart_count);
-                        }
-                    }
-                    
-                    showToast('Cart updated successfully!', 'success');
-                } else {
-                    // Revert to original value on error
-                    input.value = originalValue;
-                    showToast(data.message || 'Error updating cart', 'danger');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
+        // Fallback AJAX
+        fetch('{{ url_for("update_cart") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `item_index=${index}&quantity=${quantity}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update the item total
+                updateItemTotal(index, quantity);
+                // Update cart totals
+                updateCartTotals();
+                
+                // Show success message
+                showToast('Cart updated successfully!', 'success');
+            } else {
+                // Revert to original value on error
                 input.value = originalValue;
-                showToast('Network error. Please try again.', 'danger');
-            });
-        }
+                showToast(data.message || 'Error updating cart', 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            input.value = originalValue;
+            showToast('Network error. Please try again.', 'danger');
+        });
     }
     
     // Helper function to update item total
@@ -1061,7 +1042,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Function to update cart count in navbar (fallback)
+    // Function to update cart count in navbar
     function updateCartCount(count) {
         const cartBadges = document.querySelectorAll('.cart-count-badge');
         cartBadges.forEach(badge => {
@@ -1081,13 +1062,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Function to show toast notifications
     function showToast(message, type = 'info') {
-        if (window.Mufra && window.Mufra.notify) {
-            if (type === 'success') Mufra.notify.success(message);
-            else if (type === 'danger') Mufra.notify.error(message);
-            else Mufra.notify.info(message);
-            return;
-        }
-        
         // Remove existing toasts
         const existingToast = document.querySelector('.toast-container');
         if (existingToast) existingToast.remove();
@@ -1194,81 +1168,46 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             const itemName = this.dataset.itemName || 'this item';
             
-            if (window.Mufra && window.Mufra.cart) {
-                const itemIndex = this.closest('.cart-item')?.dataset.itemIndex;
-                if (itemIndex) {
-                    window.Mufra.cart.remove(itemIndex);
-                } else {
-                    window.location.href = this.href;
-                }
-            } else {
-                const confirmRemove = confirm(`Are you sure you want to remove "${itemName}" from your cart?`);
+            const confirmRemove = confirm(`Are you sure you want to remove "${itemName}" from your cart?`);
+            
+            if (confirmRemove) {
+                // Show loading state
+                const originalHtml = this.innerHTML;
+                this.innerHTML = '<span class="loading me-2"></span>';
+                this.disabled = true;
                 
-                if (confirmRemove) {
-                    // Show loading state
-                    const originalHtml = this.innerHTML;
-                    this.innerHTML = '<span class="loading me-2"></span>';
-                    this.disabled = true;
-                    
-                    // Proceed with removal
-                    window.location.href = this.href;
-                }
+                // Proceed with removal
+                window.location.href = this.href;
             }
         });
     });
     
-    // Clear cart button - FIXED: Removed reference to non-existent clear_cart endpoint
+    // Clear cart button
     const clearCartBtn = document.getElementById('clearCartBtn');
     if (clearCartBtn) {
         clearCartBtn.addEventListener('click', function() {
             if (confirm('Are you sure you want to clear your entire cart? This action cannot be undone.')) {
-                if (window.Mufra && window.Mufra.cart) {
-                    // Implement clear all functionality using Mufra API
-                    const cartItems = document.querySelectorAll('.cart-item');
-                    let itemsRemoved = 0;
-                    let totalItems = cartItems.length;
-                    
-                    cartItems.forEach(item => {
-                        const index = item.dataset.itemIndex;
-                        if (index) {
-                            window.Mufra.cart.remove(index)
-                                .then(() => {
-                                    itemsRemoved++;
-                                    if (itemsRemoved === totalItems) {
-                                        showToast('Cart cleared successfully!', 'success');
-                                        setTimeout(() => {
-                                            window.location.reload();
-                                        }, 1000);
-                                    }
-                                })
-                                .catch(() => {
-                                    showToast('Error clearing cart', 'danger');
-                                });
-                        }
-                    });
-                } else {
-                    // Fallback: Click each remove button sequentially
-                    const removeButtons = document.querySelectorAll('.remove-btn');
-                    let itemsRemoved = 0;
-                    
-                    if (removeButtons.length === 0) {
-                        showToast('Cart is already empty', 'info');
-                        return;
-                    }
-                    
-                    removeButtons.forEach((btn, index) => {
-                        setTimeout(() => {
-                            btn.click();
-                        }, index * 200);
-                    });
-                    
-                    showToast('Clearing cart...', 'info');
-                    
-                    // Reload after all items are removed
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, removeButtons.length * 200 + 500);
+                // Remove items one by one
+                const removeButtons = document.querySelectorAll('.remove-btn');
+                let itemsRemoved = 0;
+                
+                if (removeButtons.length === 0) {
+                    showToast('Cart is already empty', 'info');
+                    return;
                 }
+                
+                showToast('Clearing cart...', 'info');
+                
+                removeButtons.forEach((btn, index) => {
+                    setTimeout(() => {
+                        btn.click();
+                    }, index * 200);
+                });
+                
+                // Reload after all items are removed
+                setTimeout(() => {
+                    window.location.reload();
+                }, removeButtons.length * 200 + 500);
             }
         });
     }
@@ -1284,72 +1223,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            if (window.Mufra && window.Mufra.wishlist) {
-                window.Mufra.wishlist.toggle(productId)
-                    .then((response) => {
-                        if (response.in_wishlist) {
-                            this.classList.add('active');
-                            this.innerHTML = '<i class="fas fa-heart"></i>';
-                            showToast('Added to wishlist!', 'success');
-                        } else {
-                            this.classList.remove('active');
-                            this.innerHTML = '<i class="far fa-heart"></i>';
-                            showToast('Removed from wishlist', 'info');
-                        }
-                    })
-                    .catch((error) => {
-                        if (error === 'Not logged in') {
-                            if (confirm('Please login to add items to your wishlist')) {
-                                window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
-                            }
-                        } else {
-                            showToast(error.message || 'Failed to update wishlist', 'danger');
-                        }
-                    });
-            } else {
-                const isActive = this.classList.contains('active');
-                const action = isActive ? 'remove' : 'add';
-                
-                fetch(`/wishlist/${action}/${productId}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        if (action === 'add') {
-                            this.classList.add('active');
-                            this.innerHTML = '<i class="fas fa-heart"></i>';
-                            showToast('Added to wishlist!', 'success');
-                        } else {
-                            this.classList.remove('active');
-                            this.innerHTML = '<i class="far fa-heart"></i>';
-                            showToast('Removed from wishlist', 'info');
-                        }
-                    } else {
-                        if (data.requires_login) {
-                            window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
-                        } else {
-                            showToast(data.message, 'danger');
-                        }
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    showToast('Network error. Please try again.', 'danger');
-                });
-            }
-        });
-    });
-    
-    // Save for later functionality
-    document.querySelectorAll('.save-for-later-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const productId = this.dataset.productId;
+            // Simple toggle for wishlist
+            const isActive = this.classList.contains('active');
+            const action = isActive ? 'remove' : 'add';
             
-            fetch(`/save_for_later/${productId}`, {
+            fetch(`/wishlist/${action}/${productId}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1358,15 +1236,21 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    showToast('Item saved for later!', 'success');
-                    // Remove the item from cart view
-                    const cartItem = this.closest('.cart-item');
-                    cartItem.style.opacity = '0.5';
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1000);
+                    if (action === 'add') {
+                        this.classList.add('active');
+                        this.innerHTML = '<i class="fas fa-heart"></i>';
+                        showToast('Added to wishlist!', 'success');
+                    } else {
+                        this.classList.remove('active');
+                        this.innerHTML = '<i class="far fa-heart"></i>';
+                        showToast('Removed from wishlist', 'info');
+                    }
                 } else {
-                    showToast(data.message, 'danger');
+                    if (data.requires_login) {
+                        window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
+                    } else {
+                        showToast(data.message, 'danger');
+                    }
                 }
             })
             .catch(error => {
@@ -1375,6 +1259,32 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     });
+    
+    // Quick add to cart function
+    window.quickAddToCart = function(productId) {
+        fetch(`/add-to-cart/${productId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'quantity=1'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('✓ Added to cart!', 'success');
+                if (data.cart_count !== undefined) {
+                    updateCartCount(data.cart_count);
+                }
+            } else {
+                showToast(data.message || 'Failed to add to cart', 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('Network error. Please try again.', 'danger');
+        });
+    };
     
     // Coupon code functionality
     const applyCouponBtn = document.getElementById('applyCoupon');
@@ -1390,7 +1300,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            // Simulate coupon validation (replace with actual API call)
+            // Simulate coupon validation
             const validCoupons = {
                 'WELCOME10': 0.1,  // 10% discount
                 'SAVE20': 0.2,     // 20% discount
@@ -1416,7 +1326,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 discountRow.style.display = 'flex';
-                updateCartTotals();
                 
                 // Disable coupon input
                 couponCodeInput.disabled = true;
@@ -1435,59 +1344,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Quick add to cart from recently viewed
-    window.quickAddToCart = function(productId) {
-        if (window.Mufra && window.Mufra.cart) {
-            window.Mufra.cart.add(productId)
-                .then(() => {
-                    showToast('✓ Added to cart!', 'success');
-                })
-                .catch((error) => {
-                    showToast(error.message || 'Failed to add to cart', 'danger');
-                });
-        } else {
-            fetch(`/add-to-cart/${productId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: 'quantity=1'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showToast('✓ Added to cart!', 'success');
-                    if (data.cart_count !== undefined) {
-                        updateCartCount(data.cart_count);
-                    }
-                } else {
-                    showToast(data.message || 'Failed to add to cart', 'danger');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showToast('Network error. Please try again.', 'danger');
-            });
-        }
-    };
-    
     // Initialize cart totals on page load
     updateCartTotals();
-    
-    // Check for out of stock items on page load
-    document.querySelectorAll('.quantity-input').forEach(input => {
-        const max = parseInt(input.max) || 0;
-        const value = parseInt(input.value) || 1;
-        if (max > 0 && value > max) {
-            const index = input.dataset.index;
-            updateCartItem(index, max);
-        }
-    });
-    
-    // Set initial wishlist states (if user is logged in)
-    if (window.userLoggedIn) {
-        // You might want to fetch wishlist status here
-    }
 });
 </script>
 {% endblock %}

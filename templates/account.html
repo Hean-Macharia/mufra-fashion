@@ -362,7 +362,7 @@
                                             <div class="col-md-2 mb-3 mb-md-0">
                                                 <div class="text-center">
                                                     <small class="text-grey-medium d-block">Items</small>
-                                                    <strong class="text-charcoal">{{ order.items|length if order.items else 0 }}</strong>
+                                                    <strong class="text-charcoal">{{ order.items_count if order.items_count is defined else 0 }}</strong>
                                                 </div>
                                             </div>
                                             <div class="col-md-3 mb-3 mb-md-0">
@@ -398,14 +398,16 @@
                                                 <div class="col-12">
                                                     <div class="d-flex flex-wrap align-items-center gap-3">
                                                         <span class="small text-grey-medium">Items:</span>
-                                                        {% for item in order.items[:3] %}
-                                                        <span class="badge bg-soft-cyan text-cyan px-3 py-2">
-                                                            {{ item.name|truncate(20) }} x{{ item.quantity }}
-                                                        </span>
-                                                        {% endfor %}
-                                                        {% if order.items|length > 3 %}
+                                                        {% if order.items_preview %}
+                                                            {% for item in order.items_preview %}
+                                                            <span class="badge bg-soft-cyan text-cyan px-3 py-2">
+                                                                {{ item.name|truncate(20) }} x{{ item.quantity }}
+                                                            </span>
+                                                            {% endfor %}
+                                                        {% endif %}
+                                                        {% if order.items_count and order.items_count > 3 %}
                                                         <span class="badge bg-soft-magenta text-magenta px-3 py-2">
-                                                            +{{ order.items|length - 3 }} more
+                                                            +{{ order.items_count - 3 }} more
                                                         </span>
                                                         {% endif %}
                                                     </div>
