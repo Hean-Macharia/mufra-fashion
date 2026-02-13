@@ -760,6 +760,25 @@ def paystack_webhook():
         print(f"Webhook error: {e}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
+@app.route('/', methods=['POST'])
+def root_post_handler():
+    """Fallback handler for POST requests to root - forwards Paystack webhooks"""
+    try:
+        payload = request.get_json()
+        
+        # Check if this looks like a Paystack webhook
+        if payload and 'event' in payload and 'data' in payload:
+            print(f"📧 Forwarding Paystack webhook from / to /paystack/webhook")
+            # Forward to paystack_webhook handler
+            return paystack_webhook()
+        
+        # For other POST requests, return 405
+        return jsonify({'status': 'error', 'message': 'Method not allowed'}), 405
+        
+    except Exception as e:
+        print(f"Root POST handler error: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
 @app.route('/fix-admin-password')
 def fix_admin_password():
     """Fix admin password (one-time use)"""
