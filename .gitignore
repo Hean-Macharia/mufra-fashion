@@ -48,3 +48,4 @@ instance/
 # Uploaded files (if using local uploads)
 static/uploads/*
 !static/uploads/.gitkeep
+.env
