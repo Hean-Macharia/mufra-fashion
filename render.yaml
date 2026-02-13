@@ -10,7 +10,7 @@ services:
       - key: PYTHON_VERSION
         value: 3.9.0
       - key: MAIL_SERVER
-        value: smtp.gmail.com
+        value: smtp.sendgrid.net
       - key: MAIL_PORT
         value: 587
       - key: MAIL_USE_TLS
@@ -18,27 +18,13 @@ services:
       - key: MAIL_USE_SSL
         value: "False"
       - key: MAIL_USERNAME
-        sync: false
+        value: apikey
       - key: MAIL_PASSWORD
         sync: false
       - key: MAIL_DEFAULT_SENDER
         value: winnersb27@gmail.com
       - key: MONGO_URI
         sync: false
-      - key: MAIL_SERVER
-        value: smtp.gmail.com
-      - key: MAIL_PORT
-        value: 587
-      - key: MAIL_USE_TLS
-        value: "True"
-      - key: MAIL_USE_SSL
-        value: "False"
-      - key: MAIL_USERNAME
-        sync: false  # Set via Render environment variables panel
-      - key: MAIL_PASSWORD
-        sync: false  # Set via Render environment variables panel
-      - key: MAIL_DEFAULT_SENDER
-        value: your-email@gmail.com
       - key: PAYSTACK_PUBLIC_KEY
         sync: false
       - key: PAYSTACK_SECRET_KEY
