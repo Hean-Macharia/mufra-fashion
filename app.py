@@ -474,6 +474,79 @@ def initialize_sample_data():
     except Exception as e:
         print(f"⚠ Warning during database initialization: {e}")
 
+def get_product_images(product):
+    """Get product images with fallback to single image - HANDLES BOTH FORMATS"""
+    if not product:
+        return [{
+            'url': 'https://via.placeholder.com/400x300?text=Product+Image', 
+            'filename': 'placeholder.jpg',
+            'is_main': True
+        }]
+    
+    # Check if product has images array
+    if 'images' in product and product['images']:
+        images = []
+        # Ensure all images are properly formatted
+        for i, img in enumerate(product['images']):
+            if isinstance(img, str):
+                # String URL - convert to dict
+                images.append({
+                    'url': img,
+                    'filename': img.split('/')[-1] if '/' in img else img,
+                    'is_main': i == 0
+                })
+            elif isinstance(img, dict):
+                # Already a dict - ensure all fields
+                img_copy = dict(img)
+                img_copy.setdefault('url', img.get('url', 'https://via.placeholder.com/400x300?text=Product+Image'))
+                img_copy.setdefault('filename', img.get('filename', img_copy['url'].split('/')[-1]))
+                img_copy.setdefault('is_main', img.get('is_main', i == 0))
+                images.append(img_copy)
+            else:
+                # Unknown format - skip
+                continue
+        
+        # Ensure at least one image
+        if not images:
+            images.append({
+                'url': 'https://via.placeholder.com/400x300?text=Product+Image',
+                'filename': 'placeholder.jpg',
+                'is_main': True
+            })
+        
+        # Ensure first image is marked as main
+        if images:
+            images[0]['is_main'] = True
+        
+        return images
+    
+    # Fallback to old image field
+    elif 'image' in product and product['image']:
+        return [{
+            'url': product['image'],
+            'filename': product['image'].split('/')[-1] if '/' in product['image'] else product['image'],
+            'is_main': True
+        }]
+    
+    # No images found
+    else:
+        return [{
+            'url': 'https://via.placeholder.com/400x300?text=Product+Image',
+            'filename': 'placeholder.jpg',
+            'is_main': True
+        }]
+
+def get_main_product_image(product):
+    """Get main product image"""
+    images = get_product_images(product)
+    if images:
+        # Find the main image or use first
+        for img in images:
+            if img.get('is_main', False):
+                return img['url']
+        return images[0]['url']
+    return 'https://via.placeholder.com/400x300?text=Product+Image'
+
 @app.route('/paystack/callback')
 def paystack_callback():
     """Handle Paystack callback after payment - COMPLETELY REWRITTEN"""
@@ -1005,82 +1078,53 @@ def migrate_products_images():
 
 @app.route('/categories')
 def categories():
-    """Categories page with filtering"""
+    """Categories page with product sections"""
     try:
-        category = request.args.get('category', '')
-        condition = request.args.get('condition', '')
-        min_price = request.args.get('min_price', 0, type=int)
-        max_price = request.args.get('max_price', 100000, type=int)
-        sort_option = request.args.get('sort', 'date_desc')  # ADD DEFAULT SORT OPTION
-        page = request.args.get('page', 1, type=int)
-        
-        # Build query
-        query = {}
-        if category:
-            query['category'] = category
-        if condition:
-            query['condition'] = condition
-        if min_price > 0 or max_price < 100000:
-            query['price'] = {'$gte': min_price, '$lte': max_price}
-        
-        # Get products and categories
         products_collection = get_collection('products')
         categories_collection = get_collection('categories')
         
-        # Apply sorting
-        sort_mapping = {
-            'price_asc': [('price', 1)],
-            'price_desc': [('price', -1)],
-            'rating_desc': [('rating', -1)],
-            'name_asc': [('name', 1)],
-            'name_desc': [('name', -1)],
-            'date_desc': [('created_at', -1)]
-        }
-        sort_criteria = sort_mapping.get(sort_option, [('created_at', -1)])
+        # Get all products organized by category and condition
+        all_products = list(products_collection.find({}))
         
-        # Pagination
-        per_page = 12
-        skip = (page - 1) * per_page
-        
-        # Get products with pagination and sorting
-        total_products = products_collection.count_documents(query)
-        products = list(products_collection.find(query)
-                       .sort(sort_criteria)
-                       .skip(skip)
-                       .limit(per_page))
+        # Organize products by category
+        shoes_products = [p for p in all_products if p.get('category', '').lower() in ['shoes', 'shoe']][:6]
+        clothes_products = [p for p in all_products if p.get('category', '').lower() in ['clothes', 'clothing', 'cloth']][:6]
+        new_products = [p for p in all_products if p.get('condition', '').lower() in ['new', 'brand new'] or p.get('category', '').lower() == 'new'][:6]
+        secondhand_products = [p for p in all_products if p.get('condition', '').lower() in ['second hand', 'used', 'pre-owned', 'secondhand']][:6]
+        featured_products = [p for p in all_products if p.get('featured', False)][:6]
         
         # Ensure all products have required fields
-        for product in products:
-            product.setdefault('rating', 0)
-            product.setdefault('reviews_count', 0)
-            product.setdefault('stock', 0)
-            product.setdefault('featured', False)
-            product.setdefault('sizes', [])
-            product.setdefault('colors', [])
-            product.setdefault('image', 'https://via.placeholder.com/400x300?text=Product+Image')
+        for product_list in [shoes_products, clothes_products, new_products, secondhand_products, featured_products]:
+            for product in product_list:
+                product.setdefault('rating', 0)
+                product.setdefault('reviews_count', 0)
+                product.setdefault('stock', 0)
+                product.setdefault('featured', False)
+                product.setdefault('sizes', [])
+                product.setdefault('colors', [])
+                product['image'] = get_main_product_image(product)
         
         categories_list = list(categories_collection.find({}))
-        total_pages = (total_products + per_page - 1) // per_page
         
         return render_template('categories.html', 
-                             products=products,
-                             categories=categories_list,
-                             selected_category=category,
-                             selected_condition=condition,
-                             sort_option=sort_option,  # PASS SORT OPTION TO TEMPLATE
-                             page=page,
-                             total_pages=total_pages)
+                             products=all_products,
+                             shoes_products=shoes_products,
+                             clothes_products=clothes_products,
+                             new_products=new_products,
+                             secondhand_products=secondhand_products,
+                             featured_products=featured_products,
+                             categories=categories_list)
     except Exception as e:
         print(f"Error in categories route: {e}")
         flash('Error loading categories', 'danger')
         return render_template('categories.html', 
                              products=[],
-                             categories=[],
-                             selected_category='',
-                             selected_condition='',
-                             sort_option='date_desc',
-                             page=1,
-                             total_pages=0)
+                             shoes_products=[],
+                             clothes_products=[],
+                             new_products=[],
+                             secondhand_products=[],
+                             featured_products=[],
+                             categories=[])
 
 @app.route('/product/<product_id>')
 def product_details(product_id):
@@ -3483,80 +3527,11 @@ def utility_processor():
         else:
             return obj
     
-    def get_product_images(product):
-        """Get product images with fallback to single image - HANDLES BOTH FORMATS"""
-        if not product:
-            return [{
-                'url': 'https://via.placeholder.com/400x300?text=Product+Image', 
-                'filename': 'placeholder.jpg',
-                'is_main': True
-            }]
-        
-        # Check if product has images array
-        if 'images' in product and product['images']:
-            images = []
-            # Ensure all images are properly formatted
-            for i, img in enumerate(product['images']):
-                if isinstance(img, str):
-                    # String URL - convert to dict
-                    images.append({
-                        'url': img,
-                        'filename': img.split('/')[-1] if '/' in img else img,
-                        'is_main': i == 0
-                    })
-                elif isinstance(img, dict):
-                    # Already a dict - ensure all fields
-                    img_copy = dict(img)
-                    img_copy.setdefault('url', img.get('url', 'https://via.placeholder.com/400x300?text=Product+Image'))
-                    img_copy.setdefault('filename', img.get('filename', img_copy['url'].split('/')[-1]))
-                    img_copy.setdefault('is_main', img.get('is_main', i == 0))
-                    images.append(img_copy)
-                else:
-                    # Unknown format - skip
-                    continue
-            
-            # Ensure at least one image
-            if not images:
-                images.append({
-                    'url': 'https://via.placeholder.com/400x300?text=Product+Image',
-                    'filename': 'placeholder.jpg',
-                    'is_main': True
-                })
-            
-            # Ensure first image is marked as main
-            if images:
-                images[0]['is_main'] = True
-            
-            return images
-        
-        # Fallback to old image field
-        elif 'image' in product and product['image']:
-            return [{
-                'url': product['image'],
-                'filename': product['image'].split('/')[-1] if '/' in product['image'] else product['image'],
-                'is_main': True
-            }]
-        
-        # No images found
-        else:
-            return [{
-                'url': 'https://via.placeholder.com/400x300?text=Product+Image',
-                'filename': 'placeholder.jpg',
-                'is_main': True
-            }]
-    
-    def get_main_product_image(product):
-        """Get main product image"""
-        images = get_product_images(product)
-        if images:
-            # Find the main image or use first
-            for img in images:
-                if img.get('is_main', False):
-                    return img['url']
-            return images[0]['url']
-        return 'https://via.placeholder.com/400x300?text=Product+Image'
-    
     def get_product_image(product):
+        """Get product image URL, with fallback (legacy compatibility)"""
+        return get_main_product_image(product)
+    
+    def get_user_by_id(user_id):
         """Get product image URL, with fallback (legacy compatibility)"""
         return get_main_product_image(product)
     

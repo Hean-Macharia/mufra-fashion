@@ -1,0 +1,130 @@
+{% set product_id = product._id|string if product._id else '' %}
+<div class="card product-card h-100 border-0 d-flex flex-column" data-product-id="{{ product_id }}">
+    <div class="position-relative flex-shrink-0 product-image-container">
+        <a href="{{ url_for('product_details', product_id=product._id) if product._id else '#' }}">
+            <img src="{{ get_main_product_image(product) }}"
+                 class="card-img-top product-image"
+                 alt="{{ product.name }}"
+                 onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'400\' height=\'300\' viewBox=\'0 0 400 300\'%3E%3Crect width=\'400\' height=\'300\' fill=\'%23f0f0f0\'/%3E%3Ctext x=\'50%%27 y=\'50%%27 font-family=\'Arial\' font-size=\'20\' fill=\'%23999\' text-anchor=\'middle\' dy=\'.3em\'%3E{{ product.name|default('Product Image')|truncate(20) }}%3C/text%3E%3C/svg%3E'">
+        </a>
+
+        <!-- Badges -->
+        <div class="position-absolute top-0 start-0 m-2 d-flex flex-column gap-1">
+            {% if product.featured %}
+            <span class="badge bg-cyan">★ Featured</span>
+            {% endif %}
+            {% if product.condition == 'New' %}
+            <span class="badge bg-magenta">New</span>
+            {% elif product.condition == 'Second Hand' %}
+            <span class="badge bg-grey-medium">Pre-owned</span>
+            {% endif %}
+        </div>
+
+        <!-- Stock Badge -->
+        {% set stock = product.stock|default(0) %}
+        {% if stock <= 0 %}
+        <div class="position-absolute top-0 end-0 m-2">
+            <span class="badge bg-danger">Out of Stock</span>
+        </div>
+        {% elif stock < 10 %}
+        <div class="position-absolute top-0 end-0 m-2">
+            <span class="badge bg-warning text-dark">Only {{ stock }} left</span>
+        </div>
+        {% endif %}
+
+        <!-- Quick Actions -->
+        <div class="product-actions">
+            <button class="quick-view-btn rounded-circle" data-product-id="{{ product._id }}" title="Quick view">
+                <i class="fas fa-eye"></i>
+            </button>
+            <button class="wishlist-btn rounded-circle" data-product-id="{{ product._id }}" title="Add to wishlist">
+                <i class="far fa-heart"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="card-body product-details d-flex flex-column flex-grow-1">
+        <h5 class="card-title product-name mb-1 flex-shrink-0">
+            <a href="{{ url_for('product_details', product_id=product._id) if product._id else '#' }}"
+               class="text-decoration-none text-charcoal fw-bold">
+                {{ product.name|truncate(30) }}
+            </a>
+        </h5>
+
+        <p class="card-text product-description text-grey-medium small mb-2 flex-shrink-0">
+            {{ product.description|truncate(60) }}
+        </p>
+
+        <!-- Rating -->
+        <div class="mb-2 flex-shrink-0">
+            {% set rating = product.rating|default(0) %}
+            {% set reviews = product.reviews_count|default(0) %}
+            <div class="d-flex align-items-center">
+                <div class="me-2" style="color: var(--cyan-bright);">
+                    {% for i in range(5) %}
+                        {% if i < rating|int %}
+                            <i class="fas fa-star"></i>
+                        {% else %}
+                            <i class="far fa-star"></i>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                <small class="text-grey-medium">({{ reviews }})</small>
+            </div>
+        </div>
+
+        <!-- Price -->
+        <div class="d-flex align-items-center mb-2 flex-shrink-0">
+            <span class="product-price fw-bold text-magenta fs-5">{{ format_price(product.price) }}</span>
+        </div>
+
+        <!-- Sizes (if available) -->
+        {% if product.sizes and product.sizes|length > 0 %}
+        <div class="mb-2 flex-shrink-0">
+            <small class="text-grey-medium">
+                <i class="fas fa-ruler me-1 text-cyan"></i>
+                {% for size in product.sizes[:3] %}
+                    <span class="badge bg-light text-dark me-1">{{ size }}</span>
+                {% endfor %}
+                {% if product.sizes|length > 3 %}
+                    <span class="badge bg-light text-dark">+{{ product.sizes|length - 3 }}</span>
+                {% endif %}
+            </small>
+        </div>
+        {% endif %}
+
+        <!-- Colors (if available) -->
+        {% if product.colors and product.colors|length > 0 %}
+        <div class="mb-2 flex-shrink-0">
+            <small class="text-grey-medium">
+                <i class="fas fa-palette me-1 text-magenta"></i>
+                {% for color in product.colors[:3] %}
+                    <span class="badge bg-light text-dark me-1">{{ color }}</span>
+                {% endfor %}
+                {% if product.colors|length > 3 %}
+                    <span class="badge bg-light text-dark">+{{ product.colors|length - 3 }}</span>
+                {% endif %}
+            </small>
+        </div>
+        {% endif %}
+
+        <!-- Spacer to push button to bottom -->
+        <div class="flex-grow-1"></div>
+
+        <!-- Add to Cart Button -->
+        {% if stock > 0 %}
+        <form class="add-to-cart-form mt-auto" data-product-id="{{ product._id }}">
+            <input type="hidden" name="size" value="{{ product.sizes[0] if product.sizes and product.sizes|length > 0 else 'M' }}">
+            <input type="hidden" name="color" value="{{ product.colors[0] if product.colors and product.colors|length > 0 else 'Blue' }}">
+            <input type="hidden" name="quantity" value="1">
+            <button type="submit" class="btn btn-magenta w-100">
+                <i class="fas fa-cart-plus me-2"></i>Add to Cart
+            </button>
+        </form>
+        {% else %}
+        <button class="btn btn-outline-secondary w-100 mt-auto" disabled>
+            <i class="fas fa-ban me-2"></i>Out of Stock
+        </button>
+        {% endif %}
+    </div>
+</div>

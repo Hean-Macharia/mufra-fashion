@@ -23,8 +23,8 @@
         <!-- DESKTOP GRID -->
         <div class="d-none d-md-block">
             <div class="row g-4">
-                {% for product in shoes_products[:8] %}
-                <div class="col-md-6 col-lg-3">
+                {% for product in shoes_products[:6] %}
+                <div class="col-md-6 col-lg-4">
                     {% include 'includes/product_card_desktop.html' %}
                 </div>
                 {% endfor %}
@@ -59,8 +59,8 @@
         <!-- DESKTOP GRID -->
         <div class="d-none d-md-block">
             <div class="row g-4">
-                {% for product in clothes_products[:8] %}
-                <div class="col-md-6 col-lg-3">
+                {% for product in clothes_products[:6] %}
+                <div class="col-md-6 col-lg-4">
                     {% include 'includes/product_card_desktop.html' %}
                 </div>
                 {% endfor %}
@@ -95,8 +95,8 @@
         <!-- DESKTOP GRID -->
         <div class="d-none d-md-block">
             <div class="row g-4">
-                {% for product in new_products[:8] %}
-                <div class="col-md-6 col-lg-3">
+                {% for product in new_products[:6] %}
+                <div class="col-md-6 col-lg-4">
                     {% include 'includes/product_card_desktop.html' %}
                 </div>
                 {% endfor %}
@@ -131,8 +131,8 @@
         <!-- DESKTOP GRID -->
         <div class="d-none d-md-block">
             <div class="row g-4">
-                {% for product in secondhand_products[:8] %}
-                <div class="col-md-6 col-lg-3">
+                {% for product in secondhand_products[:6] %}
+                <div class="col-md-6 col-lg-4">
                     {% include 'includes/product_card_desktop.html' %}
                 </div>
                 {% endfor %}
@@ -167,8 +167,8 @@
         <!-- DESKTOP GRID -->
         <div class="d-none d-md-block">
             <div class="row g-4">
-                {% for product in featured_products[:8] %}
-                <div class="col-md-6 col-lg-3">
+                {% for product in featured_products[:6] %}
+                <div class="col-md-6 col-lg-4">
                     {% include 'includes/product_card_desktop.html' %}
                 </div>
                 {% endfor %}
@@ -225,7 +225,7 @@
 
     .horizontal-scroll-item {
         flex: 0 0 auto;
-        width: 260px;
+        width: 320px;
     }
 
     .horizontal-scroll-wrapper::-webkit-scrollbar {
@@ -242,26 +242,128 @@
         border-radius: 10px;
     }
 
-    /* Product Card */
-    .product-card {
-        border-radius: 16px;
-        background: white;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-        transition: all 0.3s ease;
+    /* Section Headers */
+    .section-header {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        padding: 1.5rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+        border-left: 4px solid #d81b60;
     }
 
-    .product-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 12px 24px rgba(216, 27, 96, 0.15);
+    .section-header h2 {
+        margin-bottom: 0.25rem;
+        font-weight: 700;
+        color: #2c3e50;
     }
 
+    .section-header small {
+        color: #6c757d;
+        font-weight: 500;
+    }
+
+    /* Grid Layout Improvements */
+    .row.g-4 {
+        margin-bottom: 2rem;
+    }
+
+    /* Section Animations */
     section {
-        animation: fadeIn 0.5s ease-in;
+        animation: slideInUp 0.6s ease-out;
+        margin-bottom: 3rem;
     }
 
-    @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
+    @keyframes slideInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Stagger animations for sections */
+    section:nth-child(1) { animation-delay: 0.1s; }
+    section:nth-child(2) { animation-delay: 0.2s; }
+    section:nth-child(3) { animation-delay: 0.3s; }
+    section:nth-child(4) { animation-delay: 0.4s; }
+    section:nth-child(5) { animation-delay: 0.5s; }
+
+    /* Page Header Enhancement */
+    .page-header {
+        text-align: center;
+        margin-bottom: 3rem;
+        padding: 2rem 0;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 16px;
+        box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+    }
+
+    .page-header h1 {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin-bottom: 0.5rem;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+
+    .page-header p {
+        font-size: 1.2rem;
+        opacity: 0.9;
+        margin-bottom: 0;
+    }
+
+    /* Empty State Enhancement */
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        color: #6c757d;
+        margin-bottom: 1.5rem;
+        opacity: 0.6;
+    }
+
+    .empty-state h3 {
+        color: #2c3e50;
+        margin-bottom: 1rem;
+    }
+
+    .empty-state p {
+        color: #6c757d;
+        margin-bottom: 2rem;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .page-header {
+            margin-bottom: 2rem;
+            padding: 1.5rem 1rem;
+        }
+
+        .page-header h1 {
+            font-size: 2rem;
+        }
+
+        .page-header p {
+            font-size: 1rem;
+        }
+
+        .section-header {
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .horizontal-scroll-item {
+            width: 320px;
+        }
     }
 </style>
 {% endblock %}
